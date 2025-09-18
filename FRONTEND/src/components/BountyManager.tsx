@@ -1,0 +1,913 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
+import {
+  useAccount,
+  useWriteContract,
+  useReadContract,
+  useWatchContractEvent,
+  useWaitForTransactionReceipt,
+} from "wagmi";
+import { readContract } from "@wagmi/core";
+import { parseEther, formatEther } from "viem";
+import {
+  CONTRACT_ADDRESSES,
+  QUINTY_ABI,
+  SOMNIA_TESTNET_ID,
+} from "../utils/contracts";
+import {
+  formatSTT,
+  formatTimeLeft,
+  formatAddress,
+  wagmiConfig,
+} from "../utils/web3";
+import BountyCard from "./BountyCard";
+import { uploadMetadataToIpfs, BountyMetadata } from "../utils/ipfs";
+
+interface Bounty {
+  id: number;
+  creator: string;
+  description: string;
+  amount: bigint;
+  deadline: bigint;
+  allowMultipleWinners: boolean;
+  winnerShares: readonly bigint[];
+  resolved: boolean;
+  slashPercent: bigint;
+  winners: readonly string[];
+  slashed: boolean;
+  metadataCid?: string;
+}
+
+interface Submission {
+  bountyId: number;
+  solver: string;
+  blindedIpfsCid: string;
+  deposit: bigint;
+  replies: string[];
+  revealIpfsCid: string;
+}
+
+export default function BountyManager() {
+  const { address, isConnected } = useAccount();
+  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
+
+  // State
+  const [bounties, setBounties] = useState<Bounty[]>([]);
+  const [submissions, setSubmissions] = useState<{
+    [bountyId: number]: Submission[];
+  }>({});
+  const [selectedBounty, setSelectedBounty] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<"create" | "browse" | "manage">(
+    "browse"
+  );
+
+  // Form states
+  const [newBounty, setNewBounty] = useState({
+    title: "",
+    description: "",
+    amount: "",
+    deadline: "",
+    slashPercent: 30,
+    allowMultipleWinners: false,
+    winnerShares: [100],
+    bountyType: "development" as
+      | "development"
+      | "design"
+      | "marketing"
+      | "research"
+      | "other",
+    requirements: [""],
+    deliverables: [""],
+    skills: [""],
+  });
+
+  const [newSubmission, setNewSubmission] = useState({
+    bountyId: 0,
+    ipfsCid: "",
+  });
+
+  const [newReply, setNewReply] = useState({
+    bountyId: 0,
+    subId: 0,
+    content: "",
+  });
+
+  const [revealData, setRevealData] = useState({
+    bountyId: 0,
+    subId: 0,
+    revealCid: "",
+  });
+
+  // Read bounty counter
+  const { data: bountyCounter } = useReadContract({
+    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+    abi: QUINTY_ABI,
+    functionName: "bountyCounter",
+  });
+
+  // Watch for bounty events
+  useWatchContractEvent({
+    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+    abi: QUINTY_ABI,
+    eventName: "BountyCreated",
+    onLogs(logs) {
+      loadBounties();
+    },
+  });
+
+  // Load bounties
+  const loadBounties = async () => {
+    if (!bountyCounter) return;
+
+    const loadedBounties: Bounty[] = [];
+    for (let i = 1; i <= Number(bountyCounter); i++) {
+      try {
+        const bountyData = await readContract(wagmiConfig, {
+          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+            .Quinty as `0x${string}`,
+          abi: QUINTY_ABI,
+          functionName: "getBounty",
+          args: [BigInt(i)],
+        });
+
+        if (bountyData) {
+          const [
+            creator,
+            description,
+            amount,
+            deadline,
+            allowMultipleWinners,
+            winnerShares,
+            resolved,
+            slashPercent,
+            winners,
+            slashed,
+          ] = bountyData;
+
+          loadedBounties.push({
+            id: i,
+            creator,
+            description,
+            amount,
+            deadline,
+            allowMultipleWinners,
+            winnerShares,
+            resolved,
+            slashPercent,
+            winners,
+            slashed,
+          });
+          loadSubmissions(i);
+        }
+      } catch (error) {
+        console.error(`Error loading bounty ${i}:`, error);
+      }
+    }
+    setBounties(loadedBounties.reverse());
+  };
+
+  // Load submissions for a bounty
+  const loadSubmissions = async (bountyId: number) => {
+    // Simplified implementation
+    // In real app, you would read submission count and load each submission
+    setSubmissions((prev) => ({
+      ...prev,
+      [bountyId]: [],
+    }));
+  };
+
+  // Create bounty
+  const createBounty = async () => {
+    if (!isConnected) return;
+
+    const deadlineTimestamp = Math.floor(
+      new Date(newBounty.deadline).getTime() / 1000
+    );
+    const slashPercent = newBounty.slashPercent * 100; // Convert to basis points
+
+    try {
+      // Create metadata for IPFS
+      const metadata: BountyMetadata = {
+        title: newBounty.title,
+        description: newBounty.description,
+        requirements: newBounty.requirements.filter((r) => r.trim()),
+        deliverables: newBounty.deliverables.filter((d) => d.trim()),
+        skills: newBounty.skills.filter((s) => s.trim()),
+        deadline: deadlineTimestamp,
+        bountyType: newBounty.bountyType,
+      };
+
+      // Upload metadata to IPFS
+      console.log("Uploading metadata to IPFS...");
+      const metadataCid = await uploadMetadataToIpfs(metadata);
+      console.log("Metadata uploaded to IPFS:", metadataCid);
+
+      // Use metadata CID as the description parameter
+      const descriptionWithMetadata = `${newBounty.title}\n\nMetadata: ipfs://${metadataCid}`;
+
+      const winnerSharesArg = newBounty.allowMultipleWinners
+        ? newBounty.winnerShares.map((s) => BigInt(s * 100))
+        : [];
+
+      console.log("Creating bounty on blockchain...");
+      writeContract({
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+        abi: QUINTY_ABI,
+        functionName: "createBounty",
+        args: [
+          descriptionWithMetadata,
+          BigInt(deadlineTimestamp),
+          newBounty.allowMultipleWinners,
+          winnerSharesArg,
+          BigInt(slashPercent),
+        ],
+        value: parseEther(newBounty.amount),
+      });
+
+      // Reset form
+      setNewBounty({
+        title: "",
+        description: "",
+        amount: "",
+        deadline: "",
+        slashPercent: 30,
+        allowMultipleWinners: false,
+        winnerShares: [100],
+        bountyType: "development",
+        requirements: [""],
+        deliverables: [""],
+        skills: [""],
+      });
+    } catch (error) {
+      console.error("Error creating bounty:", error);
+      alert("Error creating bounty: " + (error as any).message);
+    }
+  };
+
+  // Effect to handle transaction status
+  useEffect(() => {
+    if (isConfirmed) {
+      // Reset form only after transaction is confirmed
+      setNewBounty({
+        title: "",
+        description: "",
+        amount: "",
+        deadline: "",
+        slashPercent: 30,
+        allowMultipleWinners: false,
+        winnerShares: [100],
+        bountyType: "development",
+        requirements: [""],
+        deliverables: [""],
+        skills: [""],
+      });
+
+      alert("Bounty created successfully and confirmed on Somnia Testnet!");
+      loadBounties(); // Reload bounties
+    }
+  }, [isConfirmed]);
+
+  // Submit solution
+  const submitSolution = async (bountyId?: number, ipfsCid?: string) => {
+    if (!isConnected) return;
+
+    const targetBountyId = bountyId || newSubmission.bountyId;
+    const targetIpfsCid = ipfsCid || newSubmission.ipfsCid;
+
+    if (!targetBountyId || !targetIpfsCid) return;
+
+    const bounty = bounties.find((b) => b.id === targetBountyId);
+    if (!bounty) return;
+
+    const depositAmount = bounty.amount / BigInt(10); // 10% deposit
+
+    try {
+      const tx = await writeContract({
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+        abi: QUINTY_ABI,
+        functionName: "submitSolution",
+        args: [BigInt(targetBountyId), targetIpfsCid],
+        value: depositAmount,
+      });
+
+      console.log("Transaction hash:", tx);
+      setNewSubmission({ bountyId: 0, ipfsCid: "" });
+      alert("Solution submitted successfully! Transaction pending...");
+    } catch (error) {
+      console.error("Error submitting solution:", error);
+      alert("Error submitting solution: " + (error as any).message);
+    }
+  };
+
+  // Select winners
+  const selectWinners = async (
+    bountyId: number,
+    winners: string[],
+    subIds: number[]
+  ) => {
+    if (!isConnected) return;
+
+    try {
+      await writeContract({
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+        abi: QUINTY_ABI,
+        functionName: "selectWinners",
+        args: [BigInt(bountyId), winners, subIds.map((id) => BigInt(id))],
+      });
+
+      alert("Winners selected successfully!");
+      loadBounties();
+    } catch (error) {
+      console.error("Error selecting winners:", error);
+      alert("Error selecting winners");
+    }
+  };
+
+  // Trigger slash
+  const triggerSlash = async (bountyId: number) => {
+    if (!isConnected) return;
+
+    try {
+      await writeContract({
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+        abi: QUINTY_ABI,
+        functionName: "triggerSlash",
+        args: [BigInt(bountyId)],
+      });
+
+      alert("Slash triggered successfully!");
+      loadBounties();
+    } catch (error) {
+      console.error("Error triggering slash:", error);
+      alert("Error triggering slash");
+    }
+  };
+
+  // Add reply
+  const addReply = async () => {
+    if (!isConnected || !newReply.content.trim()) return;
+
+    try {
+      await writeContract({
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+        abi: QUINTY_ABI,
+        functionName: "addReply",
+        args: [
+          BigInt(newReply.bountyId),
+          BigInt(newReply.subId),
+          newReply.content,
+        ],
+      });
+
+      setNewReply({ bountyId: 0, subId: 0, content: "" });
+      alert("Reply added successfully!");
+    } catch (error) {
+      console.error("Error adding reply:", error);
+      alert("Error adding reply");
+    }
+  };
+
+  // Reveal solution
+  const revealSolution = async () => {
+    if (!isConnected || !revealData.revealCid.trim()) return;
+
+    try {
+      await writeContract({
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+        abi: QUINTY_ABI,
+        functionName: "revealSolution",
+        args: [
+          BigInt(revealData.bountyId),
+          BigInt(revealData.subId),
+          revealData.revealCid,
+        ],
+      });
+
+      setRevealData({ bountyId: 0, subId: 0, revealCid: "" });
+      alert("Solution revealed successfully!");
+    } catch (error) {
+      console.error("Error revealing solution:", error);
+      alert("Error revealing solution");
+    }
+  };
+
+  useEffect(() => {
+    if (bountyCounter) {
+      loadBounties();
+    }
+  }, [bountyCounter]);
+
+  if (!isConnected) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-700">
+          Please connect your wallet to use Quinty.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      <div className="mb-6">
+        <h2 className="text-3xl font-bold text-gray-800 mb-4">
+          Quinty Bounty System
+        </h2>
+
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {["browse", "create", "manage"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as any)}
+                className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === tab
+                    ? "border-primary-500 text-primary-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)} Bounties
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
+      {/* Create Bounty Tab */}
+      {activeTab === "create" && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-xl font-semibold mb-4">Create New Bounty</h3>
+
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Title *
+              </label>
+              <input
+                type="text"
+                value={newBounty.title}
+                onChange={(e) =>
+                  setNewBounty({ ...newBounty, title: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                placeholder="e.g., Build a React Dashboard Component"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Description *
+              </label>
+              <textarea
+                value={newBounty.description}
+                onChange={(e) =>
+                  setNewBounty({ ...newBounty, description: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                rows={3}
+                placeholder="Detailed description of your bounty..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Bounty Type
+              </label>
+              <select
+                value={newBounty.bountyType}
+                onChange={(e) =>
+                  setNewBounty({
+                    ...newBounty,
+                    bountyType: e.target.value as any,
+                  })
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+              >
+                <option value="development">Development</option>
+                <option value="design">Design</option>
+                <option value="marketing">Marketing</option>
+                <option value="research">Research</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Amount (STT)
+                </label>
+                <input
+                  type="number"
+                  value={newBounty.amount}
+                  onChange={(e) =>
+                    setNewBounty({ ...newBounty, amount: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  placeholder="1.0"
+                  step="0.01"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Deadline
+                </label>
+                <input
+                  type="datetime-local"
+                  value={newBounty.deadline}
+                  onChange={(e) =>
+                    setNewBounty({ ...newBounty, deadline: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Slash Percentage: {newBounty.slashPercent}%
+              </label>
+              <input
+                type="range"
+                min="25"
+                max="50"
+                value={newBounty.slashPercent}
+                onChange={(e) =>
+                  setNewBounty({
+                    ...newBounty,
+                    slashPercent: parseInt(e.target.value),
+                  })
+                }
+                className="w-full"
+              />
+              <div className="flex justify-between text-xs text-gray-500">
+                <span>25%</span>
+                <span>50%</span>
+              </div>
+            </div>
+
+            {/* Requirements */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Requirements
+              </label>
+              {newBounty.requirements.map((req, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={req}
+                    onChange={(e) => {
+                      const newReqs = [...newBounty.requirements];
+                      newReqs[index] = e.target.value;
+                      setNewBounty({ ...newBounty, requirements: newReqs });
+                    }}
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                    placeholder="Enter a requirement..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newReqs = newBounty.requirements.filter(
+                        (_, i) => i !== index
+                      );
+                      setNewBounty({ ...newBounty, requirements: newReqs });
+                    }}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setNewBounty({
+                    ...newBounty,
+                    requirements: [...newBounty.requirements, ""],
+                  })
+                }
+                className="text-blue-600 hover:text-blue-800 text-sm"
+              >
+                + Add Requirement
+              </button>
+            </div>
+
+            {/* Deliverables */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Deliverables
+              </label>
+              {newBounty.deliverables.map((del, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={del}
+                    onChange={(e) => {
+                      const newDels = [...newBounty.deliverables];
+                      newDels[index] = e.target.value;
+                      setNewBounty({ ...newBounty, deliverables: newDels });
+                    }}
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                    placeholder="Enter a deliverable..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newDels = newBounty.deliverables.filter(
+                        (_, i) => i !== index
+                      );
+                      setNewBounty({ ...newBounty, deliverables: newDels });
+                    }}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setNewBounty({
+                    ...newBounty,
+                    deliverables: [...newBounty.deliverables, ""],
+                  })
+                }
+                className="text-blue-600 hover:text-blue-800 text-sm"
+              >
+                + Add Deliverable
+              </button>
+            </div>
+
+            {/* Skills */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Required Skills
+              </label>
+              {newBounty.skills.map((skill, index) => (
+                <div key={index} className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={skill}
+                    onChange={(e) => {
+                      const newSkills = [...newBounty.skills];
+                      newSkills[index] = e.target.value;
+                      setNewBounty({ ...newBounty, skills: newSkills });
+                    }}
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+                    placeholder="e.g., React, TypeScript, UI/UX..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newSkills = newBounty.skills.filter(
+                        (_, i) => i !== index
+                      );
+                      setNewBounty({ ...newBounty, skills: newSkills });
+                    }}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setNewBounty({
+                    ...newBounty,
+                    skills: [...newBounty.skills, ""],
+                  })
+                }
+                className="text-blue-600 hover:text-blue-800 text-sm"
+              >
+                + Add Skill
+              </button>
+            </div>
+
+            <button
+              onClick={createBounty}
+              disabled={
+                !newBounty.title ||
+                !newBounty.description ||
+                !newBounty.amount ||
+                !newBounty.deadline ||
+                isPending ||
+                isConfirming
+              }
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-lg"
+            >
+              {isPending
+                ? "Preparing Transaction..."
+                : isConfirming
+                ? "Confirming on Blockchain..."
+                : "Create Bounty with IPFS Metadata"}
+            </button>
+
+            {/* Transaction Status */}
+            {hash && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm">
+                  <strong>Transaction Hash:</strong>{" "}
+                  <a
+                    href={`https://shannon-explorer.somnia.network/tx/${hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:text-blue-800 font-mono"
+                  >
+                    {hash}
+                  </a>
+                </p>
+                {isConfirming && (
+                  <p className="text-sm text-blue-600 mt-2">
+                    ⏳ Waiting for confirmation on Somnia Testnet...
+                  </p>
+                )}
+                {isConfirmed && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✅ Transaction confirmed!
+                  </p>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  <strong>Error:</strong> {error.message}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Browse Bounties Tab */}
+      {activeTab === "browse" && (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h3 className="text-2xl font-bold text-gray-900">
+              All Bounties ({bounties.length})
+            </h3>
+            <div className="flex gap-2">
+              <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option value="">All Types</option>
+                <option value="development">Development</option>
+                <option value="design">Design</option>
+                <option value="marketing">Marketing</option>
+                <option value="research">Research</option>
+                <option value="other">Other</option>
+              </select>
+              <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="resolved">Resolved</option>
+                <option value="expired">Expired</option>
+              </select>
+            </div>
+          </div>
+
+          {bounties.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                <span className="text-2xl">🎯</span>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                No bounties found
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Be the first to create a bounty!
+              </p>
+              <button
+                onClick={() => setActiveTab("create")}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Create Bounty
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {bounties.map((bounty) => (
+                <BountyCard
+                  key={bounty.id}
+                  bounty={bounty}
+                  onSubmitSolution={submitSolution}
+                  onSelectWinners={selectWinners}
+                  onTriggerSlash={triggerSlash}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Manage Tab */}
+      {activeTab === "manage" && (
+        <div className="space-y-6">
+          <h3 className="text-xl font-semibold">
+            Manage Submissions & Communications
+          </h3>
+
+          {/* Add Reply */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h4 className="text-lg font-semibold mb-4">Add Reply</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <input
+                type="number"
+                placeholder="Bounty ID"
+                value={newReply.bountyId || ""}
+                onChange={(e) =>
+                  setNewReply({
+                    ...newReply,
+                    bountyId: parseInt(e.target.value) || 0,
+                  })
+                }
+                className="border border-gray-300 rounded-md px-3 py-2"
+              />
+              <input
+                type="number"
+                placeholder="Submission ID"
+                value={newReply.subId || ""}
+                onChange={(e) =>
+                  setNewReply({
+                    ...newReply,
+                    subId: parseInt(e.target.value) || 0,
+                  })
+                }
+                className="border border-gray-300 rounded-md px-3 py-2"
+              />
+              <button
+                onClick={addReply}
+                disabled={!newReply.content.trim()}
+                className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50"
+              >
+                Add Reply
+              </button>
+            </div>
+            <textarea
+              placeholder="Your reply..."
+              value={newReply.content}
+              onChange={(e) =>
+                setNewReply({ ...newReply, content: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-2"
+              rows={3}
+            />
+          </div>
+
+          {/* Reveal Solution */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h4 className="text-lg font-semibold mb-4">Reveal Solution</h4>
+            <div className="grid grid-cols-3 gap-4">
+              <input
+                type="number"
+                placeholder="Bounty ID"
+                value={revealData.bountyId || ""}
+                onChange={(e) =>
+                  setRevealData({
+                    ...revealData,
+                    bountyId: parseInt(e.target.value) || 0,
+                  })
+                }
+                className="border border-gray-300 rounded-md px-3 py-2"
+              />
+              <input
+                type="number"
+                placeholder="Submission ID"
+                value={revealData.subId || ""}
+                onChange={(e) =>
+                  setRevealData({
+                    ...revealData,
+                    subId: parseInt(e.target.value) || 0,
+                  })
+                }
+                className="border border-gray-300 rounded-md px-3 py-2"
+              />
+              <button
+                onClick={revealSolution}
+                disabled={!revealData.revealCid.trim()}
+                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
+              >
+                Reveal Solution
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Reveal IPFS CID"
+              value={revealData.revealCid}
+              onChange={(e) =>
+                setRevealData({ ...revealData, revealCid: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-2"
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
