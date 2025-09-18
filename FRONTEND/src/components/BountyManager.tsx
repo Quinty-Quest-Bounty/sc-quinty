@@ -40,12 +40,13 @@ interface Bounty {
 }
 
 interface Submission {
-  bountyId: number;
+  bountyId: bigint;
   solver: string;
   blindedIpfsCid: string;
   deposit: bigint;
-  replies: string[];
+  replies: readonly string[];
   revealIpfsCid: string;
+  timestamp: bigint;
 }
 
 export default function BountyManager() {
@@ -116,23 +117,40 @@ export default function BountyManager() {
     abi: QUINTY_ABI,
     eventName: "BountyCreated",
     onLogs(logs) {
-      loadBounties();
+      loadBountiesAndSubmissions();
     },
   });
 
-  // Load bounties
-  const loadBounties = async () => {
+  useWatchContractEvent({
+    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+    abi: QUINTY_ABI,
+    eventName: "SubmissionCreated",
+    onLogs(logs) {
+      logs.forEach((log) => {
+        const { bountyId } = log.args;
+        if (bountyId) {
+          loadBountiesAndSubmissions(); // Reload all for simplicity
+        }
+      });
+    },
+  });
+
+  // Load bounties and submissions
+  const loadBountiesAndSubmissions = async () => {
     if (!bountyCounter) return;
 
+    const bountyIds = Array.from({ length: Number(bountyCounter) }, (_, i) => i + 1);
+
     const loadedBounties: Bounty[] = [];
-    for (let i = 1; i <= Number(bountyCounter); i++) {
+    const allSubmissions: { [bountyId: number]: Submission[] } = {};
+
+    for (const id of bountyIds) {
       try {
         const bountyData = await readContract(wagmiConfig, {
-          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-            .Quinty as `0x${string}`,
+          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
           abi: QUINTY_ABI,
           functionName: "getBounty",
-          args: [BigInt(i)],
+          args: [BigInt(id)],
         });
 
         if (bountyData) {
@@ -150,7 +168,7 @@ export default function BountyManager() {
           ] = bountyData;
 
           loadedBounties.push({
-            id: i,
+            id,
             creator,
             description,
             amount,
@@ -162,23 +180,34 @@ export default function BountyManager() {
             winners,
             slashed,
           });
-          loadSubmissions(i);
+
+          const submissionCount = await readContract(wagmiConfig, {
+            address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+            abi: QUINTY_ABI,
+            functionName: "getSubmissionCount",
+            args: [BigInt(id)],
+          });
+
+          const loadedSubmissions: Submission[] = [];
+          for (let i = 0; i < Number(submissionCount); i++) {
+            const submissionData = await readContract(wagmiConfig, {
+              address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+              abi: QUINTY_ABI,
+              functionName: "getSubmission",
+              args: [BigInt(id), BigInt(i)],
+            });
+            const [bId, solver, blindedIpfsCid, deposit, replies, revealIpfsCid, timestamp] = submissionData;
+            loadedSubmissions.push({ bountyId: bId, solver, blindedIpfsCid, deposit, replies, revealIpfsCid, timestamp });
+          }
+          allSubmissions[id] = loadedSubmissions;
         }
       } catch (error) {
-        console.error(`Error loading bounty ${i}:`, error);
+        console.error(`Error loading bounty or submissions for ID ${id}:`, error);
       }
     }
-    setBounties(loadedBounties.reverse());
-  };
 
-  // Load submissions for a bounty
-  const loadSubmissions = async (bountyId: number) => {
-    // Simplified implementation
-    // In real app, you would read submission count and load each submission
-    setSubmissions((prev) => ({
-      ...prev,
-      [bountyId]: [],
-    }));
+    setBounties(loadedBounties.reverse());
+    setSubmissions(allSubmissions);
   };
 
   // Create bounty
@@ -268,7 +297,7 @@ export default function BountyManager() {
       });
 
       alert("Bounty created successfully and confirmed on Somnia Testnet!");
-      loadBounties(); // Reload bounties
+      loadBountiesAndSubmissions(); // Reload bounties
     }
   }, [isConfirmed]);
 
@@ -321,7 +350,7 @@ export default function BountyManager() {
       });
 
       alert("Winners selected successfully!");
-      loadBounties();
+      loadBountiesAndSubmissions();
     } catch (error) {
       console.error("Error selecting winners:", error);
       alert("Error selecting winners");
@@ -341,7 +370,7 @@ export default function BountyManager() {
       });
 
       alert("Slash triggered successfully!");
-      loadBounties();
+      loadBountiesAndSubmissions();
     } catch (error) {
       console.error("Error triggering slash:", error);
       alert("Error triggering slash");
@@ -398,7 +427,7 @@ export default function BountyManager() {
 
   useEffect(() => {
     if (bountyCounter) {
-      loadBounties();
+      loadBountiesAndSubmissions();
     }
   }, [bountyCounter]);
 
@@ -796,6 +825,7 @@ export default function BountyManager() {
                 <BountyCard
                   key={bounty.id}
                   bounty={bounty}
+                  submissions={submissions[bounty.id] || []}
                   onSubmitSolution={submitSolution}
                   onSelectWinners={selectWinners}
                   onTriggerSlash={triggerSlash}

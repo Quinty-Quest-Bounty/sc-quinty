@@ -1,3 +1,6 @@
+import axios from 'axios';
+import FormData from 'form-data';
+
 // IPFS utilities for handling file uploads and metadata
 export const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
 export const PINATA_GATEWAY = "https://gateway.pinata.cloud/ipfs/";
@@ -58,24 +61,28 @@ export const isValidIpfsCid = (cid: string): boolean => {
   );
 };
 
-// Upload file to IPFS (placeholder - you'll need to integrate with Pinata, Infura, or local node)
+// Upload file to IPFS using Pinata
 export const uploadToIpfs = async (
   file: File | Blob,
   metadata?: any
 ): Promise<string> => {
+  const url = `https://api.pinata.cloud/pinning/pinFileToIPFS`;
+
+  const data = new FormData();
+  data.append('file', file);
+
+  if (metadata) {
+    const pinataMetadata = JSON.stringify({ name: (file as File).name, keyvalues: metadata });
+    data.append('pinataMetadata', pinataMetadata);
+  }
+
+  const headers = {
+    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT || ''}`
+  };
+
   try {
-    // This is a placeholder implementation
-    // In production, you would use a service like Pinata, Infura, or your own IPFS node
-
-    console.log("Uploading to IPFS:", file, metadata);
-
-    // For demo purposes, return a mock CID
-    const mockCid = "QmExample" + Math.random().toString(36).substring(2, 15);
-
-    // Simulate upload delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    return mockCid;
+    const res = await axios.post(url, data, { headers });
+    return res.data.IpfsHash;
   } catch (error) {
     console.error("IPFS upload failed:", error);
     throw new Error("Failed to upload to IPFS");
@@ -86,12 +93,16 @@ export const uploadToIpfs = async (
 export const uploadMetadataToIpfs = async (
   metadata: BountyMetadata | SubmissionMetadata
 ): Promise<string> => {
-  try {
-    const jsonBlob = new Blob([JSON.stringify(metadata, null, 2)], {
-      type: "application/json",
-    });
+  const url = `https://api.pinata.cloud/pinning/pinJSONToIPFS`;
 
-    return await uploadToIpfs(jsonBlob);
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.NEXT_PUBLIC_PINATA_JWT || ''}`
+  };
+
+  try {
+    const res = await axios.post(url, metadata, { headers });
+    return res.data.IpfsHash;
   } catch (error) {
     console.error("Metadata upload failed:", error);
     throw new Error("Failed to upload metadata to IPFS");

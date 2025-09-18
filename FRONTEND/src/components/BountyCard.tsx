@@ -24,8 +24,19 @@ interface Bounty {
   metadataCid?: string;
 }
 
+interface Submission {
+  bountyId: bigint;
+  solver: string;
+  blindedIpfsCid: string;
+  deposit: bigint;
+  replies: readonly string[];
+  revealIpfsCid: string;
+  timestamp: bigint;
+}
+
 interface BountyCardProps {
   bounty: Bounty;
+  submissions: Submission[];
   onSubmitSolution?: (bountyId: number, ipfsCid: string) => void;
   onSelectWinners?: (
     bountyId: number,
@@ -38,16 +49,66 @@ interface BountyCardProps {
 
 export default function BountyCard({
   bounty,
+  submissions,
   onSubmitSolution,
   onSelectWinners,
   onTriggerSlash,
   showManagementActions = true,
 }: BountyCardProps) {
+  console.log('BountyCard received:', { bounty, submissions });
   const { address } = useAccount();
   const [metadata, setMetadata] = useState<BountyMetadata | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [submissionCid, setSubmissionCid] = useState("");
   const [isLoadingMetadata, setIsLoadingMetadata] = useState(false);
+  const [selectedSubmissions, setSelectedSubmissions] = useState<number[]>([]);
+
+  const handleToggleSubmission = (subIndex: number) => {
+    setSelectedSubmissions((prev) =>
+      prev.includes(subIndex)
+        ? prev.filter((i) => i !== subIndex)
+        : [...prev, subIndex]
+    );
+  };
+
+  const handleSelectWinners = () => {
+    if (onSelectWinners) {
+      const selectedSolvers = selectedSubmissions.map(
+        (subIndex) => submissions[subIndex].solver
+      );
+      onSelectWinners(bounty.id, selectedSolvers, selectedSubmissions);
+    }
+  };
+
+  const renderDescription = () => {
+    const fullDescription = metadata?.title || bounty.description;
+    const parts = fullDescription.split(/(ipfs:\/\/\S+)/);
+
+    if (parts.length > 1) {
+      const textPart = parts[0];
+      const ipfsLink = parts[1];
+      const ipfsCid = ipfsLink.replace("ipfs://", "");
+      
+      const truncatedCid = `${ipfsCid.substring(0, 6)}...${ipfsCid.substring(ipfsCid.length - 6)}`;
+
+      return (
+        <span>
+          {textPart}
+          <a
+            href={`https://ipfs.io/ipfs/${ipfsCid}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {`ipfs://${truncatedCid}`}
+          </a>
+        </span>
+      );
+    }
+    
+    return fullDescription;
+  };
 
   // Load metadata from IPFS if available
   useEffect(() => {
@@ -112,7 +173,7 @@ export default function BountyCard({
             </div>
 
             <p className="text-gray-600 mb-3 line-clamp-2">
-              {metadata?.title || bounty.description}
+              {renderDescription()}
             </p>
 
             {metadata?.bountyType && (
@@ -288,12 +349,39 @@ export default function BountyCard({
         {canManage && !bounty.resolved && (
           <div className="p-4 border-t">
             <h5 className="font-medium text-gray-900 mb-3">Manage Bounty</h5>
+            {submissions.length > 0 && (
+              <div className="space-y-2 mb-4">
+                <h6 className="text-sm font-semibold">Submissions:</h6>
+                {submissions.map((sub, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id={`sub-${bounty.id}-${index}`}
+                      checked={selectedSubmissions.includes(index)}
+                      onChange={() => handleToggleSubmission(index)}
+                    />
+                    <label htmlFor={`sub-${bounty.id}-${index}`} className="text-sm">
+                      {formatAddress(sub.solver)}
+                    </label>
+                    <a
+                      href={`https://ipfs.io/ipfs/${sub.blindedIpfsCid}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 text-sm hover:underline"
+                    >
+                      View Submission
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex gap-3">
               <button
-                onClick={() => onSelectWinners?.(bounty.id, [address], [0])}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700"
+                onClick={handleSelectWinners}
+                disabled={selectedSubmissions.length === 0}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
               >
-                Select Winner
+                Select Winner(s)
               </button>
 
               {isExpired && (

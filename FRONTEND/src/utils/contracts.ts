@@ -714,38 +714,301 @@ export const QUINTY_ABI = [
 ];
 
 export const DISPUTE_ABI = [
-  "function vote(uint256 _disputeId, uint256[] memory _rankedSubIds) external payable",
-  "function resolveDispute(uint256 _disputeId) external",
-  "function initiatePengadilanDispute(uint256 _bountyId) external",
-  "function getDispute(uint256 _disputeId) external view returns (tuple(uint256 bountyId, bool isExpiry, uint256 amount, uint256 votingEnd, uint256 voteCount, bool resolved))",
-  "function getVote(uint256 _disputeId, uint256 _voteIndex) external view returns (tuple(address voter, uint256 stake, uint256[] rankedSubIds))",
-  "function disputeCounter() external view returns (uint256)",
-  "event DisputeInitiated(uint256 indexed disputeId, uint256 bountyId, bool isExpiry, uint256 amount)",
-  "event VoteCast(uint256 indexed disputeId, address voter, uint256[] rankedSubIds, uint256 stake)",
-  "event DisputeResolved(uint256 indexed disputeId, uint256[] topRanks, uint256[] distributions)"
+  {
+    "type": "function",
+    "name": "vote",
+    "inputs": [
+      { "name": "_disputeId", "type": "uint256" },
+      { "name": "_rankedSubIds", "type": "uint256[]" }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "resolveDispute",
+    "inputs": [{ "name": "_disputeId", "type": "uint256" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "initiatePengadilanDispute",
+    "inputs": [{ "name": "_bountyId", "type": "uint256" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getDispute",
+    "inputs": [{ "name": "_disputeId", "type": "uint256" }],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          { "name": "bountyId", "type": "uint256" },
+          { "name": "isExpiry", "type": "bool" },
+          { "name": "amount", "type": "uint256" },
+          { "name": "votingEnd", "type": "uint256" },
+          { "name": "voteCount", "type": "uint256" },
+          { "name": "resolved", "type": "bool" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getVote",
+    "inputs": [
+      { "name": "_disputeId", "type": "uint256" },
+      { "name": "_voteIndex", "type": "uint256" }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          { "name": "voter", "type": "address" },
+          { "name": "stake", "type": "uint256" },
+          { "name": "rankedSubIds", "type": "uint256[]" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "disputeCounter",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "DisputeInitiated",
+    "inputs": [
+      { "name": "disputeId", "type": "uint256", "indexed": true },
+      { "name": "bountyId", "type": "uint256", "indexed": false },
+      { "name": "isExpiry", "type": "bool", "indexed": false },
+      { "name": "amount", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "VoteCast",
+    "inputs": [
+      { "name": "disputeId", "type": "uint256", "indexed": true },
+      { "name": "voter", "type": "address", "indexed": false },
+      { "name": "rankedSubIds", "type": "uint256[]", "indexed": false },
+      { "name": "stake", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DisputeResolved",
+    "inputs": [
+      { "name": "disputeId", "type": "uint256", "indexed": true },
+      { "name": "topRanks", "type": "uint256[]", "indexed": false },
+      { "name": "distributions", "type": "uint256[]", "indexed": false }
+    ],
+    "anonymous": false
+  }
 ];
 
 export const REPUTATION_ABI = [
-  "function getUserReputation(address _user) external view returns (tuple(uint256 bountiesCreated, uint256 successfulBounties, uint256 creationSuccessRate, uint256 firstBountyTimestamp, uint256 solvesAttempted, uint256 successfulSolves, uint256 solveSuccessRate, uint256 totalSolvedCount, uint256 tokenId, string level))",
-  "function tokenURI(uint256 tokenId) external view returns (string)",
-  "function balanceOf(address owner) external view returns (uint256)",
-  "event ReputationUpdated(address indexed user, bool isCreator, bool success)",
-  "event BadgeMintedOrUpgraded(address indexed user, uint256 tokenId, string level, string tokenURI)"
+  {
+    "type": "function",
+    "name": "getUserReputation",
+    "inputs": [{ "name": "_user", "type": "address" }],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          { "name": "bountiesCreated", "type": "uint256" },
+          { "name": "successfulBounties", "type": "uint256" },
+          { "name": "creationSuccessRate", "type": "uint256" },
+          { "name": "firstBountyTimestamp", "type": "uint256" },
+          { "name": "solvesAttempted", "type": "uint256" },
+          { "name": "successfulSolves", "type": "uint256" },
+          { "name": "solveSuccessRate", "type": "uint256" },
+          { "name": "totalSolvedCount", "type": "uint256" },
+          { "name": "tokenId", "type": "uint256" },
+          { "name": "level", "type": "string" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "tokenURI",
+    "inputs": [{ "name": "tokenId", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "string" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "balanceOf",
+    "inputs": [{ "name": "owner", "type": "address" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "ReputationUpdated",
+    "inputs": [
+      { "name": "user", "type": "address", "indexed": true },
+      { "name": "isCreator", "type": "bool", "indexed": false },
+      { "name": "success", "type": "bool", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "BadgeMintedOrUpgraded",
+    "inputs": [
+      { "name": "user", "type": "address", "indexed": true },
+      { "name": "tokenId", "type": "uint256", "indexed": false },
+      { "name": "level", "type": "string", "indexed": false },
+      { "name": "tokenURI", "type": "string", "indexed": false }
+    ],
+    "anonymous": false
+  }
 ];
 
 export const AIRDROP_ABI = [
-  "function createAirdrop(uint256 _perQualifier, uint256 _maxQualifiers, uint256 _deadline) external payable",
-  "function submitEntry(uint256 _id, string memory _ipfsProofCid) external",
-  "function verifyAndDistribute(uint256 _id, uint256[] memory _qualifiedIndices) external",
-  "function cancelAirdrop(uint256 _id) external",
-  "function finalizeAirdrop(uint256 _id) external",
-  "function getAirdrop(uint256 _id) external view returns (tuple(address creator, uint256 totalAmount, uint256 perQualifier, uint256 maxQualifiers, uint256 qualifiersCount, uint256 deadline, bool resolved, bool cancelled))",
-  "function getEntry(uint256 _id, uint256 _entryIndex) external view returns (tuple(address solver, string ipfsProofCid, bool qualified, bool verified))",
-  "function getEntryCount(uint256 _id) external view returns (uint256)",
-  "function airdropCounter() external view returns (uint256)",
-  "event AirdropCreated(uint256 indexed id, address creator, uint256 perQualifier, uint256 maxQualifiers)",
-  "event EntrySubmitted(uint256 indexed id, address solver, string ipfsProofCid)",
-  "event QualifiedAndDistributed(uint256 indexed id, address[] qualifiers)"
+  {
+    "type": "function",
+    "name": "createAirdrop",
+    "inputs": [
+      { "name": "_perQualifier", "type": "uint256" },
+      { "name": "_maxQualifiers", "type": "uint256" },
+      { "name": "_deadline", "type": "uint256" }
+    ],
+    "outputs": [],
+    "stateMutability": "payable"
+  },
+  {
+    "type": "function",
+    "name": "submitEntry",
+    "inputs": [
+      { "name": "_id", "type": "uint256" },
+      { "name": "_ipfsProofCid", "type": "string" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "verifyAndDistribute",
+    "inputs": [
+      { "name": "_id", "type": "uint256" },
+      { "name": "_qualifiedIndices", "type": "uint256[]" }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cancelAirdrop",
+    "inputs": [{ "name": "_id", "type": "uint256" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "finalizeAirdrop",
+    "inputs": [{ "name": "_id", "type": "uint256" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "getAirdrop",
+    "inputs": [{ "name": "_id", "type": "uint256" }],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          { "name": "creator", "type": "address" },
+          { "name": "totalAmount", "type": "uint256" },
+          { "name": "perQualifier", "type": "uint256" },
+          { "name": "maxQualifiers", "type": "uint256" },
+          { "name": "qualifiersCount", "type": "uint256" },
+          { "name": "deadline", "type": "uint256" },
+          { "name": "resolved", "type": "bool" },
+          { "name": "cancelled", "type": "bool" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEntry",
+    "inputs": [
+      { "name": "_id", "type": "uint256" },
+      { "name": "_entryIndex", "type": "uint256" }
+    ],
+    "outputs": [
+      {
+        "type": "tuple",
+        "components": [
+          { "name": "solver", "type": "address" },
+          { "name": "ipfsProofCid", "type": "string" },
+          { "name": "qualified", "type": "bool" },
+          { "name": "verified", "type": "bool" }
+        ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getEntryCount",
+    "inputs": [{ "name": "_id", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "airdropCounter",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "event",
+    "name": "AirdropCreated",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "creator", "type": "address", "indexed": true },
+      { "name": "perQualifier", "type": "uint256", "indexed": false },
+      { "name": "maxQualifiers", "type": "uint256", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EntrySubmitted",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "solver", "type": "address", "indexed": false },
+      { "name": "ipfsProofCid", "type": "string", "indexed": false }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "QualifiedAndDistributed",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true },
+      { "name": "qualifiers", "type": "address[]", "indexed": false }
+    ],
+    "anonymous": false
+  }
 ];
 
 // Constants

@@ -7,13 +7,14 @@ import {
   useReadContract,
   useWatchContractEvent,
 } from "wagmi";
+import { readContract } from "@wagmi/core";
 import { parseEther } from "viem";
 import {
   CONTRACT_ADDRESSES,
   AIRDROP_ABI,
   SOMNIA_TESTNET_ID,
 } from "../utils/contracts";
-import { formatSTT, formatTimeLeft, formatAddress } from "../utils/web3";
+import { formatSTT, formatTimeLeft, formatAddress, wagmiConfig } from "../utils/web3";
 
 interface Airdrop {
   id: number;
@@ -67,8 +68,11 @@ export default function AirdropManager() {
     qualifiedIndices: [] as number[],
   });
 
+  const [manageAirdropId, setManageAirdropId] = useState<number | string>('');
+
+
   // Read airdrop counter
-  const { data: airdropCounter } = useReadContract({
+  const { data: airdropCounter, refetch: refetchAirdropCounter } = useReadContract({
     address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
       .AirdropBounty as `0x${string}`,
     abi: AIRDROP_ABI,
@@ -82,7 +86,7 @@ export default function AirdropManager() {
     abi: AIRDROP_ABI,
     eventName: "AirdropCreated",
     onLogs() {
-      loadAirdrops();
+      refetchAirdropCounter();
     },
   });
 
@@ -92,13 +96,15 @@ export default function AirdropManager() {
     abi: AIRDROP_ABI,
     eventName: "EntrySubmitted",
     onLogs() {
-      loadAirdrops();
+      if (selectedAirdrop) {
+        loadEntries(selectedAirdrop);
+      }
     },
   });
 
   // Load all airdrops
   const loadAirdrops = async () => {
-    if (!airdropCounter) return;
+    if (airdropCounter === undefined) return;
 
     const loadedAirdrops: Airdrop[] = [];
     for (let i = 1; i <= Number(airdropCounter); i++) {
@@ -106,32 +112,42 @@ export default function AirdropManager() {
         const airdrop = await readAirdrop(i);
         if (airdrop) {
           loadedAirdrops.push(airdrop);
-          loadEntries(i);
         }
       } catch (error) {
         console.error(`Error loading airdrop ${i}:`, error);
       }
     }
-    setAirdrops(loadedAirdrops);
+    setAirdrops(loadedAirdrops.reverse());
   };
 
   // Read specific airdrop
   const readAirdrop = async (airdropId: number): Promise<Airdrop | null> => {
     try {
-      // Simplified implementation for demo
-      // In real app, you would properly decode the contract response
-      return {
-        id: airdropId,
-        creator: address || "0x0000000000000000000000000000000000000000",
-        totalAmount: parseEther("100"),
-        perQualifier: parseEther("1"),
-        maxQualifiers: 100,
-        qualifiersCount: 0,
-        deadline: Math.floor(Date.now() / 1000) + 604800, // 7 days
-        resolved: false,
-        cancelled: false,
-      };
-    } catch {
+      const airdropData = await readContract(wagmiConfig, {
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+          .AirdropBounty as `0x${string}`,
+        abi: AIRDROP_ABI,
+        functionName: "getAirdrop",
+        args: [BigInt(airdropId)],
+      });
+
+      if (airdropData) {
+        const [creator, totalAmount, perQualifier, maxQualifiers, qualifiersCount, deadline, resolved, cancelled] = airdropData as any;
+        return {
+          id: airdropId,
+          creator,
+          totalAmount,
+          perQualifier,
+          maxQualifiers: Number(maxQualifiers),
+          qualifiersCount: Number(qualifiersCount),
+          deadline: Number(deadline),
+          resolved,
+          cancelled,
+        };
+      }
+      return null;
+    } catch (e) {
+      console.error(`Error reading airdrop ${airdropId}:`, e);
       return null;
     }
   };
@@ -139,11 +155,30 @@ export default function AirdropManager() {
   // Load entries for an airdrop
   const loadEntries = async (airdropId: number) => {
     try {
-      // Simplified implementation
-      // In real app, you would read entry count and load each entry
+      const entryCount = await readContract(wagmiConfig, {
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+          .AirdropBounty as `0x${string}`,
+        abi: AIRDROP_ABI,
+        functionName: "getEntryCount",
+        args: [BigInt(airdropId)],
+      });
+
+      const loadedEntries: Entry[] = [];
+      for (let i = 0; i < Number(entryCount); i++) {
+        const entryData = await readContract(wagmiConfig, {
+          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+            .AirdropBounty as `0x${string}`,
+          abi: AIRDROP_ABI,
+          functionName: "getEntry",
+          args: [BigInt(airdropId), BigInt(i)],
+        });
+        const [solver, ipfsProofCid, qualified, verified] = entryData as any;
+        loadedEntries.push({ solver, ipfsProofCid, qualified, verified });
+      }
+
       setEntries((prev) => ({
         ...prev,
-        [airdropId]: [],
+        [airdropId]: loadedEntries,
       }));
     } catch (error) {
       console.error(`Error loading entries for airdrop ${airdropId}:`, error);
@@ -255,7 +290,7 @@ export default function AirdropManager() {
 
   // Cancel airdrop
   const cancelAirdrop = async (airdropId: number) => {
-    if (!isConnected) return;
+    if (!isConnected || !airdropId) return;
 
     try {
       await writeContract({
@@ -276,7 +311,7 @@ export default function AirdropManager() {
 
   // Finalize airdrop
   const finalizeAirdrop = async (airdropId: number) => {
-    if (!isConnected) return;
+    if (!isConnected || !airdropId) return;
 
     try {
       await writeContract({
@@ -296,10 +331,16 @@ export default function AirdropManager() {
   };
 
   useEffect(() => {
-    if (airdropCounter) {
+    if (airdropCounter !== undefined) {
       loadAirdrops();
     }
   }, [airdropCounter]);
+
+  useEffect(() => {
+    if (selectedAirdrop) {
+      loadEntries(selectedAirdrop);
+    }
+  }, [selectedAirdrop]);
 
   if (!isConnected) {
     return (
@@ -838,17 +879,14 @@ export default function AirdropManager() {
                   <input
                     type="number"
                     placeholder="Airdrop ID"
+                    value={manageAirdropId}
+                    onChange={(e) => setManageAirdropId(e.target.value)}
                     className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
                   />
                   <button
-                    onClick={() => {
-                      const input = document.querySelector(
-                        'input[placeholder="Airdrop ID"]'
-                      ) as HTMLInputElement;
-                      const id = parseInt(input?.value || "0");
-                      if (id > 0) cancelAirdrop(id);
-                    }}
-                    className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700"
+                    onClick={() => cancelAirdrop(Number(manageAirdropId))}
+                    disabled={!manageAirdropId}
+                    className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700 disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -864,17 +902,14 @@ export default function AirdropManager() {
                   <input
                     type="number"
                     placeholder="Airdrop ID"
+                    value={manageAirdropId}
+                    onChange={(e) => setManageAirdropId(e.target.value)}
                     className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
                   />
                   <button
-                    onClick={() => {
-                      const inputs = document.querySelectorAll(
-                        'input[placeholder="Airdrop ID"]'
-                      ) as NodeListOf<HTMLInputElement>;
-                      const id = parseInt(inputs[1]?.value || "0");
-                      if (id > 0) finalizeAirdrop(id);
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700"
+                    onClick={() => finalizeAirdrop(Number(manageAirdropId))}
+                    disabled={!manageAirdropId}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
                   >
                     Finalize
                   </button>
