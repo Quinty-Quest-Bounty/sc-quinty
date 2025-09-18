@@ -217,6 +217,14 @@ export default function BountyManager() {
     const deadlineTimestamp = Math.floor(
       new Date(newBounty.deadline).getTime() / 1000
     );
+
+    // Add client-side validation for the deadline
+    const nowTimestamp = Math.floor(Date.now() / 1000);
+    if (deadlineTimestamp <= nowTimestamp) {
+      alert("Error: The selected deadline is in the past. Please choose a future date and time.");
+      return;
+    }
+
     const slashPercent = newBounty.slashPercent * 100; // Convert to basis points
 
     try {
@@ -580,6 +588,76 @@ export default function BountyManager() {
                 <span>50%</span>
               </div>
             </div>
+
+            <div className="flex items-center">
+              <input
+                id="allowMultipleWinners"
+                name="allowMultipleWinners"
+                type="checkbox"
+                checked={newBounty.allowMultipleWinners}
+                onChange={(e) =>
+                  setNewBounty({
+                    ...newBounty,
+                    allowMultipleWinners: e.target.checked,
+                    winnerShares: e.target.checked ? [50, 50] : [100],
+                  })
+                }
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+              />
+              <label htmlFor="allowMultipleWinners" className="ml-2 block text-sm text-gray-900">
+                Allow Multiple Winners
+              </label>
+            </div>
+
+            {newBounty.allowMultipleWinners && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Winner Shares (%)
+                </label>
+                {newBounty.winnerShares.map((share, index) => (
+                  <div key={index} className="flex gap-2 mb-2 items-center">
+                    <input
+                      type="number"
+                      value={share}
+                      onChange={(e) => {
+                        const newShares = [...newBounty.winnerShares];
+                        newShares[index] = parseInt(e.target.value) || 0;
+                        setNewBounty({ ...newBounty, winnerShares: newShares });
+                      }}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2"
+                      placeholder={`Share for winner ${index + 1}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newShares = newBounty.winnerShares.filter(
+                          (_, i) => i !== index
+                        );
+                        setNewBounty({ ...newBounty, winnerShares: newShares });
+                      }}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setNewBounty({
+                      ...newBounty,
+                      winnerShares: [...newBounty.winnerShares, 0],
+                    })
+                  }
+                  className="text-blue-600 hover:text-blue-800 text-sm"
+                >
+                  + Add Winner Share
+                </button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Total shares must equal 100%. Current total: {newBounty.winnerShares.reduce((a, b) => a + b, 0)}%
+                </p>
+              </div>
+            )}
 
             {/* Requirements */}
             <div>
