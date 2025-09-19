@@ -15,29 +15,36 @@ import {
   SOMNIA_TESTNET_ID,
 } from "../utils/contracts";
 import { formatSTT, formatTimeLeft, formatAddress, wagmiConfig } from "../utils/web3";
+import { uploadToIpfs, formatIpfsUrl, IpfsImage } from "../utils/ipfs";
 
 interface Airdrop {
   id: number;
   creator: string;
+  title: string;
+  description: string;
   totalAmount: bigint;
   perQualifier: bigint;
   maxQualifiers: number;
   qualifiersCount: number;
   deadline: number;
+  createdAt: number;
   resolved: boolean;
   cancelled: boolean;
+  requirements: string;
+  imageUrl?: string;
 }
 
 interface Entry {
   solver: string;
   ipfsProofCid: string;
-  qualified: boolean;
-  verified: boolean;
+  timestamp: number;
+  status: number; // 0: Pending, 1: Approved, 2: Rejected
+  feedback: string;
 }
 
 export default function AirdropManager() {
   const { address, isConnected } = useAccount();
-  const { writeContract } = useWriteContract();
+  const { writeContractAsync } = useWriteContract();
 
   // State
   const [airdrops, setAirdrops] = useState<Airdrop[]>([]);
@@ -49,12 +56,22 @@ export default function AirdropManager() {
 
   // Form states
   const [newAirdrop, setNewAirdrop] = useState({
+    title: "",
+    description: "",
     perQualifier: "",
     maxQualifiers: 100,
     deadline: "",
-    description: "",
     requirements: "",
+    imageUrl: "",
   });
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [isDistributing, setIsDistributing] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   const [newEntry, setNewEntry] = useState({
     airdropId: 0,
@@ -65,10 +82,12 @@ export default function AirdropManager() {
 
   const [verificationForm, setVerificationForm] = useState({
     airdropId: 0,
+    entryId: 0,
+    status: 1, // 1 = Approved
+    feedback: "",
     qualifiedIndices: [] as number[],
   });
 
-  const [manageAirdropId, setManageAirdropId] = useState<number | string>('');
 
 
   // Read airdrop counter
@@ -132,17 +151,22 @@ export default function AirdropManager() {
       });
 
       if (airdropData) {
-        const [creator, totalAmount, perQualifier, maxQualifiers, qualifiersCount, deadline, resolved, cancelled] = airdropData as any;
+        const [creator, title, description, totalAmount, perQualifier, maxQualifiers, qualifiersCount, deadline, createdAt, resolved, cancelled, requirements] = airdropData as any;
         return {
           id: airdropId,
           creator,
+          title,
+          description,
           totalAmount,
           perQualifier,
           maxQualifiers: Number(maxQualifiers),
           qualifiersCount: Number(qualifiersCount),
           deadline: Number(deadline),
+          createdAt: Number(createdAt),
           resolved,
           cancelled,
+          requirements,
+          imageUrl: description.includes('ipfs://') ? description.match(/ipfs:\/\/[^\s\n]+/)?.[0] : undefined,
         };
       }
       return null;
@@ -172,8 +196,8 @@ export default function AirdropManager() {
           functionName: "getEntry",
           args: [BigInt(airdropId), BigInt(i)],
         });
-        const [solver, ipfsProofCid, qualified, verified] = entryData as any;
-        loadedEntries.push({ solver, ipfsProofCid, qualified, verified });
+        const [solver, ipfsProofCid, timestamp, status, feedback] = entryData as any;
+        loadedEntries.push({ solver, ipfsProofCid, timestamp: Number(timestamp), status: Number(status), feedback });
       }
 
       setEntries((prev) => ({
@@ -185,39 +209,136 @@ export default function AirdropManager() {
     }
   };
 
+
+  const validateAndSetImage = (file: File) => {
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return false;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB');
+      return false;
+    }
+
+    setSelectedImage(file);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setImagePreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    return true;
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      validateAndSetImage(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const file = files[0];
+      validateAndSetImage(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsDragOver(false);
+    setNewAirdrop({ ...newAirdrop, imageUrl: '' });
+  };
+
   // Create airdrop
   const createAirdrop = async () => {
-    if (!isConnected || !newAirdrop.perQualifier || !newAirdrop.deadline)
+    if (!isConnected || !newAirdrop.title || !newAirdrop.perQualifier || !newAirdrop.deadline || !newAirdrop.requirements)
       return;
 
-    const deadlineTimestamp = Math.floor(
-      new Date(newAirdrop.deadline).getTime() / 1000
-    );
-    const perQualifierWei = parseEther(newAirdrop.perQualifier);
-    const totalAmount = perQualifierWei * BigInt(newAirdrop.maxQualifiers);
-
     try {
-      await writeContract({
+      let finalImageUrl = newAirdrop.imageUrl;
+
+      // Upload image first if selected but not yet uploaded
+      if (selectedImage && !finalImageUrl) {
+        setIsUploading(true);
+        try {
+          const cid = await uploadToIpfs(selectedImage, {
+            name: `airdrop-image-${Date.now()}`,
+            type: 'airdrop-banner'
+          });
+          finalImageUrl = `ipfs://${cid}`;
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          alert('Error uploading image. Please try again.');
+          return;
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      const deadlineTimestamp = Math.floor(
+        new Date(newAirdrop.deadline).getTime() / 1000
+      );
+      const perQualifierWei = parseEther(newAirdrop.perQualifier);
+      const totalAmount = perQualifierWei * BigInt(newAirdrop.maxQualifiers);
+
+      // Include image URL in description if available
+      const descriptionWithImage = finalImageUrl
+        ? `${newAirdrop.description}\n\nImage: ${finalImageUrl}`
+        : newAirdrop.description || "";
+
+      const txHash = await writeContractAsync({
         address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
           .AirdropBounty as `0x${string}`,
         abi: AIRDROP_ABI,
         functionName: "createAirdrop",
         args: [
+          newAirdrop.title,
+          descriptionWithImage,
           perQualifierWei,
           BigInt(newAirdrop.maxQualifiers),
           BigInt(deadlineTimestamp),
+          newAirdrop.requirements,
         ],
         value: totalAmount,
       });
 
+      console.log("Create airdrop transaction hash:", txHash);
+
       // Reset form
       setNewAirdrop({
+        title: "",
+        description: "",
         perQualifier: "",
         maxQualifiers: 100,
         deadline: "",
-        description: "",
         requirements: "",
+        imageUrl: "",
       });
+      setSelectedImage(null);
+      setImagePreview(null);
 
       alert("Airdrop created successfully!");
     } catch (error) {
@@ -231,13 +352,15 @@ export default function AirdropManager() {
     if (!isConnected || !newEntry.airdropId || !newEntry.ipfsProofCid) return;
 
     try {
-      await writeContract({
+      const txHash = await writeContractAsync({
         address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
           .AirdropBounty as `0x${string}`,
         abi: AIRDROP_ABI,
         functionName: "submitEntry",
         args: [BigInt(newEntry.airdropId), newEntry.ipfsProofCid],
       });
+
+      console.log("Submit entry transaction hash:", txHash);
 
       setNewEntry({
         airdropId: 0,
@@ -254,37 +377,208 @@ export default function AirdropManager() {
     }
   };
 
-  // Verify and distribute
-  const verifyAndDistribute = async () => {
+  // Verify entry
+  const verifyEntry = async () => {
     if (
       !isConnected ||
       !verificationForm.airdropId ||
-      verificationForm.qualifiedIndices.length === 0
+      verificationForm.entryId === undefined
     )
       return;
 
     try {
-      await writeContract({
+      const txHash = await writeContractAsync({
         address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
           .AirdropBounty as `0x${string}`,
         abi: AIRDROP_ABI,
-        functionName: "verifyAndDistribute",
+        functionName: "verifyEntry",
         args: [
           BigInt(verificationForm.airdropId),
-          verificationForm.qualifiedIndices.map((i) => BigInt(i)),
+          BigInt(verificationForm.entryId),
+          verificationForm.status,
+          verificationForm.feedback || "",
         ],
       });
 
+      console.log("Verify entry transaction hash:", txHash);
+
       setVerificationForm({
         airdropId: 0,
+        entryId: 0,
+        status: 1,
+        feedback: "",
         qualifiedIndices: [],
       });
 
-      alert("Verification and distribution completed!");
+      alert("Entry verified successfully!");
       loadAirdrops();
+      if (selectedAirdrop) {
+        loadEntries(selectedAirdrop);
+      }
     } catch (error) {
-      console.error("Error verifying and distributing:", error);
-      alert("Error verifying and distributing");
+      console.error("Error verifying entry:", error);
+      alert("Error verifying entry");
+    }
+  };
+
+  // Verify and distribute rewards
+  const verifyAndDistribute = async (airdropId?: number, selectedIndices?: number[]) => {
+    // Use parameters if provided, otherwise fall back to form state
+    const targetAirdropId = airdropId || verificationForm.airdropId;
+    const targetIndices = selectedIndices || verificationForm.qualifiedIndices;
+
+    if (!isConnected) {
+      alert("Please connect your wallet first.");
+      return;
+    }
+
+    if (!targetAirdropId || targetAirdropId === 0) {
+      alert("Invalid airdrop ID. Please try again.");
+      return;
+    }
+
+    if (targetIndices.length === 0) {
+      alert("Please select at least one participant to receive rewards.");
+      return;
+    }
+
+    // Validate that all indices are valid numbers
+    if (targetIndices.some(i => isNaN(i) || i < 0)) {
+      alert("Invalid participant selection. Please try again.");
+      return;
+    }
+
+    // Check contract address
+    const contractAddress = CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]?.AirdropBounty;
+    if (!contractAddress) {
+      alert("Contract address not found. Please check your network configuration.");
+      return;
+    }
+
+    setIsDistributing(true);
+    try {
+      // Check if current user is the creator of this airdrop
+      const airdrop = airdrops.find(a => a.id === targetAirdropId);
+      if (!airdrop) {
+        alert("Airdrop not found. Please refresh and try again.");
+        setIsDistributing(false);
+        return;
+      }
+
+      if (airdrop.creator.toLowerCase() !== address?.toLowerCase()) {
+        alert("Only the airdrop creator can verify entries and distribute rewards.");
+        setIsDistributing(false);
+        return;
+      }
+
+      // Check airdrop status
+      if (airdrop.resolved) {
+        alert("This airdrop has already been resolved.");
+        setIsDistributing(false);
+        return;
+      }
+
+      if (airdrop.cancelled) {
+        alert("This airdrop has been cancelled.");
+        setIsDistributing(false);
+        return;
+      }
+
+      // Check if deadline has passed
+      const now = Math.floor(Date.now() / 1000);
+      if (now < airdrop.deadline) {
+        alert("Cannot distribute rewards before the airdrop deadline.");
+        setIsDistributing(false);
+        return;
+      }
+
+      // Validate entries exist for this airdrop
+      const airdropEntries = entries[targetAirdropId];
+      if (!airdropEntries || airdropEntries.length === 0) {
+        alert("No entries found for this airdrop. Please load entries first.");
+        setIsDistributing(false);
+        return;
+      }
+
+      // Validate all indices are within range
+      const maxIndex = airdropEntries.length - 1;
+      const invalidIndices = targetIndices.filter(i => i < 0 || i > maxIndex);
+      if (invalidIndices.length > 0) {
+        alert(`Invalid entry indices: ${invalidIndices.join(', ')}. Valid range is 0-${maxIndex}.`);
+        setIsDistributing(false);
+        return;
+      }
+
+      const entryIds = targetIndices.map(i => BigInt(i));
+      const statuses = targetIndices.map(() => 1); // 1 = approved status
+      const feedbacks = targetIndices.map(() => "Approved for reward distribution");
+
+      console.log("Attempting to distribute rewards with params:", {
+        airdropId: targetAirdropId,
+        indices: targetIndices,
+        entryIds: entryIds.map(id => id.toString()),
+        statuses,
+        feedbacks,
+        entriesCount: airdropEntries.length,
+        contractAddress: contractAddress,
+        network: SOMNIA_TESTNET_ID
+      });
+
+      const txHash = await writeContractAsync({
+        address: contractAddress as `0x${string}`,
+        abi: AIRDROP_ABI,
+        functionName: "verifyMultipleEntries",
+        args: [
+          BigInt(targetAirdropId),
+          entryIds,
+          statuses,
+          feedbacks
+        ],
+      });
+
+      console.log("Verification transaction hash:", txHash);
+
+      alert("Entries verified successfully! Now finalizing airdrop...");
+
+      // After verification, finalize the airdrop to distribute rewards
+      const finalizeTxHash = await writeContractAsync({
+        address: contractAddress as `0x${string}`,
+        abi: AIRDROP_ABI,
+        functionName: "finalizeAirdrop",
+        args: [BigInt(targetAirdropId)],
+      });
+
+      console.log("Finalize airdrop transaction hash:", finalizeTxHash);
+
+      // Reset verification form
+      setVerificationForm({
+        airdropId: 0,
+        entryId: 0,
+        status: 1,
+        feedback: "",
+        qualifiedIndices: [],
+      });
+
+      alert("Rewards distributed successfully!");
+      loadAirdrops();
+      // Refresh entries for the airdrop
+      loadEntries(targetAirdropId);
+    } catch (error: any) {
+      console.error("Error distributing rewards:", error);
+
+      // More detailed error reporting
+      let errorMessage = "Error distributing rewards. ";
+      if (error?.message) {
+        errorMessage += `Details: ${error.message}`;
+      } else if (error?.reason) {
+        errorMessage += `Reason: ${error.reason}`;
+      } else {
+        errorMessage += "Please check the console for more details.";
+      }
+
+      alert(errorMessage);
+    } finally {
+      setIsDistributing(false);
     }
   };
 
@@ -292,8 +586,9 @@ export default function AirdropManager() {
   const cancelAirdrop = async (airdropId: number) => {
     if (!isConnected || !airdropId) return;
 
+    setIsCancelling(true);
     try {
-      await writeContract({
+      const txHash = await writeContractAsync({
         address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
           .AirdropBounty as `0x${string}`,
         abi: AIRDROP_ABI,
@@ -301,11 +596,15 @@ export default function AirdropManager() {
         args: [BigInt(airdropId)],
       });
 
+      console.log("Cancel airdrop transaction hash:", txHash);
+
       alert("Airdrop cancelled successfully!");
       loadAirdrops();
     } catch (error) {
       console.error("Error cancelling airdrop:", error);
-      alert("Error cancelling airdrop");
+      alert("Error cancelling airdrop. Please try again.");
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -313,8 +612,9 @@ export default function AirdropManager() {
   const finalizeAirdrop = async (airdropId: number) => {
     if (!isConnected || !airdropId) return;
 
+    setIsFinalizing(true);
     try {
-      await writeContract({
+      const txHash = await writeContractAsync({
         address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
           .AirdropBounty as `0x${string}`,
         abi: AIRDROP_ABI,
@@ -322,11 +622,15 @@ export default function AirdropManager() {
         args: [BigInt(airdropId)],
       });
 
+      console.log("Finalize airdrop transaction hash:", txHash);
+
       alert("Airdrop finalized successfully!");
       loadAirdrops();
     } catch (error) {
       console.error("Error finalizing airdrop:", error);
-      alert("Error finalizing airdrop");
+      alert("Error finalizing airdrop. Please try again.");
+    } finally {
+      setIsFinalizing(false);
     }
   };
 
@@ -341,6 +645,16 @@ export default function AirdropManager() {
       loadEntries(selectedAirdrop);
     }
   }, [selectedAirdrop]);
+
+  // Load entries for user's campaigns when in manage tab
+  useEffect(() => {
+    if (activeTab === "manage" && address && airdrops.length > 0) {
+      const userCampaigns = airdrops.filter(a => a.creator === address && !a.resolved && !a.cancelled);
+      userCampaigns.forEach(campaign => {
+        loadEntries(campaign.id);
+      });
+    }
+  }, [activeTab, address, airdrops]);
 
   if (!isConnected) {
     return (
@@ -396,6 +710,22 @@ export default function AirdropManager() {
           <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Campaign Title *
+              </label>
+              <input
+                type="text"
+                value={newAirdrop.title}
+                onChange={(e) =>
+                  setNewAirdrop({ ...newAirdrop, title: e.target.value })
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2"
+                placeholder="Enter campaign title..."
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Campaign Description
               </label>
               <textarea
@@ -411,7 +741,7 @@ export default function AirdropManager() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Requirements (What users need to do)
+                Requirements (What users need to do) *
               </label>
               <textarea
                 value={newAirdrop.requirements}
@@ -419,9 +749,69 @@ export default function AirdropManager() {
                   setNewAirdrop({ ...newAirdrop, requirements: e.target.value })
                 }
                 className="w-full border border-gray-300 rounded-md px-3 py-2"
-                rows={2}
-                placeholder="e.g., Post on X/Twitter with #QuintyDAO hashtag, get 100+ likes..."
+                rows={3}
+                placeholder="e.g., Post on X/Twitter with #QuintyDAO hashtag, get 100+ likes, include wallet address..."
+                required
               />
+            </div>
+
+            {/* Image Upload Section */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Campaign Image (Optional)
+              </label>
+              <div className="space-y-3">
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Campaign preview"
+                      className="w-full h-48 object-cover rounded-lg border"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                      isDragOver
+                        ? 'border-primary-400 bg-primary-50'
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <div className="space-y-2">
+                      <svg className={`mx-auto h-12 w-12 ${isDragOver ? 'text-primary-500' : 'text-gray-400'}`} stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <div>
+                        <label htmlFor="image-upload" className="cursor-pointer">
+                          <span className={`hover:text-primary-500 ${isDragOver ? 'text-primary-600' : 'text-primary-600'}`}>Upload an image</span>
+                          <span className={`${isDragOver ? 'text-primary-500' : 'text-gray-500'}`}> or drag and drop</span>
+                        </label>
+                        <input
+                          id="image-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                        />
+                      </div>
+                      <p className={`text-xs ${isDragOver ? 'text-primary-600' : 'text-gray-500'}`}>
+                        {isDragOver ? 'Drop your image here' : 'PNG, JPG, GIF up to 5MB'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -502,14 +892,17 @@ export default function AirdropManager() {
             <button
               onClick={createAirdrop}
               disabled={
+                isUploading ||
+                !newAirdrop.title ||
                 !newAirdrop.perQualifier ||
                 !newAirdrop.maxQualifiers ||
-                !newAirdrop.deadline
+                !newAirdrop.deadline ||
+                !newAirdrop.requirements
               }
               className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50"
             >
-              Create Airdrop Campaign
-              {newAirdrop.perQualifier && newAirdrop.maxQualifiers && (
+              {isUploading ? "Uploading Image..." : "Create Airdrop Campaign"}
+              {!isUploading && newAirdrop.perQualifier && newAirdrop.maxQualifiers && (
                 <span className="ml-2">
                   (
                   {(
@@ -545,26 +938,39 @@ export default function AirdropManager() {
                 .map((airdrop) => (
                   <div
                     key={airdrop.id}
-                    className="bg-white rounded-lg shadow p-6"
+                    className="bg-white rounded-lg shadow overflow-hidden"
                   >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900">
-                          Airdrop Campaign #{airdrop.id}
-                        </h4>
-                        <p className="text-gray-600 mt-1">
-                          Social media promotion task with verified rewards
-                        </p>
+                    {/* Campaign Image */}
+                    {airdrop.imageUrl && (
+                      <div className="w-full h-48 overflow-hidden">
+                        <IpfsImage
+                          cid={airdrop.imageUrl.replace('ipfs://', '')}
+                          alt={airdrop.title || `Campaign #${airdrop.id}`}
+                          className="w-full h-full object-cover"
+                          fallback="/placeholder-campaign.jpg"
+                        />
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-green-600">
-                          {formatSTT(airdrop.perQualifier)} STT
+                    )}
+
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1 mr-4">
+                          <h4 className="text-lg font-semibold text-gray-900">
+                            {airdrop.title || `Airdrop Campaign #${airdrop.id}`}
+                          </h4>
+                          <p className="text-gray-600 mt-1 line-clamp-2">
+                            {airdrop.description?.replace(/\n\nImage:.*$/, '') || "Social media promotion task with verified rewards"}
+                          </p>
                         </div>
-                        <div className="text-sm text-gray-600">
-                          per qualifier
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-2xl font-bold text-green-600">
+                            {formatSTT(airdrop.perQualifier)} STT
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            per qualifier
+                          </div>
                         </div>
                       </div>
-                    </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="text-sm">
@@ -593,7 +999,7 @@ export default function AirdropManager() {
                       <div className="text-sm">
                         <span className="text-gray-500">Deadline:</span>
                         <div className="font-medium">
-                          {formatTimeLeft(airdrop.deadline)}
+                          {formatTimeLeft(BigInt(airdrop.deadline))}
                         </div>
                       </div>
                     </div>
@@ -628,15 +1034,11 @@ export default function AirdropManager() {
                     {/* Requirements */}
                     <div className="bg-blue-50 rounded-lg p-4 mb-4">
                       <h5 className="font-medium text-blue-900 mb-2">
-                        How to Qualify:
+                        Requirements:
                       </h5>
-                      <ul className="text-sm text-blue-800 space-y-1">
-                        <li>• Post on X/Twitter with specified hashtags</li>
-                        <li>• Include your wallet address in the post</li>
-                        <li>• Get minimum engagement (likes/retweets)</li>
-                        <li>• Upload proof via IPFS</li>
-                        <li>• Wait for community verification</li>
-                      </ul>
+                      <div className="text-sm text-blue-800 whitespace-pre-wrap">
+                        {airdrop.requirements || "Requirements not specified"}
+                      </div>
                     </div>
 
                     {/* Entry Submission */}
@@ -761,23 +1163,28 @@ export default function AirdropManager() {
                                   <div className="flex gap-2">
                                     <span
                                       className={`px-2 py-1 rounded-full text-xs ${
-                                        entry.qualified
+                                        entry.status === 1
                                           ? "bg-green-100 text-green-800"
-                                          : entry.verified
-                                          ? "bg-blue-100 text-blue-800"
+                                          : entry.status === 2
+                                          ? "bg-red-100 text-red-800"
                                           : "bg-yellow-100 text-yellow-800"
                                       }`}
                                     >
-                                      {entry.qualified
-                                        ? "Qualified"
-                                        : entry.verified
-                                        ? "Verified"
+                                      {entry.status === 1
+                                        ? "Approved"
+                                        : entry.status === 2
+                                        ? "Rejected"
                                         : "Pending"}
                                     </span>
                                   </div>
                                 </div>
                                 <div className="text-xs text-gray-500 mt-1">
                                   IPFS: {entry.ipfsProofCid}
+                                  {entry.feedback && (
+                                    <div className="mt-1">
+                                      Feedback: {entry.feedback}
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -789,6 +1196,7 @@ export default function AirdropManager() {
                         )}
                       </div>
                     )}
+                    </div>
                   </div>
                 ))}
             </div>
@@ -796,177 +1204,211 @@ export default function AirdropManager() {
         </div>
       )}
 
-      {/* Manage Tab */}
+      {/* Manage Tab - Redesigned for Better UX */}
       {activeTab === "manage" && (
         <div className="space-y-6">
-          <h3 className="text-xl font-semibold">Airdrop Management</h3>
-
-          {/* Verification Interface */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-lg font-semibold mb-4">
-              Verify and Distribute Rewards
-            </h4>
-            <p className="text-gray-600 mb-4">
-              As a campaign creator or verifier, review submissions and approve
-              qualified entries.
-            </p>
-
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Airdrop ID
-                </label>
-                <input
-                  type="number"
-                  placeholder="Enter airdrop ID"
-                  value={verificationForm.airdropId || ""}
-                  onChange={(e) =>
-                    setVerificationForm({
-                      ...verificationForm,
-                      airdropId: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Qualified Entry Indices (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  placeholder="0,1,2,3..."
-                  value={verificationForm.qualifiedIndices.join(",")}
-                  onChange={(e) =>
-                    setVerificationForm({
-                      ...verificationForm,
-                      qualifiedIndices: e.target.value
-                        .split(",")
-                        .map((i) => parseInt(i.trim()))
-                        .filter((i) => !isNaN(i)),
-                    })
-                  }
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                />
-              </div>
-            </div>
-
-            <button
-              onClick={verifyAndDistribute}
-              disabled={
-                !verificationForm.airdropId ||
-                verificationForm.qualifiedIndices.length === 0
-              }
-              className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
-            >
-              Verify & Distribute Rewards
-            </button>
-          </div>
-
-          {/* Creator Actions */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-lg font-semibold mb-4">Creator Actions</h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <h5 className="font-medium mb-2">Cancel Airdrop</h5>
-                <p className="text-sm text-gray-600 mb-3">
-                  Cancel an airdrop with no approved entries and get your funds
-                  back.
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Airdrop ID"
-                    value={manageAirdropId}
-                    onChange={(e) => setManageAirdropId(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
-                  />
-                  <button
-                    onClick={() => cancelAirdrop(Number(manageAirdropId))}
-                    disabled={!manageAirdropId}
-                    className="bg-red-600 text-white px-4 py-2 rounded-md text-sm hover:bg-red-700 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <h5 className="font-medium mb-2">Finalize Airdrop</h5>
-                <p className="text-sm text-gray-600 mb-3">
-                  Manually finalize an airdrop after the deadline.
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Airdrop ID"
-                    value={manageAirdropId}
-                    onChange={(e) => setManageAirdropId(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm"
-                  />
-                  <button
-                    onClick={() => finalizeAirdrop(Number(manageAirdropId))}
-                    disabled={!manageAirdropId}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    Finalize
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* My Campaigns */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-lg font-semibold mb-4">My Campaigns</h4>
-
-            {airdrops.filter((a) => a.creator === address).length === 0 ? (
-              <p className="text-gray-600">
-                You haven't created any airdrop campaigns yet.
+          <div className="flex justify-between items-center">
+            <h3 className="text-xl font-semibold">Manage Your Campaigns</h3>
+            <div className="bg-blue-50 px-4 py-2 rounded-lg">
+              <p className="text-sm text-blue-800">
+                Review submissions and select eligible participants for rewards
               </p>
+            </div>
+          </div>
+
+          {/* Your Active Campaigns */}
+          <div className="space-y-4">
+            {airdrops.filter((a) => a.creator === address && !a.resolved && !a.cancelled).length === 0 ? (
+              <div className="bg-white rounded-lg shadow p-8 text-center">
+                <div className="text-gray-400 text-6xl mb-4">📋</div>
+                <h4 className="text-lg font-medium text-gray-900 mb-2">No Active Campaigns</h4>
+                <p className="text-gray-600 mb-4">
+                  You don't have any active campaigns to manage. Create a campaign first!
+                </p>
+                <button
+                  onClick={() => setActiveTab("create")}
+                  className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700"
+                >
+                  Create New Campaign
+                </button>
+              </div>
             ) : (
-              <div className="space-y-3">
-                {airdrops
-                  .filter((a) => a.creator === address)
-                  .map((airdrop) => (
-                    <div
-                      key={airdrop.id}
-                      className="border border-gray-200 rounded-lg p-4"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h5 className="font-medium">
-                            Campaign #{airdrop.id}
-                          </h5>
-                          <div className="text-sm text-gray-600">
-                            {airdrop.qualifiersCount}/{airdrop.maxQualifiers}{" "}
-                            qualified • {formatSTT(airdrop.perQualifier)} STT
-                            each
+              airdrops
+                .filter((a) => a.creator === address && !a.resolved && !a.cancelled)
+                .map((airdrop) => (
+                  <div key={airdrop.id} className="bg-white rounded-lg shadow">
+                    {/* Campaign Header */}
+                    <div className="p-6 border-b border-gray-200">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                            {airdrop.title || `Campaign #${airdrop.id}`}
+                          </h4>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="text-gray-500">Reward:</span>
+                              <div className="font-medium text-green-600">
+                                {formatSTT(airdrop.perQualifier)} STT each
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Progress:</span>
+                              <div className="font-medium">
+                                {airdrop.qualifiersCount}/{airdrop.maxQualifiers} qualified
+                              </div>
+                            </div>
+                            <div>
+                              <span className="text-gray-500">Deadline:</span>
+                              <div className="font-medium">
+                                {formatTimeLeft(BigInt(airdrop.deadline))}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              airdrop.resolved
-                                ? "bg-green-100 text-green-800"
-                                : airdrop.cancelled
-                                ? "bg-red-100 text-red-800"
-                                : "bg-blue-100 text-blue-800"
-                            }`}
+                        <div className="flex gap-2">
+                          {Date.now() / 1000 > airdrop.deadline && (
+                            <button
+                              onClick={() => finalizeAirdrop(airdrop.id)}
+                              disabled={isFinalizing}
+                              className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {isFinalizing ? "Finalizing..." : "Finalize"}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => cancelAirdrop(airdrop.id)}
+                            disabled={isCancelling}
+                            className="bg-red-600 text-white px-3 py-1 rounded text-sm hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {airdrop.resolved
-                              ? "Completed"
-                              : airdrop.cancelled
-                              ? "Cancelled"
-                              : "Active"}
-                          </div>
+                            {isCancelling ? "Cancelling..." : "Cancel"}
+                          </button>
                         </div>
                       </div>
                     </div>
-                  ))}
-              </div>
+
+                    {/* Submissions Section */}
+                    <div className="p-6">
+                      <div className="flex justify-between items-center mb-4">
+                        <h5 className="font-medium text-gray-900">
+                          Submissions ({entries[airdrop.id]?.length || 0})
+                        </h5>
+                        <button
+                          onClick={() => {
+                            if (selectedAirdrop === airdrop.id) {
+                              setSelectedAirdrop(null);
+                            } else {
+                              setSelectedAirdrop(airdrop.id);
+                              // Always load entries when reviewing
+                              loadEntries(airdrop.id);
+                            }
+                          }}
+                          className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                        >
+                          {selectedAirdrop === airdrop.id ? "Hide Submissions" : "Review Submissions"}
+                        </button>
+                      </div>
+
+                      {!entries[airdrop.id] || entries[airdrop.id].length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <div className="text-4xl mb-2">💭</div>
+                          <p>No submissions yet. Share your campaign to get participants!</p>
+                        </div>
+                      ) : (
+                        <>
+                          {selectedAirdrop === airdrop.id && (
+                            <div className="space-y-3 mb-6">
+                              {entries[airdrop.id].map((entry, index) => (
+                                <div
+                                  key={index}
+                                  className={`border rounded-lg p-4 ${
+                                    verificationForm.qualifiedIndices.includes(index)
+                                      ? 'border-green-500 bg-green-50'
+                                      : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-3 mb-2">
+                                        <span className="font-medium text-gray-900">
+                                          {formatAddress(entry.solver)}
+                                        </span>
+                                        <span
+                                          className={`px-2 py-1 rounded-full text-xs ${
+                                            entry.status === 1
+                                              ? "bg-green-100 text-green-800"
+                                              : entry.status === 2
+                                              ? "bg-red-100 text-red-800"
+                                              : "bg-yellow-100 text-yellow-800"
+                                          }`}
+                                        >
+                                          {entry.status === 1 ? "Approved" : entry.status === 2 ? "Rejected" : "Pending"}
+                                        </span>
+                                      </div>
+                                      <div className="text-sm text-gray-600">
+                                        <div>IPFS: {entry.ipfsProofCid}</div>
+                                        <div>Submitted: {new Date(entry.timestamp * 1000).toLocaleDateString()}</div>
+                                        {entry.feedback && (
+                                          <div className="mt-1 text-blue-600">Feedback: {entry.feedback}</div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <button
+                                        onClick={() => {
+                                          const newQualified = verificationForm.qualifiedIndices.includes(index)
+                                            ? verificationForm.qualifiedIndices.filter(i => i !== index)
+                                            : [...verificationForm.qualifiedIndices, index];
+                                          setVerificationForm({
+                                            ...verificationForm,
+                                            airdropId: airdrop.id,
+                                            qualifiedIndices: newQualified
+                                          });
+                                        }}
+                                        className={`px-3 py-1 rounded text-sm font-medium ${
+                                          verificationForm.qualifiedIndices.includes(index)
+                                            ? 'bg-green-600 text-white hover:bg-green-700'
+                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                        }`}
+                                      >
+                                        {verificationForm.qualifiedIndices.includes(index) ? '✓ Selected' : 'Select'}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          {selectedAirdrop === airdrop.id && verificationForm.qualifiedIndices.length > 0 && (
+                            <div className="bg-blue-50 rounded-lg p-4">
+                              <div className="flex justify-between items-center">
+                                <div>
+                                  <h6 className="font-medium text-blue-900">
+                                    Ready to Distribute Rewards
+                                  </h6>
+                                  <p className="text-sm text-blue-700">
+                                    {verificationForm.qualifiedIndices.length} participants selected •
+                                    {formatSTT(airdrop.perQualifier * BigInt(verificationForm.qualifiedIndices.length))} STT total
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    verifyAndDistribute(airdrop.id, verificationForm.qualifiedIndices);
+                                  }}
+                                  disabled={isDistributing}
+                                  className="bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {isDistributing ? "Distributing..." : "Distribute Rewards"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                ))
             )}
           </div>
         </div>

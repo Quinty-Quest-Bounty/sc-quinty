@@ -7,6 +7,7 @@ import {
   formatIpfsUrl,
   fetchMetadataFromIpfs,
   BountyMetadata,
+  IpfsImage,
 } from "../utils/ipfs";
 
 interface Bounty {
@@ -240,6 +241,10 @@ export default function BountyCard({
           <div className="flex items-center gap-4">
             <span>Creator: {formatAddress(bounty.creator)}</span>
             <span>Slash: {Number(bounty.slashPercent) / 100}%</span>
+            <span className="flex items-center gap-1">
+              <span className="text-blue-600">📝</span>
+              <span>Submissions: {submissions.length}</span>
+            </span>
             {bounty.winners.length > 0 && (
               <span>Winners: {bounty.winners.length}</span>
             )}

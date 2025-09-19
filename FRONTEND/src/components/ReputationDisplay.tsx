@@ -7,7 +7,9 @@ import {
   REPUTATION_ABI,
   SOMNIA_TESTNET_ID,
 } from "../utils/contracts";
-import { formatAddress } from "../utils/web3";
+import { readContract } from "@wagmi/core";
+import { formatAddress, wagmiConfig } from "../utils/web3";
+import { isAddress } from "viem";
 
 interface UserReputation {
   bountiesCreated: number;
@@ -20,6 +22,8 @@ interface UserReputation {
   totalSolvedCount: number;
   tokenId: number;
   level: string;
+  hasCreatorBadge: boolean;
+  hasSolverBadge: boolean;
 }
 
 interface UserStats {
@@ -47,6 +51,7 @@ export default function ReputationDisplay() {
     abi: REPUTATION_ABI,
     functionName: "getUserReputation",
     args: address ? [address] : undefined,
+    query: { enabled: isConnected },
   });
 
   // Read user's NFT balance
@@ -56,6 +61,7 @@ export default function ReputationDisplay() {
     abi: REPUTATION_ABI,
     functionName: "balanceOf",
     args: address ? [address] : undefined,
+    query: { enabled: isConnected },
   });
 
   // Read token URI if user has NFT
@@ -67,6 +73,7 @@ export default function ReputationDisplay() {
     args: userStats?.reputation.tokenId
       ? [BigInt(userStats.reputation.tokenId)]
       : undefined,
+    query: { enabled: !!userStats?.reputation.tokenId && userStats.reputation.tokenId > 0 },
   });
 
   // Watch for reputation updates
@@ -105,6 +112,8 @@ export default function ReputationDisplay() {
         totalSolvedCount: Number(repData[7]),
         tokenId: Number(repData[8]),
         level: repData[9] as string,
+        hasCreatorBadge: repData[10] as boolean,
+        hasSolverBadge: repData[11] as boolean,
       };
 
       setUserStats({
@@ -118,40 +127,72 @@ export default function ReputationDisplay() {
 
   // Search for another user's reputation
   const searchUserReputation = async () => {
-    if (!searchAddress.trim()) return;
+    if (!searchAddress.trim() || !isAddress(searchAddress)) {
+        alert("Please enter a valid Ethereum address.");
+        return;
+    }
 
     try {
-      // This would need to be implemented with proper contract calls
-      // For demo purposes, we'll show a placeholder
-      const demoStats: UserStats = {
-        address: searchAddress,
-        reputation: {
-          bountiesCreated: 15,
-          successfulBounties: 12,
-          creationSuccessRate: 8000,
-          firstBountyTimestamp: Math.floor(Date.now() / 1000) - 2592000, // 30 days ago
-          solvesAttempted: 25,
-          successfulSolves: 20,
-          solveSuccessRate: 8000,
-          totalSolvedCount: 20,
-          tokenId: 1,
-          level: "Silver",
-        },
-        hasNFT: true,
-        tokenURI: "ipfs://QmExample/silver-creator.json",
-      };
+        const repData = await readContract(wagmiConfig, {
+            address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation as `0x${string}`,
+            abi: REPUTATION_ABI,
+            functionName: "getUserReputation",
+            args: [searchAddress as `0x${string}`],
+        });
 
-      setLeaderboard((prev) => {
-        const filtered = prev.filter((u) => u.address !== searchAddress);
-        return [...filtered, demoStats].sort(
-          (a, b) =>
-            b.reputation.successfulBounties +
-            b.reputation.successfulSolves -
-            (a.reputation.successfulBounties + a.reputation.successfulSolves)
-        );
-      });
+        const nftBalance = await readContract(wagmiConfig, {
+            address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation as `0x${string}`,
+            abi: REPUTATION_ABI,
+            functionName: "balanceOf",
+            args: [searchAddress as `0x${string}`],
+        });
+
+        if (repData) {
+            const repArray = repData as any[];
+            const searchedRep: UserReputation = {
+                bountiesCreated: Number(repArray[0]),
+                successfulBounties: Number(repArray[1]),
+                creationSuccessRate: Number(repArray[2]),
+                firstBountyTimestamp: Number(repArray[3]),
+                solvesAttempted: Number(repArray[4]),
+                successfulSolves: Number(repArray[5]),
+                solveSuccessRate: Number(repArray[6]),
+                totalSolvedCount: Number(repArray[7]),
+                tokenId: Number(repArray[8]),
+                level: repArray[9] as string,
+                hasCreatorBadge: repArray[10] as boolean,
+                hasSolverBadge: repArray[11] as boolean,
+            };
+
+            let tokenURI = "";
+            if (searchedRep.tokenId > 0) {
+                tokenURI = await readContract(wagmiConfig, {
+                    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation as `0x${string}`,
+                    abi: REPUTATION_ABI,
+                    functionName: "tokenURI",
+                    args: [BigInt(searchedRep.tokenId)],
+                }) as string;
+            }
+
+            const searchedStats: UserStats = {
+                address: searchAddress,
+                reputation: searchedRep,
+                hasNFT: Number(nftBalance) > 0,
+                tokenURI: tokenURI as string,
+            };
+
+            setLeaderboard((prev) => {
+                const filtered = prev.filter((u) => u.address.toLowerCase() !== searchAddress.toLowerCase());
+                return [...filtered, searchedStats].sort(
+                    (a, b) =>
+                        (b.reputation.successfulBounties + b.reputation.successfulSolves) -
+                        (a.reputation.successfulBounties + a.reputation.successfulSolves)
+                );
+            });
+        }
     } catch (error) {
-      console.error("Error searching user:", error);
+        console.error("Error searching user:", error);
+        alert("Could not find reputation for the given address.");
     }
   };
 

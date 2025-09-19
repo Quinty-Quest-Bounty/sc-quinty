@@ -22,7 +22,7 @@ import {
   wagmiConfig,
 } from "../utils/web3";
 import BountyCard from "./BountyCard";
-import { uploadMetadataToIpfs, BountyMetadata } from "../utils/ipfs";
+import { uploadMetadataToIpfs, uploadToIpfs, BountyMetadata, IpfsImage } from "../utils/ipfs";
 
 interface Bounty {
   id: number;
@@ -85,7 +85,11 @@ export default function BountyManager() {
     requirements: [""],
     deliverables: [""],
     skills: [""],
+    images: [] as string[], // IPFS CIDs for uploaded images
   });
+
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
 
   const [newSubmission, setNewSubmission] = useState({
     bountyId: 0,
@@ -135,6 +139,44 @@ export default function BountyManager() {
     },
   });
 
+  // Handle image file selection
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+    }
+  };
+
+  // Remove image from upload list
+  const removeImage = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Upload images to IPFS and get CIDs
+  const uploadImages = async (): Promise<string[]> => {
+    if (uploadedFiles.length === 0) return [];
+
+    setIsUploadingImages(true);
+    const uploadedCids: string[] = [];
+
+    try {
+      for (const file of uploadedFiles) {
+        const cid = await uploadToIpfs(file, {
+          bountyTitle: newBounty.title,
+          type: 'bounty-image'
+        });
+        uploadedCids.push(cid);
+      }
+      return uploadedCids;
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      throw new Error("Failed to upload images to IPFS");
+    } finally {
+      setIsUploadingImages(false);
+    }
+  };
+
   // Load bounties and submissions
   const loadBountiesAndSubmissions = async () => {
     if (!bountyCounter) return;
@@ -167,6 +209,10 @@ export default function BountyManager() {
             slashed,
           ] = bountyData;
 
+          // Extract metadata CID from description if present
+          const metadataMatch = description.match(/Metadata: ipfs:\/\/([a-zA-Z0-9]+)/);
+          const metadataCid = metadataMatch ? metadataMatch[1] : undefined;
+
           loadedBounties.push({
             id,
             creator,
@@ -179,6 +225,7 @@ export default function BountyManager() {
             slashPercent,
             winners,
             slashed,
+            metadataCid,
           });
 
           const submissionCount = await readContract(wagmiConfig, {
@@ -228,6 +275,11 @@ export default function BountyManager() {
     const slashPercent = newBounty.slashPercent * 100; // Convert to basis points
 
     try {
+      // Upload images to IPFS first
+      console.log("Uploading images to IPFS...");
+      const imageCids = await uploadImages();
+      console.log("Images uploaded to IPFS:", imageCids);
+
       // Create metadata for IPFS
       const metadata: BountyMetadata = {
         title: newBounty.title,
@@ -235,6 +287,7 @@ export default function BountyManager() {
         requirements: newBounty.requirements.filter((r) => r.trim()),
         deliverables: newBounty.deliverables.filter((d) => d.trim()),
         skills: newBounty.skills.filter((s) => s.trim()),
+        images: imageCids,
         deadline: deadlineTimestamp,
         bountyType: newBounty.bountyType,
       };
@@ -279,7 +332,9 @@ export default function BountyManager() {
         requirements: [""],
         deliverables: [""],
         skills: [""],
+        images: [],
       });
+      setUploadedFiles([]);
     } catch (error) {
       console.error("Error creating bounty:", error);
       alert("Error creating bounty: " + (error as any).message);
@@ -302,7 +357,9 @@ export default function BountyManager() {
         requirements: [""],
         deliverables: [""],
         skills: [""],
+        images: [],
       });
+      setUploadedFiles([]);
 
       alert("Bounty created successfully and confirmed on Somnia Testnet!");
       loadBountiesAndSubmissions(); // Reload bounties
@@ -797,6 +854,63 @@ export default function BountyManager() {
               </button>
             </div>
 
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Images (Optional)
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="cursor-pointer flex flex-col items-center text-gray-500"
+                >
+                  <div className="w-12 h-12 mb-2 bg-gray-100 rounded-full flex items-center justify-center">
+                    <span className="text-2xl">📷</span>
+                  </div>
+                  <span className="text-sm">Click to upload images</span>
+                  <span className="text-xs">Supports JPG, PNG, GIF up to 10MB each</span>
+                </label>
+              </div>
+
+              {/* Preview uploaded images */}
+              {uploadedFiles.length > 0 && (
+                <div className="mt-4">
+                  <h6 className="text-sm font-medium text-gray-700 mb-2">
+                    Selected Images ({uploadedFiles.length})
+                  </h6>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-20 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                        <div className="text-xs text-gray-500 mt-1 truncate">
+                          {file.name}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               onClick={createBounty}
               disabled={
@@ -805,11 +919,14 @@ export default function BountyManager() {
                 !newBounty.amount ||
                 !newBounty.deadline ||
                 isPending ||
-                isConfirming
+                isConfirming ||
+                isUploadingImages
               }
               className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium text-lg"
             >
-              {isPending
+              {isUploadingImages
+                ? "Uploading Images to IPFS..."
+                : isPending
                 ? "Preparing Transaction..."
                 : isConfirming
                 ? "Confirming on Blockchain..."

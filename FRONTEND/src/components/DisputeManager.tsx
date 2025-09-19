@@ -14,7 +14,8 @@ import {
   SOMNIA_TESTNET_ID,
   MIN_VOTING_STAKE,
 } from "../utils/contracts";
-import { formatSTT, formatTimeLeft, formatAddress } from "../utils/web3";
+import { readContract } from "@wagmi/core";
+import { formatSTT, formatTimeLeft, formatAddress, wagmiConfig } from "../utils/web3";
 
 interface Dispute {
   id: number;
@@ -30,6 +31,7 @@ interface Vote {
   voter: string;
   stake: bigint;
   rankedSubIds: number[];
+  timestamp: number;
 }
 
 export default function DisputeManager() {
@@ -53,7 +55,7 @@ export default function DisputeManager() {
   });
 
   // Read dispute counter
-  const { data: disputeCounter } = useReadContract({
+  const { data: disputeCounter, refetch: refetchDisputes } = useReadContract({
     address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
       .DisputeResolver as `0x${string}`,
     abi: DISPUTE_ABI,
@@ -67,7 +69,7 @@ export default function DisputeManager() {
     abi: DISPUTE_ABI,
     eventName: "DisputeInitiated",
     onLogs(logs) {
-      loadDisputes();
+      refetchDisputes();
     },
   });
 
@@ -77,13 +79,13 @@ export default function DisputeManager() {
     abi: DISPUTE_ABI,
     eventName: "VoteCast",
     onLogs(logs) {
-      loadDisputes();
+      refetchDisputes();
     },
   });
 
   // Load all disputes
   const loadDisputes = async () => {
-    if (!disputeCounter) return;
+    if (disputeCounter === undefined) return;
 
     const loadedDisputes: Dispute[] = [];
     for (let i = 1; i <= Number(disputeCounter); i++) {
@@ -91,42 +93,67 @@ export default function DisputeManager() {
         const dispute = await readDispute(i);
         if (dispute) {
           loadedDisputes.push(dispute);
-          loadVotes(i);
+          loadVotes(dispute);
         }
       } catch (error) {
         console.error(`Error loading dispute ${i}:`, error);
       }
     }
-    setDisputes(loadedDisputes);
+    setDisputes(loadedDisputes.reverse());
   };
 
   // Read specific dispute
   const readDispute = async (disputeId: number): Promise<Dispute | null> => {
     try {
-      // Simplified implementation for demo
-      // In real app, you would properly decode the contract response
-      return {
-        id: disputeId,
-        bountyId: disputeId,
-        isExpiry: true,
-        amount: parseEther("0.3"),
-        votingEnd: Math.floor(Date.now() / 1000) + 259200, // 3 days
-        voteCount: 0,
-        resolved: false,
-      };
-    } catch {
+      const disputeData = await readContract(wagmiConfig, {
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
+        abi: DISPUTE_ABI,
+        functionName: "getDispute",
+        args: [BigInt(disputeId)],
+      });
+
+      if (disputeData) {
+        const [bountyId, isExpiry, amount, votingEnd, resolved, voteCount] = disputeData as any;
+        return {
+          id: disputeId,
+          bountyId: Number(bountyId),
+          isExpiry,
+          amount,
+          votingEnd: Number(votingEnd),
+          resolved,
+          voteCount: Number(voteCount),
+        };
+      }
+      return null;
+    } catch (e) {
+      console.error(`Error reading dispute ${disputeId}:`, e);
       return null;
     }
   };
 
   // Load votes for a dispute
-  const loadVotes = async (disputeId: number) => {
-    // Simplified implementation
-    // In real app, you would read vote count and load each vote
-    setVotes((prev) => ({
-      ...prev,
-      [disputeId]: [],
-    }));
+  const loadVotes = async (dispute: Dispute) => {
+    if (!dispute) return;
+
+    try {
+        const loadedVotes: Vote[] = [];
+        for (let i = 0; i < dispute.voteCount; i++) {
+            const voteData = await readContract(wagmiConfig, {
+                address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
+                abi: DISPUTE_ABI,
+                functionName: "getVote",
+                args: [BigInt(dispute.id), BigInt(i)],
+            });
+            const [voter, stake, rankedSubIds, timestamp] = voteData as any;
+            loadedVotes.push({ voter, stake, rankedSubIds: rankedSubIds.map(Number), timestamp: Number(timestamp) });
+        }
+        setVotes((prev) => ({
+            ...prev,
+            [dispute.id]: loadedVotes,
+        }));
+    } catch (error) {
+        console.error(`Error loading votes for dispute ${dispute.id}:`, error);
+    }
   };
 
   // Cast vote
@@ -310,7 +337,7 @@ export default function DisputeManager() {
                       {formatSTT(dispute.amount)} STT
                     </div>
                     <div className="text-sm text-gray-500">
-                      {formatTimeLeft(dispute.votingEnd)}
+                      {formatTimeLeft(BigInt(dispute.votingEnd))}
                     </div>
                     <div
                       className={`mt-1 px-2 py-1 rounded-full text-xs ${

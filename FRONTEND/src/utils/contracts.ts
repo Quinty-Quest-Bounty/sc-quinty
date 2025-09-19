@@ -750,8 +750,8 @@ export const DISPUTE_ABI = [
           { "name": "isExpiry", "type": "bool" },
           { "name": "amount", "type": "uint256" },
           { "name": "votingEnd", "type": "uint256" },
-          { "name": "voteCount", "type": "uint256" },
-          { "name": "resolved", "type": "bool" }
+          { "name": "resolved", "type": "bool" },
+          { "name": "voteCount", "type": "uint256" }
         ]
       }
     ],
@@ -770,10 +770,21 @@ export const DISPUTE_ABI = [
         "components": [
           { "name": "voter", "type": "address" },
           { "name": "stake", "type": "uint256" },
-          { "name": "rankedSubIds", "type": "uint256[]" }
+          { "name": "rankedSubIds", "type": "uint256[]" },
+          { "name": "timestamp", "type": "uint256" }
         ]
       }
     ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "hasVoted",
+    "inputs": [
+        { "name": "_disputeId", "type": "uint256" },
+        { "name": "_voter", "type": "address" }
+    ],
+    "outputs": [{ "name": "", "type": "bool" }],
     "stateMutability": "view"
   },
   {
@@ -835,10 +846,64 @@ export const REPUTATION_ABI = [
           { "name": "solveSuccessRate", "type": "uint256" },
           { "name": "totalSolvedCount", "type": "uint256" },
           { "name": "tokenId", "type": "uint256" },
-          { "name": "level", "type": "string" }
+          { "name": "level", "type": "string" },
+          { "name": "hasCreatorBadge", "type": "bool" },
+          { "name": "hasSolverBadge", "type": "bool" }
         ]
       }
     ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getCreatorStats",
+    "inputs": [{ "name": "_user", "type": "address" }],
+    "outputs": [
+        { "name": "created", "type": "uint256" },
+        { "name": "successful", "type": "uint256" },
+        { "name": "rate", "type": "uint256" },
+        { "name": "activeSince", "type": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getSolverStats",
+    "inputs": [{ "name": "_user", "type": "address" }],
+    "outputs": [
+        { "name": "attempted", "type": "uint256" },
+        { "name": "successful", "type": "uint256" },
+        { "name": "rate", "type": "uint256" },
+        { "name": "totalSolved", "type": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getBadgeLevel",
+    "inputs": [{ "name": "_user", "type": "address" }],
+    "outputs": [{ "name": "", "type": "string" }],
+    "stateMutability": "view"
+  },
+    {
+    "type": "function",
+    "name": "hasBadge",
+    "inputs": [{ "name": "_user", "type": "address" }],
+    "outputs": [{ "name": "", "type": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTokenIdForUser",
+    "inputs": [{ "name": "_user", "type": "address" }],
+    "outputs": [{ "name": "", "type": "uint256" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getTotalSupply",
+    "inputs": [],
+    "outputs": [{ "name": "", "type": "uint256" }],
     "stateMutability": "view"
   },
   {
@@ -883,9 +948,12 @@ export const AIRDROP_ABI = [
     "type": "function",
     "name": "createAirdrop",
     "inputs": [
-      { "name": "_perQualifier", "type": "uint256" },
-      { "name": "_maxQualifiers", "type": "uint256" },
-      { "name": "_deadline", "type": "uint256" }
+      { "name": "_title", "type": "string", "internalType": "string" },
+      { "name": "_description", "type": "string", "internalType": "string" },
+      { "name": "_perQualifier", "type": "uint256", "internalType": "uint256" },
+      { "name": "_maxQualifiers", "type": "uint256", "internalType": "uint256" },
+      { "name": "_deadline", "type": "uint256", "internalType": "uint256" },
+      { "name": "_requirements", "type": "string", "internalType": "string" }
     ],
     "outputs": [],
     "stateMutability": "payable"
@@ -894,54 +962,67 @@ export const AIRDROP_ABI = [
     "type": "function",
     "name": "submitEntry",
     "inputs": [
-      { "name": "_id", "type": "uint256" },
-      { "name": "_ipfsProofCid", "type": "string" }
+      { "name": "_id", "type": "uint256", "internalType": "uint256" },
+      { "name": "_ipfsProofCid", "type": "string", "internalType": "string" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "verifyAndDistribute",
+    "name": "verifyEntry",
     "inputs": [
-      { "name": "_id", "type": "uint256" },
-      { "name": "_qualifiedIndices", "type": "uint256[]" }
+      { "name": "_airdropId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_entryId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_status", "type": "uint8", "internalType": "enum AirdropBounty.VerificationStatus" },
+      { "name": "_feedback", "type": "string", "internalType": "string" }
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "cancelAirdrop",
-    "inputs": [{ "name": "_id", "type": "uint256" }],
+    "name": "verifyMultipleEntries",
+    "inputs": [
+      { "name": "_airdropId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_entryIds", "type": "uint256[]", "internalType": "uint256[]" },
+      { "name": "_statuses", "type": "uint8[]", "internalType": "enum AirdropBounty.VerificationStatus[]" },
+      { "name": "_feedbacks", "type": "string[]", "internalType": "string[]" }
+    ],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "finalizeAirdrop",
-    "inputs": [{ "name": "_id", "type": "uint256" }],
+    "inputs": [{ "name": "_id", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cancelAirdrop",
+    "inputs": [{ "name": "_id", "type": "uint256", "internalType": "uint256" }],
     "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
     "name": "getAirdrop",
-    "inputs": [{ "name": "_id", "type": "uint256" }],
+    "inputs": [{ "name": "_id", "type": "uint256", "internalType": "uint256" }],
     "outputs": [
-      {
-        "type": "tuple",
-        "components": [
-          { "name": "creator", "type": "address" },
-          { "name": "totalAmount", "type": "uint256" },
-          { "name": "perQualifier", "type": "uint256" },
-          { "name": "maxQualifiers", "type": "uint256" },
-          { "name": "qualifiersCount", "type": "uint256" },
-          { "name": "deadline", "type": "uint256" },
-          { "name": "resolved", "type": "bool" },
-          { "name": "cancelled", "type": "bool" }
-        ]
-      }
+      { "name": "creator", "type": "address", "internalType": "address" },
+      { "name": "title", "type": "string", "internalType": "string" },
+      { "name": "description", "type": "string", "internalType": "string" },
+      { "name": "totalAmount", "type": "uint256", "internalType": "uint256" },
+      { "name": "perQualifier", "type": "uint256", "internalType": "uint256" },
+      { "name": "maxQualifiers", "type": "uint256", "internalType": "uint256" },
+      { "name": "qualifiersCount", "type": "uint256", "internalType": "uint256" },
+      { "name": "deadline", "type": "uint256", "internalType": "uint256" },
+      { "name": "createdAt", "type": "uint256", "internalType": "uint256" },
+      { "name": "resolved", "type": "bool", "internalType": "bool" },
+      { "name": "cancelled", "type": "bool", "internalType": "bool" },
+      { "name": "requirements", "type": "string", "internalType": "string" }
     ],
     "stateMutability": "view"
   },
@@ -949,44 +1030,90 @@ export const AIRDROP_ABI = [
     "type": "function",
     "name": "getEntry",
     "inputs": [
-      { "name": "_id", "type": "uint256" },
-      { "name": "_entryIndex", "type": "uint256" }
+      { "name": "_airdropId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_entryId", "type": "uint256", "internalType": "uint256" }
     ],
     "outputs": [
-      {
-        "type": "tuple",
-        "components": [
-          { "name": "solver", "type": "address" },
-          { "name": "ipfsProofCid", "type": "string" },
-          { "name": "qualified", "type": "bool" },
-          { "name": "verified", "type": "bool" }
-        ]
-      }
+      { "name": "solver", "type": "address", "internalType": "address" },
+      { "name": "ipfsProofCid", "type": "string", "internalType": "string" },
+      { "name": "timestamp", "type": "uint256", "internalType": "uint256" },
+      { "name": "status", "type": "uint8", "internalType": "enum AirdropBounty.VerificationStatus" },
+      { "name": "feedback", "type": "string", "internalType": "string" }
     ],
     "stateMutability": "view"
   },
   {
     "type": "function",
+    "name": "getAirdropStats",
+    "inputs": [{ "name": "_airdropId", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [
+      { "name": "totalEntries", "type": "uint256", "internalType": "uint256" },
+      { "name": "pendingEntries", "type": "uint256", "internalType": "uint256" },
+      { "name": "approvedEntries", "type": "uint256", "internalType": "uint256" },
+      { "name": "rejectedEntries", "type": "uint256", "internalType": "uint256" },
+      { "name": "remainingSlots", "type": "uint256", "internalType": "uint256" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "getUserSubmission",
+    "inputs": [
+      { "name": "_airdropId", "type": "uint256", "internalType": "uint256" },
+      { "name": "_user", "type": "address", "internalType": "address" }
+    ],
+    "outputs": [
+      { "name": "hasSubmittedEntry", "type": "bool", "internalType": "bool" },
+      { "name": "submissionIndex", "type": "uint256", "internalType": "uint256" },
+      { "name": "status", "type": "uint8", "internalType": "enum AirdropBounty.VerificationStatus" }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "addVerifier",
+    "inputs": [{ "name": "_verifier", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "removeVerifier",
+    "inputs": [{ "name": "_verifier", "type": "address", "internalType": "address" }],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "isVerifier",
+    "inputs": [{ "name": "_address", "type": "address", "internalType": "address" }],
+    "outputs": [{ "name": "", "type": "bool", "internalType": "bool" }],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getEntryCount",
-    "inputs": [{ "name": "_id", "type": "uint256" }],
-    "outputs": [{ "name": "", "type": "uint256" }],
+    "inputs": [{ "name": "_id", "type": "uint256", "internalType": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
     "type": "function",
     "name": "airdropCounter",
     "inputs": [],
-    "outputs": [{ "name": "", "type": "uint256" }],
+    "outputs": [{ "name": "", "type": "uint256", "internalType": "uint256" }],
     "stateMutability": "view"
   },
   {
     "type": "event",
     "name": "AirdropCreated",
     "inputs": [
-      { "name": "id", "type": "uint256", "indexed": true },
-      { "name": "creator", "type": "address", "indexed": true },
-      { "name": "perQualifier", "type": "uint256", "indexed": false },
-      { "name": "maxQualifiers", "type": "uint256", "indexed": false }
+      { "name": "id", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "creator", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "title", "type": "string", "indexed": false, "internalType": "string" },
+      { "name": "perQualifier", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "maxQualifiers", "type": "uint256", "indexed": false, "internalType": "uint256" },
+      { "name": "deadline", "type": "uint256", "indexed": false, "internalType": "uint256" }
     ],
     "anonymous": false
   },
@@ -994,9 +1121,29 @@ export const AIRDROP_ABI = [
     "type": "event",
     "name": "EntrySubmitted",
     "inputs": [
-      { "name": "id", "type": "uint256", "indexed": true },
-      { "name": "solver", "type": "address", "indexed": false },
-      { "name": "ipfsProofCid", "type": "string", "indexed": false }
+      { "name": "id", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "solver", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "ipfsProofCid", "type": "string", "indexed": false, "internalType": "string" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "EntryVerified",
+    "inputs": [
+      { "name": "airdropId", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "entryId", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "verifier", "type": "address", "indexed": true, "internalType": "address" },
+      { "name": "status", "type": "uint8", "indexed": false, "internalType": "enum AirdropBounty.VerificationStatus" }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AirdropCancelled",
+    "inputs": [
+      { "name": "id", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "refundAmount", "type": "uint256", "indexed": false, "internalType": "uint256" }
     ],
     "anonymous": false
   },
@@ -1004,8 +1151,9 @@ export const AIRDROP_ABI = [
     "type": "event",
     "name": "QualifiedAndDistributed",
     "inputs": [
-      { "name": "id", "type": "uint256", "indexed": true },
-      { "name": "qualifiers", "type": "address[]", "indexed": false }
+      { "name": "id", "type": "uint256", "indexed": true, "internalType": "uint256" },
+      { "name": "qualifiers", "type": "address[]", "indexed": false, "internalType": "address[]" },
+      { "name": "totalDistributed", "type": "uint256", "indexed": false, "internalType": "uint256" }
     ],
     "anonymous": false
   }
