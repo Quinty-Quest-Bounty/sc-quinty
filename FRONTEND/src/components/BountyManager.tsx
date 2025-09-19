@@ -96,17 +96,7 @@ export default function BountyManager() {
     ipfsCid: "",
   });
 
-  const [newReply, setNewReply] = useState({
-    bountyId: 0,
-    subId: 0,
-    content: "",
-  });
 
-  const [revealData, setRevealData] = useState({
-    bountyId: 0,
-    subId: 0,
-    revealCid: "",
-  });
 
   // Read bounty counter
   const { data: bountyCounter } = useReadContract({
@@ -443,8 +433,8 @@ export default function BountyManager() {
   };
 
   // Add reply
-  const addReply = async () => {
-    if (!isConnected || !newReply.content.trim()) return;
+  const addReply = async (bountyId: number, subId: number, content: string) => {
+    if (!isConnected || !content.trim()) return;
 
     try {
       await writeContract({
@@ -452,14 +442,12 @@ export default function BountyManager() {
         abi: QUINTY_ABI,
         functionName: "addReply",
         args: [
-          BigInt(newReply.bountyId),
-          BigInt(newReply.subId),
-          newReply.content,
+          BigInt(bountyId),
+          BigInt(subId),
+          content,
         ],
       });
-
-      setNewReply({ bountyId: 0, subId: 0, content: "" });
-      alert("Reply added successfully!");
+      alert("Reply submitted successfully! It will appear after the transaction is confirmed.");
     } catch (error) {
       console.error("Error adding reply:", error);
       alert("Error adding reply");
@@ -467,8 +455,8 @@ export default function BountyManager() {
   };
 
   // Reveal solution
-  const revealSolution = async () => {
-    if (!isConnected || !revealData.revealCid.trim()) return;
+  const revealSolution = async (bountyId: number, subId: number, revealCid: string) => {
+    if (!isConnected || !revealCid.trim()) return;
 
     try {
       await writeContract({
@@ -476,14 +464,12 @@ export default function BountyManager() {
         abi: QUINTY_ABI,
         functionName: "revealSolution",
         args: [
-          BigInt(revealData.bountyId),
-          BigInt(revealData.subId),
-          revealData.revealCid,
+          BigInt(bountyId),
+          BigInt(subId),
+          revealCid,
         ],
       });
-
-      setRevealData({ bountyId: 0, subId: 0, revealCid: "" });
-      alert("Solution revealed successfully!");
+      alert("Solution revealed successfully! It will appear after the transaction is confirmed.");
     } catch (error) {
       console.error("Error revealing solution:", error);
       alert("Error revealing solution");
@@ -516,7 +502,7 @@ export default function BountyManager() {
         {/* Tab Navigation */}
         <div className="border-b border-gray-200">
           <nav className="-mb-px flex space-x-8">
-            {["browse", "create", "manage"].map((tab) => (
+            {["browse", "create"].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab as any)}
@@ -1024,6 +1010,8 @@ export default function BountyManager() {
                   onSubmitSolution={submitSolution}
                   onSelectWinners={selectWinners}
                   onTriggerSlash={triggerSlash}
+                  onAddReply={addReply}
+                  onRevealSolution={revealSolution}
                 />
               ))}
             </div>
@@ -1031,108 +1019,7 @@ export default function BountyManager() {
         </div>
       )}
 
-      {/* Manage Tab */}
-      {activeTab === "manage" && (
-        <div className="space-y-6">
-          <h3 className="text-xl font-semibold">
-            Manage Submissions & Communications
-          </h3>
 
-          {/* Add Reply */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-lg font-semibold mb-4">Add Reply</h4>
-            <div className="grid grid-cols-3 gap-4">
-              <input
-                type="number"
-                placeholder="Bounty ID"
-                value={newReply.bountyId || ""}
-                onChange={(e) =>
-                  setNewReply({
-                    ...newReply,
-                    bountyId: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="border border-gray-300 rounded-md px-3 py-2"
-              />
-              <input
-                type="number"
-                placeholder="Submission ID"
-                value={newReply.subId || ""}
-                onChange={(e) =>
-                  setNewReply({
-                    ...newReply,
-                    subId: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="border border-gray-300 rounded-md px-3 py-2"
-              />
-              <button
-                onClick={addReply}
-                disabled={!newReply.content.trim()}
-                className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50"
-              >
-                Add Reply
-              </button>
-            </div>
-            <textarea
-              placeholder="Your reply..."
-              value={newReply.content}
-              onChange={(e) =>
-                setNewReply({ ...newReply, content: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-2"
-              rows={3}
-            />
-          </div>
-
-          {/* Reveal Solution */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h4 className="text-lg font-semibold mb-4">Reveal Solution</h4>
-            <div className="grid grid-cols-3 gap-4">
-              <input
-                type="number"
-                placeholder="Bounty ID"
-                value={revealData.bountyId || ""}
-                onChange={(e) =>
-                  setRevealData({
-                    ...revealData,
-                    bountyId: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="border border-gray-300 rounded-md px-3 py-2"
-              />
-              <input
-                type="number"
-                placeholder="Submission ID"
-                value={revealData.subId || ""}
-                onChange={(e) =>
-                  setRevealData({
-                    ...revealData,
-                    subId: parseInt(e.target.value) || 0,
-                  })
-                }
-                className="border border-gray-300 rounded-md px-3 py-2"
-              />
-              <button
-                onClick={revealSolution}
-                disabled={!revealData.revealCid.trim()}
-                className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 disabled:opacity-50"
-              >
-                Reveal Solution
-              </button>
-            </div>
-            <input
-              type="text"
-              placeholder="Reveal IPFS CID"
-              value={revealData.revealCid}
-              onChange={(e) =>
-                setRevealData({ ...revealData, revealCid: e.target.value })
-              }
-              className="w-full border border-gray-300 rounded-md px-3 py-2 mt-2"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
