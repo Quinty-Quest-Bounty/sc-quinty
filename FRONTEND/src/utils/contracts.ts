@@ -845,10 +845,8 @@ export const REPUTATION_ABI = [
           { "name": "successfulSolves", "type": "uint256" },
           { "name": "solveSuccessRate", "type": "uint256" },
           { "name": "totalSolvedCount", "type": "uint256" },
-          { "name": "tokenId", "type": "uint256" },
-          { "name": "level", "type": "string" },
-          { "name": "hasCreatorBadge", "type": "bool" },
-          { "name": "hasSolverBadge", "type": "bool" }
+          { "name": "creatorLevel", "type": "string" },
+          { "name": "solverLevel", "type": "string" }
         ]
       }
     ],

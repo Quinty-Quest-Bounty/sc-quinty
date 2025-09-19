@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from "react";
 import {
@@ -11,12 +11,14 @@ import { parseEther } from "viem";
 import {
   CONTRACT_ADDRESSES,
   DISPUTE_ABI,
+  QUINTY_ABI, // Import Quinty ABI to get submission details
   SOMNIA_TESTNET_ID,
   MIN_VOTING_STAKE,
 } from "../utils/contracts";
 import { readContract } from "@wagmi/core";
 import { formatSTT, formatTimeLeft, formatAddress, wagmiConfig } from "../utils/web3";
 
+// Interfaces
 interface Dispute {
   id: number;
   bountyId: number;
@@ -31,7 +33,11 @@ interface Vote {
   voter: string;
   stake: bigint;
   rankedSubIds: number[];
-  timestamp: number;
+}
+
+interface Submission {
+  solver: string;
+  blindedIpfsCid: string;
 }
 
 export default function DisputeManager() {
@@ -41,47 +47,48 @@ export default function DisputeManager() {
   // State
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [votes, setVotes] = useState<{ [disputeId: number]: Vote[] }>({});
-  const [selectedDispute, setSelectedDispute] = useState<number | null>(null);
+  const [disputedSubmissions, setDisputedSubmissions] = useState<{ [bountyId: number]: Submission[] }>({});
+  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
 
   // Form states
-  const [voteForm, setVoteForm] = useState({
-    disputeId: 0,
-    rankings: [0, 1, 2] as number[],
-    stakeAmount: MIN_VOTING_STAKE,
-  });
-
-  const [pengadilanForm, setPengadilanForm] = useState({
-    bountyId: 0,
-  });
+  const [voteForm, setVoteForm] = useState<{rank1: string; rank2: string; rank3: string; stakeAmount: string;}>({ rank1: '-1', rank2: '-1', rank3: '-1', stakeAmount: MIN_VOTING_STAKE });
+  const [pengadilanForm, setPengadilanForm] = useState({ bountyId: 0 });
 
   // Read dispute counter
   const { data: disputeCounter, refetch: refetchDisputes } = useReadContract({
-    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-      .DisputeResolver as `0x${string}`,
+    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
     abi: DISPUTE_ABI,
     functionName: "disputeCounter",
   });
 
-  // Watch for dispute events
-  useWatchContractEvent({
-    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-      .DisputeResolver as `0x${string}`,
-    abi: DISPUTE_ABI,
-    eventName: "DisputeInitiated",
-    onLogs(logs) {
-      refetchDisputes();
-    },
-  });
+  // Function to fetch submissions for a given bounty
+  const fetchSubmissionsForBounty = async (bountyId: number) => {
+    if (disputedSubmissions[bountyId]) return; // Already fetched
 
-  useWatchContractEvent({
-    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-      .DisputeResolver as `0x${string}`,
-    abi: DISPUTE_ABI,
-    eventName: "VoteCast",
-    onLogs(logs) {
-      refetchDisputes();
-    },
-  });
+    try {
+      const submissionCount = await readContract(wagmiConfig, {
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+        abi: QUINTY_ABI,
+        functionName: "getSubmissionCount",
+        args: [BigInt(bountyId)],
+      });
+
+      const loadedSubmissions: Submission[] = [];
+      for (let i = 0; i < Number(submissionCount); i++) {
+        const subData = await readContract(wagmiConfig, {
+          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+          abi: QUINTY_ABI,
+          functionName: "getSubmission",
+          args: [BigInt(bountyId), BigInt(i)],
+        });
+        const [, solver, blindedIpfsCid] = subData as any;
+        loadedSubmissions.push({ solver, blindedIpfsCid });
+      }
+      setDisputedSubmissions(prev => ({ ...prev, [bountyId]: loadedSubmissions }));
+    } catch (error) {
+      console.error(`Error fetching submissions for bounty ${bountyId}:`, error);
+    }
+  };
 
   // Load all disputes
   const loadDisputes = async () => {
@@ -90,10 +97,26 @@ export default function DisputeManager() {
     const loadedDisputes: Dispute[] = [];
     for (let i = 1; i <= Number(disputeCounter); i++) {
       try {
-        const dispute = await readDispute(i);
-        if (dispute) {
+        const disputeData = await readContract(wagmiConfig, {
+          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
+          abi: DISPUTE_ABI,
+          functionName: "getDispute",
+          args: [BigInt(i)],
+        });
+        
+        if (disputeData) {
+          const [bountyId, isExpiry, amount, votingEnd, resolved, voteCount] = disputeData as any;
+          const dispute: Dispute = {
+            id: i,
+            bountyId: Number(bountyId),
+            isExpiry,
+            amount,
+            votingEnd: Number(votingEnd),
+            resolved,
+            voteCount: Number(voteCount),
+          };
           loadedDisputes.push(dispute);
-          loadVotes(dispute);
+          fetchSubmissionsForBounty(dispute.bountyId); // Fetch submissions for the disputed bounty
         }
       } catch (error) {
         console.error(`Error loading dispute ${i}:`, error);
@@ -102,92 +125,32 @@ export default function DisputeManager() {
     setDisputes(loadedDisputes.reverse());
   };
 
-  // Read specific dispute
-  const readDispute = async (disputeId: number): Promise<Dispute | null> => {
-    try {
-      const disputeData = await readContract(wagmiConfig, {
-        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
-        abi: DISPUTE_ABI,
-        functionName: "getDispute",
-        args: [BigInt(disputeId)],
-      });
-
-      if (disputeData) {
-        const [bountyId, isExpiry, amount, votingEnd, resolved, voteCount] = disputeData as any;
-        return {
-          id: disputeId,
-          bountyId: Number(bountyId),
-          isExpiry,
-          amount,
-          votingEnd: Number(votingEnd),
-          resolved,
-          voteCount: Number(voteCount),
-        };
-      }
-      return null;
-    } catch (e) {
-      console.error(`Error reading dispute ${disputeId}:`, e);
-      return null;
-    }
-  };
-
-  // Load votes for a dispute
-  const loadVotes = async (dispute: Dispute) => {
-    if (!dispute) return;
-
-    try {
-        const loadedVotes: Vote[] = [];
-        for (let i = 0; i < dispute.voteCount; i++) {
-            const voteData = await readContract(wagmiConfig, {
-                address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
-                abi: DISPUTE_ABI,
-                functionName: "getVote",
-                args: [BigInt(dispute.id), BigInt(i)],
-            });
-            const [voter, stake, rankedSubIds, timestamp] = voteData as any;
-            loadedVotes.push({ voter, stake, rankedSubIds: rankedSubIds.map(Number), timestamp: Number(timestamp) });
-        }
-        setVotes((prev) => ({
-            ...prev,
-            [dispute.id]: loadedVotes,
-        }));
-    } catch (error) {
-        console.error(`Error loading votes for dispute ${dispute.id}:`, error);
-    }
-  };
-
   // Cast vote
   const castVote = async () => {
-    if (!isConnected || !voteForm.disputeId) return;
+    if (!isConnected || !selectedDispute) return;
 
-    // Validate rankings
-    const uniqueRankings = new Set(voteForm.rankings);
+    const rankings = [voteForm.rank1, voteForm.rank2, voteForm.rank3].map(Number);
+    if (rankings.some(r => r < 0)) {
+      alert("Please rank 3 unique submissions.");
+      return;
+    }
+    const uniqueRankings = new Set(rankings);
     if (uniqueRankings.size !== 3) {
-      alert("Rankings must be unique (rank 3 different submissions)");
+      alert("Rankings must be for 3 unique submissions.");
       return;
     }
 
     try {
       await writeContract({
-        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-          .DisputeResolver as `0x${string}`,
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
         abi: DISPUTE_ABI,
         functionName: "vote",
-        args: [
-          BigInt(voteForm.disputeId),
-          voteForm.rankings.map((r) => BigInt(r)),
-        ],
+        args: [BigInt(selectedDispute.id), rankings.map(r => BigInt(r))],
         value: parseEther(voteForm.stakeAmount),
       });
 
-      setVoteForm({
-        disputeId: 0,
-        rankings: [0, 1, 2],
-        stakeAmount: MIN_VOTING_STAKE,
-      });
-
       alert("Vote cast successfully!");
-      loadDisputes();
+      refetchDisputes();
     } catch (error) {
       console.error("Error casting vote:", error);
       alert("Error casting vote");
@@ -200,15 +163,14 @@ export default function DisputeManager() {
 
     try {
       await writeContract({
-        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-          .DisputeResolver as `0x${string}`,
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
         abi: DISPUTE_ABI,
         functionName: "resolveDispute",
         args: [BigInt(disputeId)],
       });
 
       alert("Dispute resolved successfully!");
-      loadDisputes();
+      refetchDisputes();
     } catch (error) {
       console.error("Error resolving dispute:", error);
       alert("Error resolving dispute");
@@ -221,8 +183,7 @@ export default function DisputeManager() {
 
     try {
       await writeContract({
-        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-          .DisputeResolver as `0x${string}`,
+        address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
         abi: DISPUTE_ABI,
         functionName: "initiatePengadilanDispute",
         args: [BigInt(pengadilanForm.bountyId)],
@@ -230,7 +191,7 @@ export default function DisputeManager() {
 
       setPengadilanForm({ bountyId: 0 });
       alert("Pengadilan dispute initiated successfully!");
-      loadDisputes();
+      refetchDisputes();
     } catch (error) {
       console.error("Error initiating pengadilan:", error);
       alert("Error initiating pengadilan dispute");
@@ -246,9 +207,7 @@ export default function DisputeManager() {
   if (!isConnected) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-700">
-          Please connect your wallet to participate in disputes.
-        </p>
+        <p className="text-gray-700">Please connect your wallet to participate in disputes.</p>
       </div>
     );
   }
@@ -256,32 +215,19 @@ export default function DisputeManager() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-6">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">
-          Dispute Resolution (Pengadilan DAO)
-        </h2>
-        <p className="text-gray-700">
-          Participate in community voting to resolve bounty disputes and
-          expiries
-        </p>
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">Dispute Resolution (Pengadilan DAO)</h2>
+        <p className="text-gray-700">Participate in community voting to resolve bounty disputes and expiries.</p>
       </div>
 
-      {/* Initiate Pengadilan Dispute */}
       <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <h3 className="text-xl font-semibold mb-4">
-          Initiate Pengadilan Dispute
-        </h3>
-        <p className="text-gray-600 mb-4">
-          As a bounty creator, you can dispute the winner selection within 7
-          days of resolution.
-        </p>
-        <div className="flex gap-4">
+        <h3 className="text-xl font-semibold mb-4">Initiate Pengadilan Dispute</h3>
+        <p className="text-gray-600 mb-4">As a bounty creator, you can dispute a winner selection if you believe there was an issue. This must be done within 7 days of resolution.</p>
+        <div className="flex gap-4 items-center">
           <input
             type="number"
-            placeholder="Bounty ID"
+            placeholder="Bounty ID to Dispute"
             value={pengadilanForm.bountyId || ""}
-            onChange={(e) =>
-              setPengadilanForm({ bountyId: parseInt(e.target.value) || 0 })
-            }
+            onChange={(e) => setPengadilanForm({ bountyId: parseInt(e.target.value) || 0 })}
             className="border border-gray-300 rounded-md px-3 py-2"
           />
           <button
@@ -289,306 +235,103 @@ export default function DisputeManager() {
             disabled={!pengadilanForm.bountyId}
             className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 disabled:opacity-50"
           >
-            Initiate Pengadilan Dispute
+            Initiate Dispute
           </button>
         </div>
       </div>
 
-      {/* Active Disputes */}
       <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-xl font-semibold">
-            Active Disputes ({disputes.filter((d) => !d.resolved).length})
-          </h3>
-        </div>
-
-        {disputes.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            No disputes found.
-          </div>
+        <h3 className="text-xl font-semibold">Active Disputes ({disputes.filter((d) => !d.resolved).length})</h3>
+        {disputes.filter(d => !d.resolved).length === 0 ? (
+          <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-lg">No active disputes.</div>
         ) : (
           <div className="space-y-4">
-            {disputes.map((dispute) => (
+            {disputes.filter(d => !d.resolved).map((dispute) => (
               <div key={dispute.id} className="bg-white rounded-lg shadow p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h4 className="text-lg font-semibold text-gray-900">
-                      Dispute #{dispute.id} - Bounty #{dispute.bountyId}
-                    </h4>
+                    <h4 className="text-lg font-semibold text-gray-900">Dispute #{dispute.id} (for Bounty #{dispute.bountyId})</h4>
                     <div className="flex items-center gap-4 mt-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-sm ${
-                          dispute.isExpiry
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {dispute.isExpiry
-                          ? "Expiry Vote"
-                          : "Pengadilan Dispute"}
+                      <span className={`px-2 py-1 rounded-full text-sm ${dispute.isExpiry ? "bg-yellow-100 text-yellow-800" : "bg-red-100 text-red-800"}`}>
+                        {dispute.isExpiry ? "Expiry Vote" : "Pengadilan Dispute"}
                       </span>
-                      <span className="text-sm text-gray-500">
-                        {dispute.voteCount} votes cast
-                      </span>
+                      <span className="text-sm text-gray-500">{dispute.voteCount} votes cast</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-primary-600">
-                      {formatSTT(dispute.amount)} STT
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {formatTimeLeft(BigInt(dispute.votingEnd))}
-                    </div>
-                    <div
-                      className={`mt-1 px-2 py-1 rounded-full text-xs ${
-                        dispute.resolved
-                          ? "bg-green-100 text-green-800"
-                          : Date.now() / 1000 > dispute.votingEnd
-                          ? "bg-gray-100 text-gray-800"
-                          : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {dispute.resolved
-                        ? "Resolved"
-                        : Date.now() / 1000 > dispute.votingEnd
-                        ? "Voting Ended"
-                        : "Voting Active"}
-                    </div>
+                    <div className="text-2xl font-bold text-primary-600">{formatSTT(dispute.amount)} STT</div>
+                    <div className="text-sm text-gray-500">Voting ends in {formatTimeLeft(BigInt(dispute.votingEnd))}</div>
                   </div>
                 </div>
 
-                {/* Dispute Description */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <h5 className="font-medium mb-2">
-                    {dispute.isExpiry
-                      ? "Expiry Voting"
-                      : "Pengadilan Court Dispute"}
-                  </h5>
-                  <p className="text-gray-600 text-sm">
-                    {dispute.isExpiry
-                      ? "The bounty deadline has passed. Community members can vote to rank the top 3 submissions. The highest-ranked non-winner receives 10% of the slash amount, and correct voters share 5%."
-                      : "The bounty creator has disputed the winner selection. Community can vote to overturn the decision. If successful, 80% refund to creator, 10% to voters, 10% to original solver."}
-                  </p>
+                <div className="bg-gray-50 rounded-lg p-4 mb-4 text-sm text-gray-700">
+                  {dispute.isExpiry
+                    ? "The bounty deadline has passed. Community members can vote to rank the top 3 submissions. The highest-ranked non-winner receives 10% of the slash amount, and correct voters share 5%."
+                    : "The bounty creator has disputed the winner selection. Community can vote to overturn the decision. If successful, 80% refund to creator, 10% to voters, 10% to original solver."}
                 </div>
 
-                {/* Voting Interface */}
-                {!dispute.resolved &&
-                  Date.now() / 1000 <= dispute.votingEnd && (
-                    <div className="border-t pt-4">
-                      <h5 className="font-medium mb-3">
-                        Cast Your Vote (Minimum {MIN_VOTING_STAKE} STT stake)
-                      </h5>
+                {selectedDispute?.id !== dispute.id && <button onClick={() => setSelectedDispute(dispute)} className="text-blue-600">Show Details & Vote</button>}
 
-                      <div className="grid grid-cols-1 gap-4">
-                        {/* Rankings */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Rank Top 3 Submissions (1st = best, 3rd = worst)
-                          </label>
-                          <div className="grid grid-cols-3 gap-2">
-                            {[0, 1, 2].map((position) => (
-                              <div key={position}>
-                                <label className="block text-xs text-gray-600 mb-1">
-                                  {position === 0
-                                    ? "1st Place"
-                                    : position === 1
-                                    ? "2nd Place"
-                                    : "3rd Place"}
-                                </label>
-                                <select
-                                  value={voteForm.rankings[position]}
-                                  onChange={(e) => {
-                                    const newRankings = [...voteForm.rankings];
-                                    newRankings[position] = parseInt(
-                                      e.target.value
-                                    );
-                                    setVoteForm({
-                                      ...voteForm,
-                                      rankings: newRankings,
-                                    });
-                                  }}
-                                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
-                                >
-                                  {[0, 1, 2, 3, 4].map((subId) => (
-                                    <option key={subId} value={subId}>
-                                      Submission #{subId}
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-                            ))}
+                {selectedDispute?.id === dispute.id && (
+                  <div className="border-t pt-4">
+                    <h5 className="font-medium mb-3">Submissions for Bounty #{dispute.bountyId}</h5>
+                    <div className="space-y-2 mb-4">
+                      {disputedSubmissions[dispute.bountyId]?.map((sub, index) => (
+                        <div key={index} className="p-2 border rounded-md bg-white flex justify-between items-center">
+                          <span>Submission #{index} by {formatAddress(sub.solver)}</span>
+                          <a href={`https://ipfs.io/ipfs/${sub.blindedIpfsCid}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">View on IPFS</a>
+                        </div>
+                      ))}
+                    </div>
+
+                    <h5 className="font-medium mb-3">Cast Your Vote (Minimum {MIN_VOTING_STAKE} STT stake)</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Rank Top 3 Submissions</label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">1st Place</label>
+                            <select value={voteForm.rank1} onChange={(e) => setVoteForm({...voteForm, rank1: e.target.value})} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                              <option value="-1" disabled>Select</option>
+                              {disputedSubmissions[dispute.bountyId]?.map((_, index) => <option key={index} value={index}>Submission #{index}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">2nd Place</label>
+                            <select value={voteForm.rank2} onChange={(e) => setVoteForm({...voteForm, rank2: e.target.value})} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                              <option value="-1" disabled>Select</option>
+                              {disputedSubmissions[dispute.bountyId]?.map((_, index) => <option key={index} value={index}>Submission #{index}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">3rd Place</label>
+                            <select value={voteForm.rank3} onChange={(e) => setVoteForm({...voteForm, rank3: e.target.value})} className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm">
+                              <option value="-1" disabled>Select</option>
+                              {disputedSubmissions[dispute.bountyId]?.map((_, index) => <option key={index} value={index}>Submission #{index}</option>)}
+                            </select>
                           </div>
                         </div>
-
-                        {/* Stake Amount */}
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Stake Amount (STT)
-                          </label>
-                          <input
-                            type="number"
-                            value={voteForm.stakeAmount}
-                            onChange={(e) =>
-                              setVoteForm({
-                                ...voteForm,
-                                stakeAmount: e.target.value,
-                              })
-                            }
-                            className="w-full border border-gray-300 rounded-md px-3 py-2"
-                            min={MIN_VOTING_STAKE}
-                            step="0.0001"
-                            placeholder={MIN_VOTING_STAKE}
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Higher stakes give more voting power. You earn
-                            rewards if your vote aligns with the majority.
-                          </p>
-                        </div>
-
-                        {/* Vote Button */}
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => {
-                              setVoteForm({
-                                ...voteForm,
-                                disputeId: dispute.id,
-                              });
-                              castVote();
-                            }}
-                            disabled={
-                              parseFloat(voteForm.stakeAmount) <
-                              parseFloat(MIN_VOTING_STAKE)
-                            }
-                            className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50"
-                          >
-                            Cast Vote ({voteForm.stakeAmount} STT)
-                          </button>
-                          <button
-                            onClick={() =>
-                              setSelectedDispute(
-                                selectedDispute === dispute.id
-                                  ? null
-                                  : dispute.id
-                              )
-                            }
-                            className="border border-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-50"
-                          >
-                            {selectedDispute === dispute.id
-                              ? "Hide Details"
-                              : "View Details"}
-                          </button>
-                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Stake Amount (STT)</label>
+                        <input type="number" value={voteForm.stakeAmount} onChange={(e) => setVoteForm({ ...voteForm, stakeAmount: e.target.value })} className="w-full border border-gray-300 rounded-md px-3 py-2" min={MIN_VOTING_STAKE} step="0.0001" placeholder={MIN_VOTING_STAKE} />
+                        <p className="text-xs text-gray-500 mt-1">Higher stakes give more voting power.</p>
                       </div>
                     </div>
-                  )}
-
-                {/* Resolution Button */}
-                {!dispute.resolved &&
-                  Date.now() / 1000 > dispute.votingEnd &&
-                  dispute.voteCount > 0 && (
-                    <div className="border-t pt-4">
-                      <button
-                        onClick={() => resolveDispute(dispute.id)}
-                        className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700"
-                      >
-                        Resolve Dispute & Distribute Rewards
-                      </button>
+                    <div className="mt-4">
+                      <button onClick={castVote} disabled={parseFloat(voteForm.stakeAmount) < parseFloat(MIN_VOTING_STAKE)} className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50">Cast Vote ({voteForm.stakeAmount} STT)</button>
+                      <button onClick={() => setSelectedDispute(null)} className="ml-2 text-gray-600">Hide</button>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                {/* Detailed Voting Results */}
-                {selectedDispute === dispute.id && (
+                {Date.now() / 1000 > dispute.votingEnd && (
                   <div className="border-t pt-4 mt-4">
-                    <h6 className="font-medium mb-3">Voting Details</h6>
-
-                    {votes[dispute.id]?.length > 0 ? (
-                      <div className="space-y-2">
-                        {votes[dispute.id].map((vote, index) => (
-                          <div key={index} className="bg-gray-50 rounded p-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm font-medium">
-                                {formatAddress(vote.voter)}
-                              </span>
-                              <span className="text-sm text-gray-600">
-                                Stake: {formatSTT(vote.stake)} STT
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              Rankings:{" "}
-                              {vote.rankedSubIds
-                                .map((id, i) => `${i + 1}. Submission #${id}`)
-                                .join(" | ")}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 text-sm">
-                        No votes cast yet.
-                      </p>
-                    )}
-
-                    {/* Voting Guidelines */}
-                    <div className="bg-blue-50 rounded-lg p-4 mt-4">
-                      <h6 className="font-medium text-blue-900 mb-2">
-                        Voting Guidelines
-                      </h6>
-                      <ul className="text-sm text-blue-800 space-y-1">
-                        <li>
-                          • Review all submissions carefully before voting
-                        </li>
-                        <li>
-                          • Rank based on quality, creativity, and adherence to
-                          requirements
-                        </li>
-                        <li>
-                          • Higher stakes give more voting power but also higher
-                          risk
-                        </li>
-                        <li>
-                          • Rewards are distributed proportionally to correct
-                          voters
-                        </li>
-                        <li>• Votes are final and cannot be changed</li>
-                      </ul>
-                    </div>
+                    <button onClick={() => resolveDispute(dispute.id)} className="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Resolve Dispute & Distribute Rewards</button>
                   </div>
                 )}
               </div>
             ))}
-          </div>
-        )}
-
-        {/* Resolved Disputes History */}
-        {disputes.filter((d) => d.resolved).length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-xl font-semibold mb-4">Resolved Disputes</h3>
-            <div className="space-y-2">
-              {disputes
-                .filter((d) => d.resolved)
-                .map((dispute) => (
-                  <div key={dispute.id} className="bg-gray-50 rounded-lg p-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium">
-                          Dispute #{dispute.id}
-                        </span>
-                        <span className="text-gray-500 ml-2">
-                          ({dispute.isExpiry ? "Expiry" : "Pengadilan"})
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">
-                          {formatSTT(dispute.amount)} STT
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {dispute.voteCount} votes
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-            </div>
           </div>
         )}
       </div>

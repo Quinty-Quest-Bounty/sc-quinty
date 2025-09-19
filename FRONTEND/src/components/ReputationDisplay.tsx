@@ -10,6 +10,7 @@ import {
 import { readContract } from "@wagmi/core";
 import { formatAddress, wagmiConfig } from "../utils/web3";
 import { isAddress } from "viem";
+import NftBadge from "./NftBadge"; // Import the new badge component
 
 interface UserReputation {
   bountiesCreated: number;
@@ -20,17 +21,13 @@ interface UserReputation {
   successfulSolves: number;
   solveSuccessRate: number;
   totalSolvedCount: number;
-  tokenId: number;
-  level: string;
-  hasCreatorBadge: boolean;
-  hasSolverBadge: boolean;
+  creatorLevel: string;
+  solverLevel: string;
 }
 
 interface UserStats {
   address: string;
   reputation: UserReputation;
-  hasNFT: boolean;
-  tokenURI: string;
 }
 
 export default function ReputationDisplay() {
@@ -54,28 +51,6 @@ export default function ReputationDisplay() {
     query: { enabled: isConnected },
   });
 
-  // Read user's NFT balance
-  const { data: nftBalance } = useReadContract({
-    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-      .QuintyReputation as `0x${string}`,
-    abi: REPUTATION_ABI,
-    functionName: "balanceOf",
-    args: address ? [address] : undefined,
-    query: { enabled: isConnected },
-  });
-
-  // Read token URI if user has NFT
-  const { data: tokenURI } = useReadContract({
-    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-      .QuintyReputation as `0x${string}`,
-    abi: REPUTATION_ABI,
-    functionName: "tokenURI",
-    args: userStats?.reputation.tokenId
-      ? [BigInt(userStats.reputation.tokenId)]
-      : undefined,
-    query: { enabled: !!userStats?.reputation.tokenId && userStats.reputation.tokenId > 0 },
-  });
-
   // Watch for reputation updates
   useWatchContractEvent({
     address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
@@ -97,33 +72,30 @@ export default function ReputationDisplay() {
     },
   });
 
-  // Load user stats
-  useEffect(() => {
-    if (address && reputation && nftBalance !== undefined) {
-      const repData = reputation as any[];
-      const userRep: UserReputation = {
-        bountiesCreated: Number(repData[0]),
-        successfulBounties: Number(repData[1]),
-        creationSuccessRate: Number(repData[2]),
-        firstBountyTimestamp: Number(repData[3]),
-        solvesAttempted: Number(repData[4]),
-        successfulSolves: Number(repData[5]),
-        solveSuccessRate: Number(repData[6]),
-        totalSolvedCount: Number(repData[7]),
-        tokenId: Number(repData[8]),
-        level: repData[9] as string,
-        hasCreatorBadge: repData[10] as boolean,
-        hasSolverBadge: repData[11] as boolean,
-      };
+  // Helper to parse reputation data from contract
+  const parseReputationData = (repData: any[]): UserReputation => ({
+    bountiesCreated: Number(repData[0]),
+    successfulBounties: Number(repData[1]),
+    creationSuccessRate: Number(repData[2]),
+    firstBountyTimestamp: Number(repData[3]),
+    solvesAttempted: Number(repData[4]),
+    successfulSolves: Number(repData[5]),
+    solveSuccessRate: Number(repData[6]),
+    totalSolvedCount: Number(repData[7]),
+    creatorLevel: repData[8] as string,
+    solverLevel: repData[9] as string,
+  });
 
+  // Load current user's stats
+  useEffect(() => {
+    if (address && reputation) {
+      const userRep = parseReputationData(reputation as any[]);
       setUserStats({
         address,
         reputation: userRep,
-        hasNFT: Number(nftBalance) > 0,
-        tokenURI: (tokenURI as string) || "",
       });
     }
-  }, [address, reputation, nftBalance, tokenURI]);
+  }, [address, reputation]);
 
   // Search for another user's reputation
   const searchUserReputation = async () => {
@@ -140,45 +112,11 @@ export default function ReputationDisplay() {
             args: [searchAddress as `0x${string}`],
         });
 
-        const nftBalance = await readContract(wagmiConfig, {
-            address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation as `0x${string}`,
-            abi: REPUTATION_ABI,
-            functionName: "balanceOf",
-            args: [searchAddress as `0x${string}`],
-        });
-
         if (repData) {
-            const repArray = repData as any[];
-            const searchedRep: UserReputation = {
-                bountiesCreated: Number(repArray[0]),
-                successfulBounties: Number(repArray[1]),
-                creationSuccessRate: Number(repArray[2]),
-                firstBountyTimestamp: Number(repArray[3]),
-                solvesAttempted: Number(repArray[4]),
-                successfulSolves: Number(repArray[5]),
-                solveSuccessRate: Number(repArray[6]),
-                totalSolvedCount: Number(repArray[7]),
-                tokenId: Number(repArray[8]),
-                level: repArray[9] as string,
-                hasCreatorBadge: repArray[10] as boolean,
-                hasSolverBadge: repArray[11] as boolean,
-            };
-
-            let tokenURI = "";
-            if (searchedRep.tokenId > 0) {
-                tokenURI = await readContract(wagmiConfig, {
-                    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation as `0x${string}`,
-                    abi: REPUTATION_ABI,
-                    functionName: "tokenURI",
-                    args: [BigInt(searchedRep.tokenId)],
-                }) as string;
-            }
-
+            const searchedRep = parseReputationData(repData as any[]);
             const searchedStats: UserStats = {
                 address: searchAddress,
                 reputation: searchedRep,
-                hasNFT: Number(nftBalance) > 0,
-                tokenURI: tokenURI as string,
             };
 
             setLeaderboard((prev) => {
@@ -193,20 +131,6 @@ export default function ReputationDisplay() {
     } catch (error) {
         console.error("Error searching user:", error);
         alert("Could not find reputation for the given address.");
-    }
-  };
-
-  // Get level color
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case "Gold":
-        return "text-yellow-600 bg-yellow-100";
-      case "Silver":
-        return "text-gray-600 bg-gray-100";
-      case "Bronze":
-        return "text-orange-600 bg-orange-100";
-      default:
-        return "text-gray-500 bg-gray-50";
     }
   };
 
@@ -274,195 +198,43 @@ export default function ReputationDisplay() {
 
       {/* Profile Tab */}
       {selectedTab === "profile" && userStats && (
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* User Header */}
           <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-primary-600">
-                    {userStats.reputation.level
-                      ? userStats.reputation.level[0]
-                      : "?"}
-                  </span>
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              {formatAddress(userStats.address)}
+            </h3>
+            <div className="flex flex-col md:flex-row gap-8">
+                <div className="flex-shrink-0">
+                    <h4 className="font-medium mb-2 text-center">Creator Badge</h4>
+                    <NftBadge level={userStats.reputation.creatorLevel} badgeType="Creator" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    {formatAddress(userStats.address)}
-                  </h3>
-                  {userStats.reputation.level && (
-                    <span
-                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getLevelColor(
-                        userStats.reputation.level
-                      )}`}
-                    >
-                      {userStats.reputation.level} Level
-                    </span>
-                  )}
+                <div className="flex-shrink-0">
+                    <h4 className="font-medium mb-2 text-center">Solver Badge</h4>
+                    <NftBadge level={userStats.reputation.solverLevel} badgeType="Solver" />
                 </div>
-              </div>
-              {userStats.hasNFT && (
-                <div className="text-right">
-                  <div className="text-sm text-gray-500">NFT Badge</div>
-                  <div className="text-lg font-semibold">
-                    #{userStats.reputation.tokenId}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Reputation Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Creator Stats */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                Creator Stats
-              </h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Bounties Created:</span>
-                  <span className="font-medium">
-                    {userStats.reputation.bountiesCreated}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Successful:</span>
-                  <span className="font-medium">
-                    {userStats.reputation.successfulBounties}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Success Rate:</span>
-                  <span className="font-medium">
-                    {formatSuccessRate(
-                      userStats.reputation.creationSuccessRate
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Active Since:</span>
-                  <span className="font-medium text-sm">
-                    {formatDate(userStats.reputation.firstBountyTimestamp)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Solver Stats */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                Solver Stats
-              </h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Attempts:</span>
-                  <span className="font-medium">
-                    {userStats.reputation.solvesAttempted}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Successful:</span>
-                  <span className="font-medium">
-                    {userStats.reputation.successfulSolves}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Success Rate:</span>
-                  <span className="font-medium">
-                    {formatSuccessRate(userStats.reputation.solveSuccessRate)}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Solved:</span>
-                  <span className="font-medium">
-                    {userStats.reputation.totalSolvedCount}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Overall Performance */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                Overall
-              </h4>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Activity:</span>
-                  <span className="font-medium">
-                    {userStats.reputation.bountiesCreated +
-                      userStats.reputation.solvesAttempted}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Success:</span>
-                  <span className="font-medium">
-                    {userStats.reputation.successfulBounties +
-                      userStats.reputation.successfulSolves}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Overall Rate:</span>
-                  <span className="font-medium">
-                    {userStats.reputation.bountiesCreated +
-                      userStats.reputation.solvesAttempted >
-                    0
-                      ? formatSuccessRate(
-                          ((userStats.reputation.successfulBounties +
-                            userStats.reputation.successfulSolves) /
-                            (userStats.reputation.bountiesCreated +
-                              userStats.reputation.solvesAttempted)) *
-                            10000
-                        )
-                      : "0%"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* NFT Badge */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                NFT Badge
-              </h4>
-              {userStats.hasNFT ? (
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Token ID:</span>
-                    <span className="font-medium">
-                      #{userStats.reputation.tokenId}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Level:</span>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${getLevelColor(
-                        userStats.reputation.level
-                      )}`}
-                    >
-                      {userStats.reputation.level}
-                    </span>
-                  </div>
-                  {userStats.tokenURI && (
-                    <div className="text-xs text-gray-500 break-all">
-                      URI: {userStats.tokenURI}
+                <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Creator Stats */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Creator Stats</h4>
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between"><span>Bounties Created:</span><span className="font-medium">{userStats.reputation.bountiesCreated}</span></div>
+                            <div className="flex justify-between"><span>Successful:</span><span className="font-medium">{userStats.reputation.successfulBounties}</span></div>
+                            <div className="flex justify-between"><span>Success Rate:</span><span className="font-medium">{formatSuccessRate(userStats.reputation.creationSuccessRate)}</span></div>
+                            <div className="flex justify-between"><span>Active Since:</span><span className="font-medium">{formatDate(userStats.reputation.firstBountyTimestamp)}</span></div>
+                        </div>
                     </div>
-                  )}
-                  <div className="w-full h-24 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-500 text-sm">Badge Preview</span>
-                  </div>
+                    {/* Solver Stats */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Solver Stats</h4>
+                        <div className="space-y-3 text-sm">
+                            <div className="flex justify-between"><span>Submissions:</span><span className="font-medium">{userStats.reputation.solvesAttempted}</span></div>
+                            <div className="flex justify-between"><span>Successful:</span><span className="font-medium">{userStats.reputation.successfulSolves}</span></div>
+                            <div className="flex justify-between"><span>Success Rate:</span><span className="font-medium">{formatSuccessRate(userStats.reputation.solveSuccessRate)}</span></div>
+                            <div className="flex justify-between"><span>Total Wins:</span><span className="font-medium">{userStats.reputation.totalSolvedCount}</span></div>
+                        </div>
+                    </div>
                 </div>
-              ) : (
-                <div className="text-center text-gray-500">
-                  <div className="w-full h-24 bg-gray-50 rounded-lg flex items-center justify-center mb-2">
-                    <span className="text-sm">No Badge Yet</span>
-                  </div>
-                  <p className="text-xs">
-                    Complete more bounties to earn your first NFT badge!
-                  </p>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -497,7 +269,7 @@ export default function ReputationDisplay() {
           {/* Leaderboard */}
           <div className="bg-white rounded-lg shadow">
             <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold">Top Performers</h3>
+              <h3 className="text-xl font-semibold">Top Performers (by total success)</h3>
             </div>
 
             {leaderboard.length === 0 ? (
@@ -509,38 +281,30 @@ export default function ReputationDisplay() {
                 {leaderboard.map((user, index) => (
                   <div
                     key={user.address}
-                    className="p-6 flex items-center justify-between"
+                    className="p-4 flex items-center justify-between"
                   >
                     <div className="flex items-center space-x-4">
-                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-bold text-primary-600">
-                          #{index + 1}
-                        </span>
+                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-600">
+                        {index + 1}
                       </div>
                       <div>
-                        <div className="font-medium">
+                        <div className="font-medium text-gray-800">
                           {formatAddress(user.address)}
                         </div>
-                        {user.reputation.level && (
-                          <span
-                            className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getLevelColor(
-                              user.reputation.level
-                            )}`}
-                          >
-                            {user.reputation.level}
-                          </span>
-                        )}
+                        <div className="text-sm text-gray-500">
+                          <span className={`font-medium ${user.reputation.creatorLevel !== 'None' ? 'text-orange-600' : ''}`}>C: {user.reputation.creatorLevel}</span> / <span className={`font-medium ${user.reputation.solverLevel !== 'None' ? 'text-blue-600' : ''}`}>S: {user.reputation.solverLevel}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium">
+                      <div className="font-medium text-lg text-gray-800">
                         {user.reputation.successfulBounties +
                           user.reputation.successfulSolves}{" "}
-                        successes
+                        Successes
                       </div>
                       <div className="text-sm text-gray-500">
-                        {user.reputation.bountiesCreated}C /{" "}
-                        {user.reputation.successfulSolves}S
+                        {user.reputation.bountiesCreated} Created /{" "}
+                        {user.reputation.successfulSolves} Solved
                       </div>
                     </div>
                   </div>
