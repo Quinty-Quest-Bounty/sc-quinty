@@ -1,57 +1,99 @@
-# Sample Hardhat 3 Beta Project (`node:test` and `viem`)
+# Quinty: Decentralized Bounty & Airdrop Platform
 
-This project showcases a Hardhat 3 Beta project using the native Node.js test runner (`node:test`) and the `viem` library for Ethereum interactions.
+Quinty is a fully on-chain bounty and airdrop platform designed to foster trust and transparency between creators and contributors. It features a robust, soulbound reputation system to reward participation and ensure fairness within the ecosystem.
 
-To learn more about the Hardhat 3 Beta, please visit the [Getting Started guide](https://hardhat.org/docs/getting-started#getting-started-with-hardhat-3). To share your feedback, join our [Hardhat 3 Beta](https://hardhat.org/hardhat3-beta-telegram-group) Telegram group or [open an issue](https://github.com/NomicFoundation/hardhat/issues/new) in our GitHub issue tracker.
+## Core Features
 
-## Project Overview
+-   **Decentralized Bounties**: Creators can fund bounties for specific tasks, and solvers can submit their work for a reward.
+-   **Airdrop Campaigns**: Launch promotional campaigns where rewards are distributed based on verifiable, on-chain proof of engagement.
+-   **On-Chain Reputation**: A soulbound (non-transferable) ERC721 NFT system that represents a user's reputation as both a creator and a solver.
+-   **Dispute Resolution**: A community-driven voting mechanism to fairly resolve disputes that may arise from bounty resolutions.
 
-This example project includes:
+## Architecture
 
-- A simple Hardhat configuration file.
-- Foundry-compatible Solidity unit tests.
-- TypeScript integration tests using [`node:test`](nodejs.org/api/test.html), the new Node.js native test runner, and [`viem`](https://viem.sh/).
-- Examples demonstrating how to connect to different types of networks, including locally simulating OP mainnet.
+The Quinty ecosystem is comprised of a set of smart contracts and a frontend dApp for user interaction.
 
-## Usage
+### Smart Contracts (`/contracts`)
 
-### Running Tests
+-   `Quinty.sol`: The core contract that manages the entire lifecycle of bounties, from creation and submission to resolution.
+-   `AirdropBounty.sol`: Manages the creation, participation, and reward distribution for promotional airdrop campaigns.
+-   `QuintyReputation.sol`: An ERC721-based contract for minting and updating soulbound reputation tokens (badges) for users.
+-   `DisputeResolver.sol`: Manages the community voting process to handle bounty disputes.
 
-To run all the tests in the project, execute the following command:
+### Frontend (`/FRONTEND`)
 
-```shell
-npx hardhat test
-```
+A decentralized application (dApp) built with Next.js that provides a user-friendly interface for interacting with all features of the Quinty platform.
 
-You can also selectively run the Solidity or `node:test` tests:
+## Tech Stack
 
-```shell
-npx hardhat test solidity
-npx hardhat test nodejs
-```
+-   **Blockchain**: Solidity, Hardhat, Ethers.js, OpenZeppelin
+-   **Frontend**: Next.js, React, TypeScript, Wagmi, Viem, Tailwind CSS
 
-### Make a deployment to Sepolia
+## Local Development
 
-This project includes an example Ignition module to deploy the contract. You can deploy this module to a locally simulated chain or to Sepolia.
+Follow these steps to set up and run the project locally.
 
-To run the deployment to a local chain:
+### Prerequisites
 
-```shell
-npx hardhat ignition deploy ignition/modules/Counter.ts
-```
+-   [Git](https://git-scm.com/)
+-   [Node.js](https://nodejs.org/en/) (v18 or later recommended)
+-   `npm` or `yarn`
 
-To run the deployment to Sepolia, you need an account with funds to send the transaction. The provided Hardhat configuration includes a Configuration Variable called `SEPOLIA_PRIVATE_KEY`, which you can use to set the private key of the account you want to use.
+### Installation
 
-You can set the `SEPOLIA_PRIVATE_KEY` variable using the `hardhat-keystore` plugin or by setting it as an environment variable.
+1.  **Clone the repository:**
+    ```shell
+    git clone <your-repository-url>
+    cd sc-quinty
+    ```
 
-To set the `SEPOLIA_PRIVATE_KEY` config variable using `hardhat-keystore`:
+2.  **Install root dependencies:**
+    ```shell
+    npm install
+    ```
 
-```shell
-npx hardhat keystore set SEPOLIA_PRIVATE_KEY
-```
+3.  **Install frontend dependencies:**
+    ```shell
+    cd FRONTEND
+    npm install
+    ```
 
-After setting the variable, you can run the deployment with the Sepolia network:
+4.  **Set up environment variables:**
+    Return to the root directory (`cd ..`). This project uses `.env` files for configuration.
+    -   In the root directory, copy `.env.example` to `.env` and add your private key and network RPC URL (e.g., for Somnia Testnet).
+    -   In the `FRONTEND` directory, copy `.env.example` to `.env.local` if you need to override any frontend-specific variables.
 
-```shell
-npx hardhat ignition deploy --network sepolia ignition/modules/Counter.ts
-```
+## Usage & Scripts
+
+### Smart Contracts
+
+-   **Compile Contracts:**
+    ```shell
+    npx hardhat compile
+    ```
+
+-   **Run Tests:**
+    ```shell
+    npx hardhat test
+    ```
+
+-   **Run a Local Blockchain Node:**
+    ```shell
+    npx hardhat node
+    ```
+
+-   **Deploy Contracts:**
+    The `scripts/deploy.ts` script handles the deployment of all contracts and configures their interconnections. Run it with the desired network.
+    ```shell
+    npx hardhat run scripts/deploy.ts --network <your-network-name>
+    ```
+    After a successful deployment, contract addresses will be saved in `deployments.json`.
+
+### Frontend
+
+-   **Run the development server:**
+    ```shell
+    cd FRONTEND
+    npm run dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
