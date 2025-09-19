@@ -238,21 +238,23 @@ export default function BountyCard({
 
         {/* Creator and details */}
         <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center flex-wrap gap-x-4 gap-y-1">
             <span>Creator: {formatAddress(bounty.creator)}</span>
+            <span>Submissions: {submissions.length}</span>
             <span>Slash: {Number(bounty.slashPercent) / 100}%</span>
-            <span className="flex items-center gap-1">
-              <span className="text-blue-600">📝</span>
-              <span>Submissions: {submissions.length}</span>
-            </span>
-            {bounty.winners.length > 0 && (
+            {bounty.resolved && bounty.winners.length > 0 && (
               <span>Winners: {bounty.winners.length}</span>
+            )}
+            {!bounty.resolved && bounty.allowMultipleWinners && bounty.winnerShares.length > 0 && (
+              <span className="text-blue-600 font-medium">
+                Multi-Winner ({bounty.winnerShares.map(s => `${Number(s) / 100}%`).join(' / ')})
+              </span>
             )}
           </div>
 
           <button
             onClick={() => setShowDetails(!showDetails)}
-            className="text-blue-600 hover:text-blue-800 font-medium"
+            className="text-blue-600 hover:text-blue-800 font-medium ml-2 flex-shrink-0"
           >
             {showDetails ? "Hide Details" : "Show Details"}
           </button>
@@ -412,9 +414,9 @@ export default function BountyCard({
                   className="flex justify-between items-center text-sm"
                 >
                   <span className="text-gray-600">{formatAddress(winner)}</span>
-                  {bounty.winnerShares[index] && (
+                  {bounty.allowMultipleWinners && (
                     <span className="font-medium text-green-600">
-                      {(Number(bounty.winnerShares[index]) / 100).toFixed(1)}%
+                      {(Number(bounty.winnerShares[index] || 0) / 100).toFixed(1)}%
                     </span>
                   )}
                 </div>
