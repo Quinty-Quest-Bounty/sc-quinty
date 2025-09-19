@@ -1,275 +1,132 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract QuintyReputation is ERC721URIStorage, Ownable {
-    using Strings for uint256;
 
-    struct Reputation {
+    struct ReputationStats {
         uint256 bountiesCreated;
         uint256 successfulBounties;
-        uint256 creationSuccessRate;
+        uint256 creationSuccessRate; // In basis points
         uint256 firstBountyTimestamp;
         uint256 solvesAttempted;
         uint256 successfulSolves;
-        uint256 solveSuccessRate;
+        uint256 solveSuccessRate; // In basis points
         uint256 totalSolvedCount;
-        uint256 tokenId;
-        string level;
-        bool hasCreatorBadge;
-        bool hasSolverBadge;
-        uint256 lastUpdated;
+        string creatorLevel;
+        string solverLevel;
     }
 
-    mapping(address => Reputation) public reputations;
+    mapping(address => ReputationStats) public reputations;
+    mapping(address => uint256) private _userToTokenId;
+    string private _baseTokenURI;
+
     uint256 private _tokenCounter;
 
-    // Thresholds for badge levels (basis points)
-    uint256 public constant BRONZE_RATE = 5000;  // 50%
+    // Badge thresholds
+    uint256 public constant BRONZE_RATE = 5000; // 50%
     uint256 public constant BRONZE_ACTIONS = 5;
-    uint256 public constant SILVER_RATE = 8000;  // 80%
+    uint256 public constant SILVER_RATE = 8000; // 80%
     uint256 public constant SILVER_ACTIONS = 20;
-    uint256 public constant GOLD_RATE = 9500;    // 95%
+    uint256 public constant GOLD_RATE = 9500; // 95%
     uint256 public constant GOLD_ACTIONS = 50;
 
-    string public baseIpfsUri = "ipfs://QmExampleCid/";
-
     event ReputationUpdated(address indexed user, bool isCreator, bool success);
-    event BadgeMintedOrUpgraded(address indexed user, uint256 tokenId, string level, string tokenURI);
+    event BadgeMintedOrUpgraded(address indexed user, uint256 tokenId, string level, bool isCreator);
 
-    constructor() ERC721("QuintyReputation", "QREP") Ownable(msg.sender) {}
-
-    function setBaseIpfsUri(string memory _newBaseUri) external onlyOwner {
-        baseIpfsUri = _newBaseUri;
+    constructor(string memory baseTokenURI) ERC721("Quinty Reputation", "QREP") Ownable(msg.sender) {
+        _baseTokenURI = baseTokenURI;
     }
 
-    function isHighRepCreator(address _user) external view returns (bool) {
-        Reputation memory rep = reputations[_user];
-        return rep.creationSuccessRate >= SILVER_RATE && rep.bountiesCreated >= SILVER_ACTIONS;
+    function setBaseTokenURI(string memory baseTokenURI) external onlyOwner {
+        _baseTokenURI = baseTokenURI;
     }
 
-    function getSolverSolvedCount(address _user) external view returns (uint256) {
-        return reputations[_user].totalSolvedCount;
-    }
-
-    function getCreatorActiveSince(address _user) external view returns (uint256) {
-        return reputations[_user].firstBountyTimestamp;
+    function tokenURI(uint256 tokenId) public view override(ERC721URIStorage) returns (string memory) {
+        address owner = ownerOf(tokenId); // This will revert if token doesn't exist
+        ReputationStats memory stats = reputations[owner];
+        
+        // Determine the higher of the two levels for the token image
+        string memory primaryLevel = _getPrimaryLevel(stats.creatorLevel, stats.solverLevel);
+        
+        return string(abi.encodePacked(_baseTokenURI, primaryLevel, ".json"));
     }
 
     function updateCreatorRep(address _user, bool _success) external onlyOwner {
-        Reputation storage rep = reputations[_user];
-        rep.bountiesCreated += 1;
-
-        if (rep.firstBountyTimestamp == 0) {
-            rep.firstBountyTimestamp = block.timestamp;
+        ReputationStats storage stats = reputations[_user];
+        if (stats.firstBountyTimestamp == 0) {
+            stats.firstBountyTimestamp = block.timestamp;
         }
-
+        stats.bountiesCreated++;
         if (_success) {
-            rep.successfulBounties += 1;
+            stats.successfulBounties++;
         }
+        stats.creationSuccessRate = (stats.successfulBounties * 10000) / stats.bountiesCreated;
 
-        rep.creationSuccessRate = rep.bountiesCreated > 0 ?
-            (rep.successfulBounties * 10000) / rep.bountiesCreated : 0;
-
-        rep.lastUpdated = block.timestamp;
-
+        _updateBadge(_user, true);
         emit ReputationUpdated(_user, true, _success);
-        _checkAndUpdateBadge(_user, true);
     }
 
     function updateSolverRep(address _user, bool _success) external onlyOwner {
-        Reputation storage rep = reputations[_user];
-        rep.solvesAttempted += 1;
-
+        ReputationStats storage stats = reputations[_user];
+        stats.solvesAttempted++;
         if (_success) {
-            rep.successfulSolves += 1;
-            rep.totalSolvedCount += 1;
+            stats.successfulSolves++;
+            stats.totalSolvedCount++;
         }
+        stats.solveSuccessRate = (stats.successfulSolves * 10000) / stats.solvesAttempted;
 
-        rep.solveSuccessRate = rep.solvesAttempted > 0 ?
-            (rep.successfulSolves * 10000) / rep.solvesAttempted : 0;
-
-        rep.lastUpdated = block.timestamp;
-
+        _updateBadge(_user, false);
         emit ReputationUpdated(_user, false, _success);
-        _checkAndUpdateBadge(_user, false);
     }
 
-    function _checkAndUpdateBadge(address _user, bool _isCreator) internal {
-        Reputation storage rep = reputations[_user];
-        uint256 rate = _isCreator ? rep.creationSuccessRate : rep.solveSuccessRate;
-        uint256 actions = _isCreator ? rep.bountiesCreated : rep.solvesAttempted;
+    function _updateBadge(address _user, bool _isCreator) internal {
+        ReputationStats storage stats = reputations[_user];
+        string memory currentLevel = _isCreator ? stats.creatorLevel : stats.solverLevel;
+        string memory newLevel = _determineLevel(_isCreator ? stats.creationSuccessRate : stats.solveSuccessRate, _isCreator ? stats.bountiesCreated : stats.solvesAttempted);
 
-        string memory newLevel = "";
-        bool shouldUpdate = false;
-
-        if (rate >= GOLD_RATE && actions >= GOLD_ACTIONS) {
-            newLevel = "Gold";
-            shouldUpdate = true;
-        } else if (rate >= SILVER_RATE && actions >= SILVER_ACTIONS) {
-            newLevel = "Silver";
-            shouldUpdate = true;
-        } else if (rate >= BRONZE_RATE && actions >= BRONZE_ACTIONS) {
-            newLevel = "Bronze";
-            shouldUpdate = true;
-        }
-
-        if (!shouldUpdate) return;
-
-        // Determine if this is the first badge or an upgrade
-        bool needsNewToken = false;
-        bool isUpgrade = false;
-
-        if (_isCreator) {
-            if (!rep.hasCreatorBadge) {
-                needsNewToken = true;
-                rep.hasCreatorBadge = true;
+        if (keccak256(abi.encodePacked(currentLevel)) != keccak256(abi.encodePacked(newLevel))) {
+            if (_isCreator) {
+                stats.creatorLevel = newLevel;
             } else {
-                isUpgrade = _isLevelUpgrade(rep.level, newLevel);
+                stats.solverLevel = newLevel;
             }
-        } else {
-            if (!rep.hasSolverBadge) {
-                needsNewToken = true;
-                rep.hasSolverBadge = true;
-            } else {
-                isUpgrade = _isLevelUpgrade(rep.level, newLevel);
+
+            uint256 tokenId = _userToTokenId[_user];
+            if (tokenId == 0) {
+                _tokenCounter++;
+                tokenId = _tokenCounter;
+                _userToTokenId[_user] = tokenId;
+                _safeMint(_user, tokenId);
             }
-        }
-
-        if (needsNewToken) {
-            // Mint new token
-            _tokenCounter += 1;
-            rep.tokenId = _tokenCounter;
-            rep.level = newLevel;
-
-            string memory uri = _generateIpfsUri(newLevel, _isCreator, rep);
-            _safeMint(_user, _tokenCounter);
-            _setTokenURI(_tokenCounter, uri);
-
-            emit BadgeMintedOrUpgraded(_user, _tokenCounter, newLevel, uri);
-        } else if (isUpgrade) {
-            // Update existing token
-            rep.level = newLevel;
-            string memory uri = _generateIpfsUri(newLevel, _isCreator, rep);
-            _setTokenURI(rep.tokenId, uri);
-
-            emit BadgeMintedOrUpgraded(_user, rep.tokenId, newLevel, uri);
+            emit BadgeMintedOrUpgraded(_user, tokenId, newLevel, _isCreator);
         }
     }
 
-    function _isLevelUpgrade(string memory currentLevel, string memory newLevel) internal pure returns (bool) {
-        bytes32 currentHash = keccak256(bytes(currentLevel));
-        bytes32 newHash = keccak256(bytes(newLevel));
-
-        if (newHash == keccak256(bytes("Gold"))) {
-            return currentHash != newHash;
-        } else if (newHash == keccak256(bytes("Silver"))) {
-            return currentHash == keccak256(bytes("Bronze")) || currentHash == keccak256(bytes(""));
-        } else if (newHash == keccak256(bytes("Bronze"))) {
-            return currentHash == keccak256(bytes(""));
-        }
-
-        return false;
+    function _determineLevel(uint256 _rate, uint256 _actions) internal pure returns (string memory) {
+        if (_rate >= GOLD_RATE && _actions >= GOLD_ACTIONS) return "Gold";
+        if (_rate >= SILVER_RATE && _actions >= SILVER_ACTIONS) return "Silver";
+        if (_rate >= BRONZE_RATE && _actions >= BRONZE_ACTIONS) return "Bronze";
+        return "None";
     }
 
-    function _generateIpfsUri(string memory level, bool isCreator, Reputation memory rep) internal view returns (string memory) {
-        string memory role = isCreator ? "Creator" : "Solver";
-        string memory filename = string(abi.encodePacked(
-            _toLowerCase(level), "-", _toLowerCase(role), ".json"
-        ));
-        return string(abi.encodePacked(baseIpfsUri, filename));
+    function _getPrimaryLevel(string memory creatorLevel, string memory solverLevel) internal pure returns (string memory) {
+        if (keccak256(abi.encodePacked(creatorLevel)) == keccak256(abi.encodePacked("Gold")) || keccak256(abi.encodePacked(solverLevel)) == keccak256(abi.encodePacked("Gold"))) return "Gold";
+        if (keccak256(abi.encodePacked(creatorLevel)) == keccak256(abi.encodePacked("Silver")) || keccak256(abi.encodePacked(solverLevel)) == keccak256(abi.encodePacked("Silver"))) return "Silver";
+        if (keccak256(abi.encodePacked(creatorLevel)) == keccak256(abi.encodePacked("Bronze")) || keccak256(abi.encodePacked(solverLevel)) == keccak256(abi.encodePacked("Bronze"))) return "Bronze";
+        return "None";
     }
 
-    function _toLowerCase(string memory str) internal pure returns (string memory) {
-        bytes memory bStr = bytes(str);
-        bytes memory bLower = new bytes(bStr.length);
-
-        for (uint i = 0; i < bStr.length; i++) {
-            if (uint8(bStr[i]) >= 65 && uint8(bStr[i]) <= 90) {
-                bLower[i] = bytes1(uint8(bStr[i]) + 32);
-            } else {
-                bLower[i] = bStr[i];
-            }
-        }
-        return string(bLower);
+    function getUserReputation(address _user) external view returns (ReputationStats memory) {
+        return reputations[_user];
     }
 
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
         address from = _ownerOf(tokenId);
-        if (from != address(0)) {
-            require(false, "Soulbound: tokens cannot be transferred");
-        }
+        require(from == address(0), "Soulbound: tokens are not transferable");
         return super._update(to, tokenId, auth);
-    }
-
-    function getUserReputation(address _user) external view returns (
-        uint256 bountiesCreated,
-        uint256 successfulBounties,
-        uint256 creationSuccessRate,
-        uint256 firstBountyTimestamp,
-        uint256 solvesAttempted,
-        uint256 successfulSolves,
-        uint256 solveSuccessRate,
-        uint256 totalSolvedCount,
-        uint256 tokenId,
-        string memory level,
-        bool hasCreatorBadge,
-        bool hasSolverBadge
-    ) {
-        Reputation storage rep = reputations[_user];
-        return (
-            rep.bountiesCreated,
-            rep.successfulBounties,
-            rep.creationSuccessRate,
-            rep.firstBountyTimestamp,
-            rep.solvesAttempted,
-            rep.successfulSolves,
-            rep.solveSuccessRate,
-            rep.totalSolvedCount,
-            rep.tokenId,
-            rep.level,
-            rep.hasCreatorBadge,
-            rep.hasSolverBadge
-        );
-    }
-
-    function getCreatorStats(address _user) external view returns (
-        uint256 created,
-        uint256 successful,
-        uint256 rate,
-        uint256 activeSince
-    ) {
-        Reputation storage rep = reputations[_user];
-        return (rep.bountiesCreated, rep.successfulBounties, rep.creationSuccessRate, rep.firstBountyTimestamp);
-    }
-
-    function getSolverStats(address _user) external view returns (
-        uint256 attempted,
-        uint256 successful,
-        uint256 rate,
-        uint256 totalSolved
-    ) {
-        Reputation storage rep = reputations[_user];
-        return (rep.solvesAttempted, rep.successfulSolves, rep.solveSuccessRate, rep.totalSolvedCount);
-    }
-
-    function getBadgeLevel(address _user) external view returns (string memory) {
-        return reputations[_user].level;
-    }
-
-    function hasBadge(address _user) external view returns (bool) {
-        Reputation storage rep = reputations[_user];
-        return rep.hasCreatorBadge || rep.hasSolverBadge;
-    }
-
-    function getTokenIdForUser(address _user) external view returns (uint256) {
-        return reputations[_user].tokenId;
-    }
-
-    function getTotalSupply() external view returns (uint256) {
-        return _tokenCounter;
     }
 }

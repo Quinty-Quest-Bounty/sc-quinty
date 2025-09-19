@@ -23,6 +23,45 @@ import type {
   TypedContractMethod,
 } from "../common";
 
+export declare namespace QuintyReputation {
+  export type ReputationStatsStruct = {
+    bountiesCreated: BigNumberish;
+    successfulBounties: BigNumberish;
+    creationSuccessRate: BigNumberish;
+    firstBountyTimestamp: BigNumberish;
+    solvesAttempted: BigNumberish;
+    successfulSolves: BigNumberish;
+    solveSuccessRate: BigNumberish;
+    totalSolvedCount: BigNumberish;
+    creatorLevel: string;
+    solverLevel: string;
+  };
+
+  export type ReputationStatsStructOutput = [
+    bountiesCreated: bigint,
+    successfulBounties: bigint,
+    creationSuccessRate: bigint,
+    firstBountyTimestamp: bigint,
+    solvesAttempted: bigint,
+    successfulSolves: bigint,
+    solveSuccessRate: bigint,
+    totalSolvedCount: bigint,
+    creatorLevel: string,
+    solverLevel: string
+  ] & {
+    bountiesCreated: bigint;
+    successfulBounties: bigint;
+    creationSuccessRate: bigint;
+    firstBountyTimestamp: bigint;
+    solvesAttempted: bigint;
+    successfulSolves: bigint;
+    solveSuccessRate: bigint;
+    totalSolvedCount: bigint;
+    creatorLevel: string;
+    solverLevel: string;
+  };
+}
+
 export interface QuintyReputationInterface extends Interface {
   getFunction(
     nameOrSignature:
@@ -34,19 +73,9 @@ export interface QuintyReputationInterface extends Interface {
       | "SILVER_RATE"
       | "approve"
       | "balanceOf"
-      | "baseIpfsUri"
       | "getApproved"
-      | "getBadgeLevel"
-      | "getCreatorActiveSince"
-      | "getCreatorStats"
-      | "getSolverSolvedCount"
-      | "getSolverStats"
-      | "getTokenIdForUser"
-      | "getTotalSupply"
       | "getUserReputation"
-      | "hasBadge"
       | "isApprovedForAll"
-      | "isHighRepCreator"
       | "name"
       | "owner"
       | "ownerOf"
@@ -55,7 +84,7 @@ export interface QuintyReputationInterface extends Interface {
       | "safeTransferFrom(address,address,uint256)"
       | "safeTransferFrom(address,address,uint256,bytes)"
       | "setApprovalForAll"
-      | "setBaseIpfsUri"
+      | "setBaseTokenURI"
       | "supportsInterface"
       | "symbol"
       | "tokenURI"
@@ -107,56 +136,16 @@ export interface QuintyReputationInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "baseIpfsUri",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "getApproved",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getBadgeLevel",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getCreatorActiveSince",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getCreatorStats",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getSolverSolvedCount",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getSolverStats",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getTokenIdForUser",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getTotalSupply",
-    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "getUserReputation",
     values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "hasBadge",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "isApprovedForAll",
     values: [AddressLike, AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "isHighRepCreator",
-    values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
@@ -185,7 +174,7 @@ export interface QuintyReputationInterface extends Interface {
     values: [AddressLike, boolean]
   ): string;
   encodeFunctionData(
-    functionFragment: "setBaseIpfsUri",
+    functionFragment: "setBaseTokenURI",
     values: [string]
   ): string;
   encodeFunctionData(
@@ -238,52 +227,15 @@ export interface QuintyReputationInterface extends Interface {
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "baseIpfsUri",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getApproved",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getBadgeLevel",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getCreatorActiveSince",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getCreatorStats",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getSolverSolvedCount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getSolverStats",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getTokenIdForUser",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getTotalSupply",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "getUserReputation",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "hasBadge", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "isApprovedForAll",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "isHighRepCreator",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
@@ -310,7 +262,7 @@ export interface QuintyReputationInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setBaseIpfsUri",
+    functionFragment: "setBaseTokenURI",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -382,19 +334,19 @@ export namespace BadgeMintedOrUpgradedEvent {
     user: AddressLike,
     tokenId: BigNumberish,
     level: string,
-    tokenURI: string
+    isCreator: boolean
   ];
   export type OutputTuple = [
     user: string,
     tokenId: bigint,
     level: string,
-    tokenURI: string
+    isCreator: boolean
   ];
   export interface OutputObject {
     user: string;
     tokenId: bigint;
     level: string;
-    tokenURI: string;
+    isCreator: boolean;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -546,102 +498,16 @@ export interface QuintyReputation extends BaseContract {
 
   balanceOf: TypedContractMethod<[owner: AddressLike], [bigint], "view">;
 
-  baseIpfsUri: TypedContractMethod<[], [string], "view">;
-
   getApproved: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
-
-  getBadgeLevel: TypedContractMethod<[_user: AddressLike], [string], "view">;
-
-  getCreatorActiveSince: TypedContractMethod<
-    [_user: AddressLike],
-    [bigint],
-    "view"
-  >;
-
-  getCreatorStats: TypedContractMethod<
-    [_user: AddressLike],
-    [
-      [bigint, bigint, bigint, bigint] & {
-        created: bigint;
-        successful: bigint;
-        rate: bigint;
-        activeSince: bigint;
-      }
-    ],
-    "view"
-  >;
-
-  getSolverSolvedCount: TypedContractMethod<
-    [_user: AddressLike],
-    [bigint],
-    "view"
-  >;
-
-  getSolverStats: TypedContractMethod<
-    [_user: AddressLike],
-    [
-      [bigint, bigint, bigint, bigint] & {
-        attempted: bigint;
-        successful: bigint;
-        rate: bigint;
-        totalSolved: bigint;
-      }
-    ],
-    "view"
-  >;
-
-  getTokenIdForUser: TypedContractMethod<
-    [_user: AddressLike],
-    [bigint],
-    "view"
-  >;
-
-  getTotalSupply: TypedContractMethod<[], [bigint], "view">;
 
   getUserReputation: TypedContractMethod<
     [_user: AddressLike],
-    [
-      [
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        string,
-        boolean,
-        boolean
-      ] & {
-        bountiesCreated: bigint;
-        successfulBounties: bigint;
-        creationSuccessRate: bigint;
-        firstBountyTimestamp: bigint;
-        solvesAttempted: bigint;
-        successfulSolves: bigint;
-        solveSuccessRate: bigint;
-        totalSolvedCount: bigint;
-        tokenId: bigint;
-        level: string;
-        hasCreatorBadge: boolean;
-        hasSolverBadge: boolean;
-      }
-    ],
+    [QuintyReputation.ReputationStatsStructOutput],
     "view"
   >;
-
-  hasBadge: TypedContractMethod<[_user: AddressLike], [boolean], "view">;
 
   isApprovedForAll: TypedContractMethod<
     [owner: AddressLike, operator: AddressLike],
-    [boolean],
-    "view"
-  >;
-
-  isHighRepCreator: TypedContractMethod<
-    [_user: AddressLike],
     [boolean],
     "view"
   >;
@@ -666,11 +532,8 @@ export interface QuintyReputation extends BaseContract {
         bigint,
         bigint,
         bigint,
-        bigint,
         string,
-        boolean,
-        boolean,
-        bigint
+        string
       ] & {
         bountiesCreated: bigint;
         successfulBounties: bigint;
@@ -680,11 +543,8 @@ export interface QuintyReputation extends BaseContract {
         successfulSolves: bigint;
         solveSuccessRate: bigint;
         totalSolvedCount: bigint;
-        tokenId: bigint;
-        level: string;
-        hasCreatorBadge: boolean;
-        hasSolverBadge: boolean;
-        lastUpdated: bigint;
+        creatorLevel: string;
+        solverLevel: string;
       }
     ],
     "view"
@@ -713,8 +573,8 @@ export interface QuintyReputation extends BaseContract {
     "nonpayable"
   >;
 
-  setBaseIpfsUri: TypedContractMethod<
-    [_newBaseUri: string],
+  setBaseTokenURI: TypedContractMethod<
+    [baseTokenURI: string],
     [void],
     "nonpayable"
   >;
@@ -786,92 +646,15 @@ export interface QuintyReputation extends BaseContract {
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<[owner: AddressLike], [bigint], "view">;
   getFunction(
-    nameOrSignature: "baseIpfsUri"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
     nameOrSignature: "getApproved"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
-  getFunction(
-    nameOrSignature: "getBadgeLevel"
-  ): TypedContractMethod<[_user: AddressLike], [string], "view">;
-  getFunction(
-    nameOrSignature: "getCreatorActiveSince"
-  ): TypedContractMethod<[_user: AddressLike], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getCreatorStats"
-  ): TypedContractMethod<
-    [_user: AddressLike],
-    [
-      [bigint, bigint, bigint, bigint] & {
-        created: bigint;
-        successful: bigint;
-        rate: bigint;
-        activeSince: bigint;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getSolverSolvedCount"
-  ): TypedContractMethod<[_user: AddressLike], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getSolverStats"
-  ): TypedContractMethod<
-    [_user: AddressLike],
-    [
-      [bigint, bigint, bigint, bigint] & {
-        attempted: bigint;
-        successful: bigint;
-        rate: bigint;
-        totalSolved: bigint;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getTokenIdForUser"
-  ): TypedContractMethod<[_user: AddressLike], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getTotalSupply"
-  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "getUserReputation"
   ): TypedContractMethod<
     [_user: AddressLike],
-    [
-      [
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        string,
-        boolean,
-        boolean
-      ] & {
-        bountiesCreated: bigint;
-        successfulBounties: bigint;
-        creationSuccessRate: bigint;
-        firstBountyTimestamp: bigint;
-        solvesAttempted: bigint;
-        successfulSolves: bigint;
-        solveSuccessRate: bigint;
-        totalSolvedCount: bigint;
-        tokenId: bigint;
-        level: string;
-        hasCreatorBadge: boolean;
-        hasSolverBadge: boolean;
-      }
-    ],
+    [QuintyReputation.ReputationStatsStructOutput],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "hasBadge"
-  ): TypedContractMethod<[_user: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "isApprovedForAll"
   ): TypedContractMethod<
@@ -879,9 +662,6 @@ export interface QuintyReputation extends BaseContract {
     [boolean],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "isHighRepCreator"
-  ): TypedContractMethod<[_user: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "name"
   ): TypedContractMethod<[], [string], "view">;
@@ -908,11 +688,8 @@ export interface QuintyReputation extends BaseContract {
         bigint,
         bigint,
         bigint,
-        bigint,
         string,
-        boolean,
-        boolean,
-        bigint
+        string
       ] & {
         bountiesCreated: bigint;
         successfulBounties: bigint;
@@ -922,11 +699,8 @@ export interface QuintyReputation extends BaseContract {
         successfulSolves: bigint;
         solveSuccessRate: bigint;
         totalSolvedCount: bigint;
-        tokenId: bigint;
-        level: string;
-        hasCreatorBadge: boolean;
-        hasSolverBadge: boolean;
-        lastUpdated: bigint;
+        creatorLevel: string;
+        solverLevel: string;
       }
     ],
     "view"
@@ -958,8 +732,8 @@ export interface QuintyReputation extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "setBaseIpfsUri"
-  ): TypedContractMethod<[_newBaseUri: string], [void], "nonpayable">;
+    nameOrSignature: "setBaseTokenURI"
+  ): TypedContractMethod<[baseTokenURI: string], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "supportsInterface"
   ): TypedContractMethod<[interfaceId: BytesLike], [boolean], "view">;
@@ -1074,7 +848,7 @@ export interface QuintyReputation extends BaseContract {
       ApprovalForAllEvent.OutputObject
     >;
 
-    "BadgeMintedOrUpgraded(address,uint256,string,string)": TypedContractEvent<
+    "BadgeMintedOrUpgraded(address,uint256,string,bool)": TypedContractEvent<
       BadgeMintedOrUpgradedEvent.InputTuple,
       BadgeMintedOrUpgradedEvent.OutputTuple,
       BadgeMintedOrUpgradedEvent.OutputObject

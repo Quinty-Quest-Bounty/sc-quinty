@@ -6,16 +6,17 @@ import {
   useWriteContract,
   useReadContract,
   useWatchContractEvent,
+  useChainId,
 } from "wagmi";
 import { readContract } from "@wagmi/core";
-import { parseEther } from "viem";
 import {
   CONTRACT_ADDRESSES,
   AIRDROP_ABI,
   SOMNIA_TESTNET_ID,
 } from "../utils/contracts";
-import { formatSTT, formatTimeLeft, formatAddress, wagmiConfig } from "../utils/web3";
+import { formatSTT, formatTimeLeft, formatAddress, wagmiConfig, parseSTT } from "../utils/web3";
 import { uploadToIpfs, formatIpfsUrl, IpfsImage } from "../utils/ipfs";
+import { ensureSomniaNetwork } from "../utils/network";
 
 interface Airdrop {
   id: number;
@@ -45,6 +46,7 @@ interface Entry {
 export default function AirdropManager() {
   const { address, isConnected } = useAccount();
   const { writeContractAsync } = useWriteContract();
+  const chainId = useChainId();
 
   // State
   const [airdrops, setAirdrops] = useState<Airdrop[]>([]);
@@ -277,6 +279,15 @@ export default function AirdropManager() {
     if (!isConnected || !newAirdrop.title || !newAirdrop.perQualifier || !newAirdrop.deadline || !newAirdrop.requirements)
       return;
 
+    // Check if user is on Somnia Testnet using wagmi's reliable chainId
+    if (chainId !== SOMNIA_TESTNET_ID) {
+      const networkOk = await ensureSomniaNetwork();
+      if (!networkOk) {
+        alert('Please connect to Somnia Testnet to create airdrops');
+        return;
+      }
+    }
+
     try {
       let finalImageUrl = newAirdrop.imageUrl;
 
@@ -301,7 +312,7 @@ export default function AirdropManager() {
       const deadlineTimestamp = Math.floor(
         new Date(newAirdrop.deadline).getTime() / 1000
       );
-      const perQualifierWei = parseEther(newAirdrop.perQualifier);
+      const perQualifierWei = parseSTT(newAirdrop.perQualifier);
       const totalAmount = perQualifierWei * BigInt(newAirdrop.maxQualifiers);
 
       // Include image URL in description if available

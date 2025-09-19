@@ -7,7 +7,6 @@ import {
   useReadContract,
   useWatchContractEvent,
 } from "wagmi";
-import { parseEther } from "viem";
 import {
   CONTRACT_ADDRESSES,
   DISPUTE_ABI,
@@ -16,7 +15,7 @@ import {
   MIN_VOTING_STAKE,
 } from "../utils/contracts";
 import { readContract } from "@wagmi/core";
-import { formatSTT, formatTimeLeft, formatAddress, wagmiConfig } from "../utils/web3";
+import { formatSTT, formatTimeLeft, formatAddress, wagmiConfig, parseSTT } from "../utils/web3";
 
 // Interfaces
 interface Dispute {
@@ -146,7 +145,7 @@ export default function DisputeManager() {
         abi: DISPUTE_ABI,
         functionName: "vote",
         args: [BigInt(selectedDispute.id), rankings.map(r => BigInt(r))],
-        value: parseEther(voteForm.stakeAmount),
+        value: parseSTT(voteForm.stakeAmount),
       });
 
       alert("Vote cast successfully!");

@@ -1,15 +1,15 @@
 import { createConfig, http } from 'wagmi';
-import { somniaTestnet } from 'wagmi/chains';
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { defineChain } from 'viem';
 
-// Define Somnia Testnet
-const somniaTestnetChain = {
+// Define Somnia Testnet with proper chain structure
+const somniaTestnetChain = defineChain({
   id: 50312,
   name: 'Somnia Testnet',
   network: 'somnia-testnet',
   nativeCurrency: {
     decimals: 18,
-    name: 'STT',
+    name: 'Somnia Test Token',
     symbol: 'STT',
   },
   rpcUrls: {
@@ -20,7 +20,7 @@ const somniaTestnetChain = {
     default: { name: 'Somnia Explorer', url: 'https://shannon-explorer.somnia.network' },
   },
   testnet: true,
-};
+});
 
 export const wagmiConfig = getDefaultConfig({
   appName: 'Quinty DAO',

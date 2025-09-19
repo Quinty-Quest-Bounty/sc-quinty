@@ -12,11 +12,12 @@
     @apply font-bold text-gray-900 dark:text-white;
   }
 
+  /* Force light theme for all form elements for consistency and visibility */
   input, select, textarea {
-    @apply bg-white border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 text-gray-900;
+    @apply bg-white !text-gray-900 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500;
   }
 
   input::placeholder, textarea::placeholder {
-    @apply text-gray-400 dark:text-gray-500;
+    @apply text-gray-400;
   }
 }

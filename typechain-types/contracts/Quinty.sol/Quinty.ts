@@ -23,6 +23,85 @@ import type {
   TypedContractMethod,
 } from "../../common";
 
+export declare namespace Quinty {
+  export type ReplyStruct = {
+    replier: AddressLike;
+    content: string;
+    timestamp: BigNumberish;
+  };
+
+  export type ReplyStructOutput = [
+    replier: string,
+    content: string,
+    timestamp: bigint
+  ] & { replier: string; content: string; timestamp: bigint };
+
+  export type SubmissionStruct = {
+    solver: AddressLike;
+    blindedIpfsCid: string;
+    revealIpfsCid: string;
+    deposit: BigNumberish;
+    replies: Quinty.ReplyStruct[];
+    revealed: boolean;
+  };
+
+  export type SubmissionStructOutput = [
+    solver: string,
+    blindedIpfsCid: string,
+    revealIpfsCid: string,
+    deposit: bigint,
+    replies: Quinty.ReplyStructOutput[],
+    revealed: boolean
+  ] & {
+    solver: string;
+    blindedIpfsCid: string;
+    revealIpfsCid: string;
+    deposit: bigint;
+    replies: Quinty.ReplyStructOutput[];
+    revealed: boolean;
+  };
+
+  export type BountyStruct = {
+    creator: AddressLike;
+    description: string;
+    amount: BigNumberish;
+    deadline: BigNumberish;
+    allowMultipleWinners: boolean;
+    winnerShares: BigNumberish[];
+    status: BigNumberish;
+    slashPercent: BigNumberish;
+    submissions: Quinty.SubmissionStruct[];
+    selectedWinners: AddressLike[];
+    selectedSubmissionIds: BigNumberish[];
+  };
+
+  export type BountyStructOutput = [
+    creator: string,
+    description: string,
+    amount: bigint,
+    deadline: bigint,
+    allowMultipleWinners: boolean,
+    winnerShares: bigint[],
+    status: bigint,
+    slashPercent: bigint,
+    submissions: Quinty.SubmissionStructOutput[],
+    selectedWinners: string[],
+    selectedSubmissionIds: bigint[]
+  ] & {
+    creator: string;
+    description: string;
+    amount: bigint;
+    deadline: bigint;
+    allowMultipleWinners: boolean;
+    winnerShares: bigint[];
+    status: bigint;
+    slashPercent: bigint;
+    submissions: Quinty.SubmissionStructOutput[];
+    selectedWinners: string[];
+    selectedSubmissionIds: bigint[];
+  };
+}
+
 export interface QuintyInterface extends Interface {
   getFunction(
     nameOrSignature:
@@ -32,15 +111,16 @@ export interface QuintyInterface extends Interface {
       | "createBounty"
       | "disputeAddress"
       | "getBounty"
+      | "getBountyStruct"
       | "getSubmission"
       | "getSubmissionCount"
+      | "getSubmissionStruct"
       | "owner"
       | "renounceOwnership"
       | "reputationAddress"
       | "revealSolution"
       | "selectWinners"
       | "setAddresses"
-      | "submissions"
       | "submitSolution"
       | "transferOwnership"
       | "triggerSlash"
@@ -55,7 +135,7 @@ export interface QuintyInterface extends Interface {
       | "ReplyAdded"
       | "SolutionRevealed"
       | "SubmissionCreated"
-      | "WinnerSelected"
+      | "WinnersSelected"
   ): EventFragment;
 
   encodeFunctionData(
@@ -83,12 +163,20 @@ export interface QuintyInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "getBountyStruct",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getSubmission",
     values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "getSubmissionCount",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getSubmissionStruct",
+    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
@@ -110,10 +198,6 @@ export interface QuintyInterface extends Interface {
   encodeFunctionData(
     functionFragment: "setAddresses",
     values: [AddressLike, AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "submissions",
-    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "submitSolution",
@@ -144,11 +228,19 @@ export interface QuintyInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "getBounty", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "getBountyStruct",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "getSubmission",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "getSubmissionCount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "getSubmissionStruct",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
@@ -170,10 +262,6 @@ export interface QuintyInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setAddresses",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "submissions",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -216,16 +304,10 @@ export namespace BountyCreatedEvent {
 }
 
 export namespace BountyResolvedEvent {
-  export type InputTuple = [
-    id: BigNumberish,
-    winners: AddressLike[],
-    amounts: BigNumberish[]
-  ];
-  export type OutputTuple = [id: bigint, winners: string[], amounts: bigint[]];
+  export type InputTuple = [bountyId: BigNumberish];
+  export type OutputTuple = [bountyId: bigint];
   export interface OutputObject {
-    id: bigint;
-    winners: string[];
-    amounts: bigint[];
+    bountyId: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -234,10 +316,10 @@ export namespace BountyResolvedEvent {
 }
 
 export namespace BountySlashedEvent {
-  export type InputTuple = [id: BigNumberish, slashAmount: BigNumberish];
-  export type OutputTuple = [id: bigint, slashAmount: bigint];
+  export type InputTuple = [bountyId: BigNumberish, slashAmount: BigNumberish];
+  export type OutputTuple = [bountyId: bigint, slashAmount: bigint];
   export interface OutputObject {
-    id: bigint;
+    bountyId: bigint;
     slashAmount: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -263,20 +345,13 @@ export namespace ReplyAddedEvent {
   export type InputTuple = [
     bountyId: BigNumberish,
     subId: BigNumberish,
-    replier: AddressLike,
-    reply: string
+    replier: AddressLike
   ];
-  export type OutputTuple = [
-    bountyId: bigint,
-    subId: bigint,
-    replier: string,
-    reply: string
-  ];
+  export type OutputTuple = [bountyId: bigint, subId: bigint, replier: string];
   export interface OutputObject {
     bountyId: bigint;
     subId: bigint;
     replier: string;
-    reply: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -288,16 +363,19 @@ export namespace SolutionRevealedEvent {
   export type InputTuple = [
     bountyId: BigNumberish,
     subId: BigNumberish,
+    solver: AddressLike,
     revealIpfsCid: string
   ];
   export type OutputTuple = [
     bountyId: bigint,
     subId: bigint,
+    solver: string,
     revealIpfsCid: string
   ];
   export interface OutputObject {
     bountyId: bigint;
     subId: bigint;
+    solver: string;
     revealIpfsCid: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -331,12 +409,21 @@ export namespace SubmissionCreatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace WinnerSelectedEvent {
-  export type InputTuple = [id: BigNumberish, winners: AddressLike[]];
-  export type OutputTuple = [id: bigint, winners: string[]];
+export namespace WinnersSelectedEvent {
+  export type InputTuple = [
+    bountyId: BigNumberish,
+    winners: AddressLike[],
+    submissionIds: BigNumberish[]
+  ];
+  export type OutputTuple = [
+    bountyId: bigint,
+    winners: string[],
+    submissionIds: bigint[]
+  ];
   export interface OutputObject {
-    id: bigint;
+    bountyId: bigint;
     winners: string[];
+    submissionIds: bigint[];
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -388,7 +475,7 @@ export interface Quinty extends BaseContract {
   ): Promise<this>;
 
   addReply: TypedContractMethod<
-    [_bountyId: BigNumberish, _subId: BigNumberish, _reply: string],
+    [_bountyId: BigNumberish, _subId: BigNumberish, _content: string],
     [void],
     "nonpayable"
   >;
@@ -396,15 +483,14 @@ export interface Quinty extends BaseContract {
   bounties: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, string, bigint, bigint, boolean, boolean, bigint, boolean] & {
+      [string, string, bigint, bigint, boolean, bigint, bigint] & {
         creator: string;
         description: string;
         amount: bigint;
         deadline: bigint;
         allowMultipleWinners: boolean;
-        resolved: boolean;
+        status: bigint;
         slashPercent: bigint;
-        slashed: boolean;
       }
     ],
     "view"
@@ -427,7 +513,7 @@ export interface Quinty extends BaseContract {
   disputeAddress: TypedContractMethod<[], [string], "view">;
 
   getBounty: TypedContractMethod<
-    [_id: BigNumberish],
+    [_bountyId: BigNumberish],
     [
       [
         string,
@@ -456,6 +542,12 @@ export interface Quinty extends BaseContract {
     "view"
   >;
 
+  getBountyStruct: TypedContractMethod<
+    [_bountyId: BigNumberish],
+    [Quinty.BountyStructOutput],
+    "view"
+  >;
+
   getSubmission: TypedContractMethod<
     [_bountyId: BigNumberish, _subId: BigNumberish],
     [
@@ -478,6 +570,12 @@ export interface Quinty extends BaseContract {
     "view"
   >;
 
+  getSubmissionStruct: TypedContractMethod<
+    [_bountyId: BigNumberish, _subId: BigNumberish],
+    [Quinty.SubmissionStructOutput],
+    "view"
+  >;
+
   owner: TypedContractMethod<[], [string], "view">;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
@@ -492,7 +590,7 @@ export interface Quinty extends BaseContract {
 
   selectWinners: TypedContractMethod<
     [
-      _id: BigNumberish,
+      _bountyId: BigNumberish,
       _winners: AddressLike[],
       _submissionIds: BigNumberish[]
     ],
@@ -504,21 +602,6 @@ export interface Quinty extends BaseContract {
     [_repAddress: AddressLike, _disputeAddress: AddressLike],
     [void],
     "nonpayable"
-  >;
-
-  submissions: TypedContractMethod<
-    [arg0: BigNumberish, arg1: BigNumberish],
-    [
-      [bigint, string, string, bigint, string, bigint] & {
-        bountyId: bigint;
-        solver: string;
-        blindedIpfsCid: string;
-        deposit: bigint;
-        revealIpfsCid: string;
-        timestamp: bigint;
-      }
-    ],
-    "view"
   >;
 
   submitSolution: TypedContractMethod<
@@ -533,7 +616,11 @@ export interface Quinty extends BaseContract {
     "nonpayable"
   >;
 
-  triggerSlash: TypedContractMethod<[_id: BigNumberish], [void], "nonpayable">;
+  triggerSlash: TypedContractMethod<
+    [_bountyId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
@@ -542,7 +629,7 @@ export interface Quinty extends BaseContract {
   getFunction(
     nameOrSignature: "addReply"
   ): TypedContractMethod<
-    [_bountyId: BigNumberish, _subId: BigNumberish, _reply: string],
+    [_bountyId: BigNumberish, _subId: BigNumberish, _content: string],
     [void],
     "nonpayable"
   >;
@@ -551,15 +638,14 @@ export interface Quinty extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [string, string, bigint, bigint, boolean, boolean, bigint, boolean] & {
+      [string, string, bigint, bigint, boolean, bigint, bigint] & {
         creator: string;
         description: string;
         amount: bigint;
         deadline: bigint;
         allowMultipleWinners: boolean;
-        resolved: boolean;
+        status: bigint;
         slashPercent: bigint;
-        slashed: boolean;
       }
     ],
     "view"
@@ -586,7 +672,7 @@ export interface Quinty extends BaseContract {
   getFunction(
     nameOrSignature: "getBounty"
   ): TypedContractMethod<
-    [_id: BigNumberish],
+    [_bountyId: BigNumberish],
     [
       [
         string,
@@ -615,6 +701,13 @@ export interface Quinty extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "getBountyStruct"
+  ): TypedContractMethod<
+    [_bountyId: BigNumberish],
+    [Quinty.BountyStructOutput],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "getSubmission"
   ): TypedContractMethod<
     [_bountyId: BigNumberish, _subId: BigNumberish],
@@ -635,6 +728,13 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "getSubmissionCount"
   ): TypedContractMethod<[_bountyId: BigNumberish], [bigint], "view">;
   getFunction(
+    nameOrSignature: "getSubmissionStruct"
+  ): TypedContractMethod<
+    [_bountyId: BigNumberish, _subId: BigNumberish],
+    [Quinty.SubmissionStructOutput],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
@@ -654,7 +754,7 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "selectWinners"
   ): TypedContractMethod<
     [
-      _id: BigNumberish,
+      _bountyId: BigNumberish,
       _winners: AddressLike[],
       _submissionIds: BigNumberish[]
     ],
@@ -669,22 +769,6 @@ export interface Quinty extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "submissions"
-  ): TypedContractMethod<
-    [arg0: BigNumberish, arg1: BigNumberish],
-    [
-      [bigint, string, string, bigint, string, bigint] & {
-        bountyId: bigint;
-        solver: string;
-        blindedIpfsCid: string;
-        deposit: bigint;
-        revealIpfsCid: string;
-        timestamp: bigint;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
     nameOrSignature: "submitSolution"
   ): TypedContractMethod<
     [_bountyId: BigNumberish, _blindedIpfsCid: string],
@@ -696,7 +780,7 @@ export interface Quinty extends BaseContract {
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "triggerSlash"
-  ): TypedContractMethod<[_id: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
 
   getEvent(
     key: "BountyCreated"
@@ -748,11 +832,11 @@ export interface Quinty extends BaseContract {
     SubmissionCreatedEvent.OutputObject
   >;
   getEvent(
-    key: "WinnerSelected"
+    key: "WinnersSelected"
   ): TypedContractEvent<
-    WinnerSelectedEvent.InputTuple,
-    WinnerSelectedEvent.OutputTuple,
-    WinnerSelectedEvent.OutputObject
+    WinnersSelectedEvent.InputTuple,
+    WinnersSelectedEvent.OutputTuple,
+    WinnersSelectedEvent.OutputObject
   >;
 
   filters: {
@@ -767,7 +851,7 @@ export interface Quinty extends BaseContract {
       BountyCreatedEvent.OutputObject
     >;
 
-    "BountyResolved(uint256,address[],uint256[])": TypedContractEvent<
+    "BountyResolved(uint256)": TypedContractEvent<
       BountyResolvedEvent.InputTuple,
       BountyResolvedEvent.OutputTuple,
       BountyResolvedEvent.OutputObject
@@ -800,7 +884,7 @@ export interface Quinty extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "ReplyAdded(uint256,uint256,address,string)": TypedContractEvent<
+    "ReplyAdded(uint256,uint256,address)": TypedContractEvent<
       ReplyAddedEvent.InputTuple,
       ReplyAddedEvent.OutputTuple,
       ReplyAddedEvent.OutputObject
@@ -811,7 +895,7 @@ export interface Quinty extends BaseContract {
       ReplyAddedEvent.OutputObject
     >;
 
-    "SolutionRevealed(uint256,uint256,string)": TypedContractEvent<
+    "SolutionRevealed(uint256,uint256,address,string)": TypedContractEvent<
       SolutionRevealedEvent.InputTuple,
       SolutionRevealedEvent.OutputTuple,
       SolutionRevealedEvent.OutputObject
@@ -833,15 +917,15 @@ export interface Quinty extends BaseContract {
       SubmissionCreatedEvent.OutputObject
     >;
 
-    "WinnerSelected(uint256,address[])": TypedContractEvent<
-      WinnerSelectedEvent.InputTuple,
-      WinnerSelectedEvent.OutputTuple,
-      WinnerSelectedEvent.OutputObject
+    "WinnersSelected(uint256,address[],uint256[])": TypedContractEvent<
+      WinnersSelectedEvent.InputTuple,
+      WinnersSelectedEvent.OutputTuple,
+      WinnersSelectedEvent.OutputObject
     >;
-    WinnerSelected: TypedContractEvent<
-      WinnerSelectedEvent.InputTuple,
-      WinnerSelectedEvent.OutputTuple,
-      WinnerSelectedEvent.OutputObject
+    WinnersSelected: TypedContractEvent<
+      WinnersSelectedEvent.InputTuple,
+      WinnersSelectedEvent.OutputTuple,
+      WinnersSelectedEvent.OutputObject
     >;
   };
 }

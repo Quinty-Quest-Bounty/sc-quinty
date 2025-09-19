@@ -82,17 +82,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Counter__factory>;
     getContractFactory(
-      name: "CounterTest",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.CounterTest__factory>;
-    getContractFactory(
       name: "DisputeResolver",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.DisputeResolver__factory>;
-    getContractFactory(
-      name: "IQuinty",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IQuinty__factory>;
     getContractFactory(
       name: "IDisputeResolver",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -196,20 +188,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Counter>;
     getContractAt(
-      name: "CounterTest",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.CounterTest>;
-    getContractAt(
       name: "DisputeResolver",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.DisputeResolver>;
-    getContractAt(
-      name: "IQuinty",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IQuinty>;
     getContractAt(
       name: "IDisputeResolver",
       address: string | ethers.Addressable,
@@ -300,17 +282,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Counter>;
     deployContract(
-      name: "CounterTest",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.CounterTest>;
-    deployContract(
       name: "DisputeResolver",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.DisputeResolver>;
-    deployContract(
-      name: "IQuinty",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuinty>;
     deployContract(
       name: "IDisputeResolver",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -414,20 +388,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Counter>;
     deployContract(
-      name: "CounterTest",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.CounterTest>;
-    deployContract(
       name: "DisputeResolver",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.DisputeResolver>;
-    deployContract(
-      name: "IQuinty",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuinty>;
     deployContract(
       name: "IDisputeResolver",
       args: any[],

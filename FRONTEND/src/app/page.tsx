@@ -7,6 +7,7 @@ import BountyManager from '../components/BountyManager';
 import DisputeManager from '../components/DisputeManager';
 import ReputationDisplay from '../components/ReputationDisplay';
 import AirdropManager from '../components/AirdropManager';
+import NetworkBanner from '../components/NetworkBanner';
 
 export default function Home() {
   const { isConnected } = useAccount();
@@ -82,6 +83,9 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {/* Network Banner */}
+        {isConnected && <NetworkBanner />}
+
         {!isConnected ? (
           <div className="text-center py-12">
             <div className="mx-auto max-w-md">

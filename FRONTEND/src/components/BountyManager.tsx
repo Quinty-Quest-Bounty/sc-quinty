@@ -9,7 +9,7 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { readContract } from "@wagmi/core";
-import { parseEther, formatEther } from "viem";
+import { formatEther } from "viem";
 import {
   CONTRACT_ADDRESSES,
   QUINTY_ABI,
@@ -17,6 +17,7 @@ import {
 } from "../utils/contracts";
 import {
   formatSTT,
+  parseSTT,
   formatTimeLeft,
   formatAddress,
   wagmiConfig,
@@ -306,7 +307,7 @@ export default function BountyManager() {
           winnerSharesArg,
           BigInt(slashPercent),
         ],
-        value: parseEther(newBounty.amount),
+        value: parseSTT(newBounty.amount),
       });
 
       // Reset form
