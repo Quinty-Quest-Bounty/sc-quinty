@@ -60,46 +60,6 @@ export declare namespace Quinty {
     replies: Quinty.ReplyStructOutput[];
     revealed: boolean;
   };
-
-  export type BountyStruct = {
-    creator: AddressLike;
-    description: string;
-    amount: BigNumberish;
-    deadline: BigNumberish;
-    allowMultipleWinners: boolean;
-    winnerShares: BigNumberish[];
-    status: BigNumberish;
-    slashPercent: BigNumberish;
-    submissions: Quinty.SubmissionStruct[];
-    selectedWinners: AddressLike[];
-    selectedSubmissionIds: BigNumberish[];
-  };
-
-  export type BountyStructOutput = [
-    creator: string,
-    description: string,
-    amount: bigint,
-    deadline: bigint,
-    allowMultipleWinners: boolean,
-    winnerShares: bigint[],
-    status: bigint,
-    slashPercent: bigint,
-    submissions: Quinty.SubmissionStructOutput[],
-    selectedWinners: string[],
-    selectedSubmissionIds: bigint[]
-  ] & {
-    creator: string;
-    description: string;
-    amount: bigint;
-    deadline: bigint;
-    allowMultipleWinners: boolean;
-    winnerShares: bigint[];
-    status: bigint;
-    slashPercent: bigint;
-    submissions: Quinty.SubmissionStructOutput[];
-    selectedWinners: string[];
-    selectedSubmissionIds: bigint[];
-  };
 }
 
 export interface QuintyInterface extends Interface {
@@ -110,8 +70,7 @@ export interface QuintyInterface extends Interface {
       | "bountyCounter"
       | "createBounty"
       | "disputeAddress"
-      | "getBounty"
-      | "getBountyStruct"
+      | "getBountyData"
       | "getSubmission"
       | "getSubmissionCount"
       | "getSubmissionStruct"
@@ -159,11 +118,7 @@ export interface QuintyInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "getBounty",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getBountyStruct",
+    functionFragment: "getBountyData",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
@@ -226,9 +181,8 @@ export interface QuintyInterface extends Interface {
     functionFragment: "disputeAddress",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "getBounty", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "getBountyStruct",
+    functionFragment: "getBountyData",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -512,7 +466,7 @@ export interface Quinty extends BaseContract {
 
   disputeAddress: TypedContractMethod<[], [string], "view">;
 
-  getBounty: TypedContractMethod<
+  getBountyData: TypedContractMethod<
     [_bountyId: BigNumberish],
     [
       [
@@ -522,10 +476,10 @@ export interface Quinty extends BaseContract {
         bigint,
         boolean,
         bigint[],
-        boolean,
+        bigint,
         bigint,
         string[],
-        boolean
+        bigint[]
       ] & {
         creator: string;
         description: string;
@@ -533,18 +487,12 @@ export interface Quinty extends BaseContract {
         deadline: bigint;
         allowMultipleWinners: boolean;
         winnerShares: bigint[];
-        resolved: boolean;
+        status: bigint;
         slashPercent: bigint;
-        winners: string[];
-        slashed: boolean;
+        selectedWinners: string[];
+        selectedSubmissionIds: bigint[];
       }
     ],
-    "view"
-  >;
-
-  getBountyStruct: TypedContractMethod<
-    [_bountyId: BigNumberish],
-    [Quinty.BountyStructOutput],
     "view"
   >;
 
@@ -670,7 +618,7 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "disputeAddress"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "getBounty"
+    nameOrSignature: "getBountyData"
   ): TypedContractMethod<
     [_bountyId: BigNumberish],
     [
@@ -681,10 +629,10 @@ export interface Quinty extends BaseContract {
         bigint,
         boolean,
         bigint[],
-        boolean,
+        bigint,
         bigint,
         string[],
-        boolean
+        bigint[]
       ] & {
         creator: string;
         description: string;
@@ -692,19 +640,12 @@ export interface Quinty extends BaseContract {
         deadline: bigint;
         allowMultipleWinners: boolean;
         winnerShares: bigint[];
-        resolved: boolean;
+        status: bigint;
         slashPercent: bigint;
-        winners: string[];
-        slashed: boolean;
+        selectedWinners: string[];
+        selectedSubmissionIds: bigint[];
       }
     ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getBountyStruct"
-  ): TypedContractMethod<
-    [_bountyId: BigNumberish],
-    [Quinty.BountyStructOutput],
     "view"
   >;
   getFunction(

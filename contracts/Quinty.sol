@@ -253,17 +253,17 @@ contract Quinty is Ownable, ReentrancyGuard {
     }
 
     // Getter functions
-    function getBounty(uint256 _bountyId) external view returns (
+    function getBountyData(uint256 _bountyId) external view returns (
         address creator,
         string memory description,
         uint256 amount,
         uint256 deadline,
         bool allowMultipleWinners,
         uint256[] memory winnerShares,
-        bool resolved,
+        BountyStatus status,
         uint256 slashPercent,
-        address[] memory winners,
-        bool slashed
+        address[] memory selectedWinners,
+        uint256[] memory selectedSubmissionIds
     ) {
         Bounty storage bounty = bounties[_bountyId];
         return (
@@ -273,15 +273,11 @@ contract Quinty is Ownable, ReentrancyGuard {
             bounty.deadline,
             bounty.allowMultipleWinners,
             bounty.winnerShares,
-            bounty.status == BountyStatus.RESOLVED, // Convert status to resolved boolean
+            bounty.status,
             bounty.slashPercent,
-            bounty.selectedWinners, // Return as winners
-            bounty.status == BountyStatus.EXPIRED // Convert status to slashed boolean
+            bounty.selectedWinners,
+            bounty.selectedSubmissionIds
         );
-    }
-
-    function getBountyStruct(uint256 _bountyId) external view returns (Bounty memory) {
-        return bounties[_bountyId];
     }
 
     function getSubmission(uint256 _bountyId, uint256 _subId) external view returns (

@@ -25,6 +25,22 @@ import {
 import BountyCard from "./BountyCard";
 import { uploadMetadataToIpfs, uploadToIpfs, BountyMetadata, IpfsImage } from "../utils/ipfs";
 
+// V2 Interfaces matching contract structs
+interface Reply {
+  replier: string;
+  content: string;
+  timestamp: bigint;
+}
+
+interface Submission {
+  solver: string;
+  blindedIpfsCid: string;
+  revealIpfsCid: string;
+  deposit: bigint;
+  replies: readonly Reply[];
+  revealed: boolean;
+}
+
 interface Bounty {
   id: number;
   creator: string;
@@ -33,21 +49,12 @@ interface Bounty {
   deadline: bigint;
   allowMultipleWinners: boolean;
   winnerShares: readonly bigint[];
-  resolved: boolean;
+  status: number; // Enum: 0:OPEN, 1:PENDING_REVEAL, 2:RESOLVED, 3:DISPUTED, 4:EXPIRED
   slashPercent: bigint;
-  winners: readonly string[];
-  slashed: boolean;
+  submissions: readonly Submission[];
+  selectedWinners: readonly string[];
+  selectedSubmissionIds: readonly bigint[];
   metadataCid?: string;
-}
-
-interface Submission {
-  bountyId: bigint;
-  solver: string;
-  blindedIpfsCid: string;
-  deposit: bigint;
-  replies: readonly string[];
-  revealIpfsCid: string;
-  timestamp: bigint;
 }
 
 export default function BountyManager() {
@@ -60,9 +67,6 @@ export default function BountyManager() {
 
   // State
   const [bounties, setBounties] = useState<Bounty[]>([]);
-  const [submissions, setSubmissions] = useState<{
-    [bountyId: number]: Submission[];
-  }>({});
   const [selectedBounty, setSelectedBounty] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<"create" | "browse" | "manage">(
     "browse"
@@ -96,8 +100,6 @@ export default function BountyManager() {
     bountyId: 0,
     ipfsCid: "",
   });
-
-
 
   // Read bounty counter
   const { data: bountyCounter } = useReadContract({
@@ -168,21 +170,20 @@ export default function BountyManager() {
     }
   };
 
-  // Load bounties and submissions
+  // Load bounties and submissions with the new getBountyData function
   const loadBountiesAndSubmissions = async () => {
     if (!bountyCounter) return;
 
     const bountyIds = Array.from({ length: Number(bountyCounter) }, (_, i) => i + 1);
-
     const loadedBounties: Bounty[] = [];
-    const allSubmissions: { [bountyId: number]: Submission[] } = {};
 
     for (const id of bountyIds) {
       try {
+        // 1. Get all bounty metadata using the new robust function
         const bountyData = await readContract(wagmiConfig, {
           address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
           abi: QUINTY_ABI,
-          functionName: "getBounty",
+          functionName: "getBountyData",
           args: [BigInt(id)],
         });
 
@@ -194,16 +195,37 @@ export default function BountyManager() {
             deadline,
             allowMultipleWinners,
             winnerShares,
-            resolved,
+            status,
             slashPercent,
-            winners,
-            slashed,
+            selectedWinners,
+            selectedSubmissionIds,
           ] = bountyData;
 
-          // Extract metadata CID from description if present
+          // 2. Get submissions separately
+          const submissionCount = await readContract(wagmiConfig, {
+            address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+            abi: QUINTY_ABI,
+            functionName: "getSubmissionCount",
+            args: [BigInt(id)],
+          });
+
+          const submissions: Submission[] = [];
+          for (let i = 0; i < Number(submissionCount); i++) {
+            const submissionData = await readContract(wagmiConfig, {
+              address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+              abi: QUINTY_ABI,
+              functionName: "getSubmissionStruct",
+              args: [BigInt(id), BigInt(i)],
+            });
+            if (submissionData) {
+              submissions.push(submissionData as unknown as Submission);
+            }
+          }
+
           const metadataMatch = description.match(/Metadata: ipfs:\/\/([a-zA-Z0-9]+)/);
           const metadataCid = metadataMatch ? metadataMatch[1] : undefined;
 
+          // 3. Assemble the full bounty object
           loadedBounties.push({
             id,
             creator,
@@ -212,40 +234,20 @@ export default function BountyManager() {
             deadline,
             allowMultipleWinners,
             winnerShares,
-            resolved,
+            status,
             slashPercent,
-            winners,
-            slashed,
+            submissions,
+            selectedWinners,
+            selectedSubmissionIds,
             metadataCid,
           });
-
-          const submissionCount = await readContract(wagmiConfig, {
-            address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
-            abi: QUINTY_ABI,
-            functionName: "getSubmissionCount",
-            args: [BigInt(id)],
-          });
-
-          const loadedSubmissions: Submission[] = [];
-          for (let i = 0; i < Number(submissionCount); i++) {
-            const submissionData = await readContract(wagmiConfig, {
-              address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
-              abi: QUINTY_ABI,
-              functionName: "getSubmission",
-              args: [BigInt(id), BigInt(i)],
-            });
-            const [bId, solver, blindedIpfsCid, deposit, replies, revealIpfsCid, timestamp] = submissionData;
-            loadedSubmissions.push({ bountyId: bId, solver, blindedIpfsCid, deposit, replies, revealIpfsCid, timestamp });
-          }
-          allSubmissions[id] = loadedSubmissions;
         }
       } catch (error) {
-        console.error(`Error loading bounty or submissions for ID ${id}:`, error);
+        console.error(`Error loading bounty data for ID ${id}:`, error);
       }
     }
 
     setBounties(loadedBounties.reverse());
-    setSubmissions(allSubmissions);
   };
 
   // Create bounty
@@ -509,7 +511,7 @@ export default function BountyManager() {
                 onClick={() => setActiveTab(tab as any)}
                 className={`py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab
-                    ? "border-primary-500 text-primary-600"
+                    ? "border-indigo-500 text-indigo-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
@@ -523,7 +525,7 @@ export default function BountyManager() {
       {/* Create Bounty Tab */}
       {activeTab === "create" && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-semibold mb-4">Create New Bounty</h3>
+          <h3 className="text-xl font-semibold mb-4 text-gray-900">Create New Bounty</h3>
 
           <div className="grid grid-cols-1 gap-4">
             <div>
@@ -1007,7 +1009,6 @@ export default function BountyManager() {
                 <BountyCard
                   key={bounty.id}
                   bounty={bounty}
-                  submissions={submissions[bounty.id] || []}
                   onSubmitSolution={submitSolution}
                   onSelectWinners={selectWinners}
                   onTriggerSlash={triggerSlash}

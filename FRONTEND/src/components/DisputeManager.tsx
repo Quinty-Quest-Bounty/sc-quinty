@@ -45,19 +45,27 @@ export default function DisputeManager() {
 
   // State
   const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [eligibleBounties, setEligibleBounties] = useState<Bounty[]>([]);
   const [votes, setVotes] = useState<{ [disputeId: number]: Vote[] }>({});
   const [disputedSubmissions, setDisputedSubmissions] = useState<{ [bountyId: number]: Submission[] }>({});
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
 
   // Form states
   const [voteForm, setVoteForm] = useState<{rank1: string; rank2: string; rank3: string; stakeAmount: string;}>({ rank1: '-1', rank2: '-1', rank3: '-1', stakeAmount: MIN_VOTING_STAKE });
-  const [pengadilanForm, setPengadilanForm] = useState({ bountyId: 0 });
+  const [pengadilanForm, setPengadilanForm] = useState({ bountyId: "" });
 
   // Read dispute counter
   const { data: disputeCounter, refetch: refetchDisputes } = useReadContract({
     address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].DisputeResolver as `0x${string}`,
     abi: DISPUTE_ABI,
     functionName: "disputeCounter",
+  });
+
+  // Read bounty counter
+  const { data: bountyCounter } = useReadContract({
+    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+    abi: QUINTY_ABI,
+    functionName: "bountyCounter",
   });
 
   // Function to fetch submissions for a given bounty
