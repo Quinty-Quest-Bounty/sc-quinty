@@ -231,6 +231,93 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "_disputeId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getDispute",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "bountyId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "isExpiryVote",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "votingEnd",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "resolved",
+        "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "voteCount",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_disputeId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getVoteCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_disputeId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "_voter",
+        "type": "address"
+      }
+    ],
+    "name": "hasVoted",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "_bountyId",
         "type": "uint256"
       },
@@ -256,6 +343,25 @@
     "name": "initiatePengadilanDispute",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_bountyId",
+        "type": "uint256"
+      }
+    ],
+    "name": "isDisputeActive",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {

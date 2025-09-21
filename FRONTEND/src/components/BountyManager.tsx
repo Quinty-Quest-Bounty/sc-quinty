@@ -123,8 +123,8 @@ export default function BountyManager() {
     abi: QUINTY_ABI,
     eventName: "SubmissionCreated",
     onLogs(logs) {
-      logs.forEach((log) => {
-        const { bountyId } = log.args;
+      logs.forEach((log: any) => {
+        const { bountyId } = log.args || {};
         if (bountyId) {
           loadBountiesAndSubmissions(); // Reload all for simplicity
         }
@@ -188,6 +188,7 @@ export default function BountyManager() {
         });
 
         if (bountyData) {
+          const bountyArray = bountyData as any[];
           const [
             creator,
             description,
@@ -199,7 +200,7 @@ export default function BountyManager() {
             slashPercent,
             selectedWinners,
             selectedSubmissionIds,
-          ] = bountyData;
+          ] = bountyArray;
 
           // 2. Get submissions separately
           const submissionCount = await readContract(wagmiConfig, {

@@ -1,11 +1,11 @@
 {
   "chainId": 50312,
   "network": "somniaTestnet",
-  "timestamp": "2025-09-20T15:38:04.287Z",
+  "timestamp": "2025-09-21T08:08:44.707Z",
   "contracts": {
-    "Quinty": "0x6346E848150FEb4145C7207376603Ad07F45470B",
-    "QuintyReputation": "0x99f3B28E5B43B5B0222Da2398c8A8df18D090830",
-    "DisputeResolver": "0x0c9Ac987B575A8cED12A215749e5c212Ac8A874e",
-    "AirdropBounty": "0x180711d16f2CF583511F1846B5FF449ccC1e79fE"
+    "Quinty": "0x5110CE4c643923CA05f3c48aDb5a0f7718Ddfd15",
+    "QuintyReputation": "0x347B1EEE3Fb806EE1aF1D02Bd1781CF1523d8A3F",
+    "DisputeResolver": "0x25e505A0E77BAc255bEA230e2Ad1b93c1490d7F2",
+    "AirdropBounty": "0xaa00D6519d7bbECb27a5e0cF07dC5Bc0f75F46Df"
   }
 }

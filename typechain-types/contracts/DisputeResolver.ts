@@ -31,8 +31,12 @@ export interface DisputeResolverInterface extends Interface {
       | "VOTING_DURATION"
       | "disputeCounter"
       | "disputes"
+      | "getDispute"
+      | "getVoteCount"
+      | "hasVoted"
       | "initiateExpiryVote"
       | "initiatePengadilanDispute"
+      | "isDisputeActive"
       | "owner"
       | "renounceOwnership"
       | "resolveDispute"
@@ -69,11 +73,27 @@ export interface DisputeResolverInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "getDispute",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getVoteCount",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "hasVoted",
+    values: [BigNumberish, AddressLike]
+  ): string;
+  encodeFunctionData(
     functionFragment: "initiateExpiryVote",
     values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "initiatePengadilanDispute",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "isDisputeActive",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
@@ -111,12 +131,22 @@ export interface DisputeResolverInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "disputes", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "getDispute", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getVoteCount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "hasVoted", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "initiateExpiryVote",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "initiatePengadilanDispute",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "isDisputeActive",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
@@ -273,6 +303,33 @@ export interface DisputeResolver extends BaseContract {
     "view"
   >;
 
+  getDispute: TypedContractMethod<
+    [_disputeId: BigNumberish],
+    [
+      [bigint, boolean, bigint, bigint, boolean, bigint] & {
+        bountyId: bigint;
+        isExpiryVote: boolean;
+        amount: bigint;
+        votingEnd: bigint;
+        resolved: boolean;
+        voteCount: bigint;
+      }
+    ],
+    "view"
+  >;
+
+  getVoteCount: TypedContractMethod<
+    [_disputeId: BigNumberish],
+    [bigint],
+    "view"
+  >;
+
+  hasVoted: TypedContractMethod<
+    [_disputeId: BigNumberish, _voter: AddressLike],
+    [boolean],
+    "view"
+  >;
+
   initiateExpiryVote: TypedContractMethod<
     [_bountyId: BigNumberish, _slashAmount: BigNumberish],
     [void],
@@ -283,6 +340,12 @@ export interface DisputeResolver extends BaseContract {
     [_bountyId: BigNumberish],
     [void],
     "payable"
+  >;
+
+  isDisputeActive: TypedContractMethod<
+    [_bountyId: BigNumberish],
+    [boolean],
+    "view"
   >;
 
   owner: TypedContractMethod<[], [string], "view">;
@@ -340,6 +403,32 @@ export interface DisputeResolver extends BaseContract {
     "view"
   >;
   getFunction(
+    nameOrSignature: "getDispute"
+  ): TypedContractMethod<
+    [_disputeId: BigNumberish],
+    [
+      [bigint, boolean, bigint, bigint, boolean, bigint] & {
+        bountyId: bigint;
+        isExpiryVote: boolean;
+        amount: bigint;
+        votingEnd: bigint;
+        resolved: boolean;
+        voteCount: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "getVoteCount"
+  ): TypedContractMethod<[_disputeId: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "hasVoted"
+  ): TypedContractMethod<
+    [_disputeId: BigNumberish, _voter: AddressLike],
+    [boolean],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "initiateExpiryVote"
   ): TypedContractMethod<
     [_bountyId: BigNumberish, _slashAmount: BigNumberish],
@@ -349,6 +438,9 @@ export interface DisputeResolver extends BaseContract {
   getFunction(
     nameOrSignature: "initiatePengadilanDispute"
   ): TypedContractMethod<[_bountyId: BigNumberish], [void], "payable">;
+  getFunction(
+    nameOrSignature: "isDisputeActive"
+  ): TypedContractMethod<[_bountyId: BigNumberish], [boolean], "view">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;

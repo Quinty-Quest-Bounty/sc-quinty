@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // Interfaces
 interface IQuintyReputation {
-    function updateCreatorRep(address _user, bool _success) external;
-    function updateSolverRep(address _user, bool _success) external;
+    function recordBountyCreation(address _user) external;
+    function recordSubmission(address _user) external;
+    function recordWin(address _user) external;
 }
 
 interface IDisputeResolver {
@@ -112,7 +113,7 @@ contract Quinty is Ownable, ReentrancyGuard {
         bounty.slashPercent = _slashPercent;
 
         emit BountyCreated(bountyCounter, msg.sender, msg.value, _deadline);
-        IQuintyReputation(reputationAddress).updateCreatorRep(msg.sender, false);
+        IQuintyReputation(reputationAddress).recordBountyCreation(msg.sender);
     }
 
     function submitSolution(uint256 _bountyId, string memory _blindedIpfsCid) external payable bountyIsOpen(_bountyId) nonReentrant {
@@ -131,7 +132,7 @@ contract Quinty is Ownable, ReentrancyGuard {
         }));
 
         emit SubmissionCreated(_bountyId, bounty.submissions.length - 1, msg.sender, _blindedIpfsCid);
-        IQuintyReputation(reputationAddress).updateSolverRep(msg.sender, false);
+        IQuintyReputation(reputationAddress).recordSubmission(msg.sender);
     }
 
     function selectWinners(uint256 _bountyId, address[] memory _winners, uint256[] memory _submissionIds) external onlyCreator(_bountyId) bountyIsOpen(_bountyId) nonReentrant {
@@ -202,7 +203,7 @@ contract Quinty is Ownable, ReentrancyGuard {
         payable(msg.sender).transfer(prizeAmount + sub.deposit);
         sub.deposit = 0;
 
-        IQuintyReputation(reputationAddress).updateSolverRep(msg.sender, true);
+        IQuintyReputation(reputationAddress).recordWin(msg.sender);
         emit SolutionRevealed(_bountyId, _subId, msg.sender, _revealIpfsCid);
 
         // Check if all winners have revealed to resolve the bounty
@@ -216,7 +217,7 @@ contract Quinty is Ownable, ReentrancyGuard {
 
         if (allRevealed) {
             bounty.status = BountyStatus.RESOLVED;
-            IQuintyReputation(reputationAddress).updateCreatorRep(bounty.creator, true);
+            // Creator success is already recorded when bounty is created
             emit BountyResolved(_bountyId);
         }
     }
@@ -248,7 +249,7 @@ contract Quinty is Ownable, ReentrancyGuard {
         // Refund remaining amount to creator
         payable(bounty.creator).transfer(bounty.amount - slashAmount);
 
-        IQuintyReputation(reputationAddress).updateCreatorRep(bounty.creator, false);
+        // Creator failure is not tracked in milestone system
         emit BountySlashed(_bountyId, slashAmount);
     }
 

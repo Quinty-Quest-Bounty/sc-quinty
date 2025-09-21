@@ -141,6 +141,31 @@
       {
         "indexed": true,
         "internalType": "address",
+        "name": "user",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "enum QuintyReputation.AchievementType",
+        "name": "achievement",
+        "type": "uint8"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
+    ],
+    "name": "AchievementUnlocked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "owner",
         "type": "address"
       },
@@ -183,37 +208,6 @@
       }
     ],
     "name": "ApprovalForAll",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "user",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "tokenId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "level",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "isCreator",
-        "type": "bool"
-      }
-    ],
-    "name": "BadgeMintedOrUpgraded",
     "type": "event"
   },
   {
@@ -272,24 +266,43 @@
     "inputs": [
       {
         "indexed": true,
+        "internalType": "uint256",
+        "name": "seasonId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
         "internalType": "address",
-        "name": "user",
+        "name": "topSolver",
         "type": "address"
       },
       {
         "indexed": false,
-        "internalType": "bool",
-        "name": "isCreator",
-        "type": "bool"
+        "internalType": "address",
+        "name": "topCreator",
+        "type": "address"
+      }
+    ],
+    "name": "SeasonEnded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "seasonId",
+        "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "bool",
-        "name": "success",
-        "type": "bool"
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
       }
     ],
-    "name": "ReputationUpdated",
+    "name": "SeasonStarted",
     "type": "event"
   },
   {
@@ -319,7 +332,7 @@
   },
   {
     "inputs": [],
-    "name": "BRONZE_ACTIONS",
+    "name": "MONTH_DURATION",
     "outputs": [
       {
         "internalType": "uint256",
@@ -331,60 +344,19 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "BRONZE_RATE",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "uint256",
+        "internalType": "address",
         "name": "",
-        "type": "uint256"
+        "type": "address"
+      },
+      {
+        "internalType": "enum QuintyReputation.AchievementType",
+        "name": "",
+        "type": "uint8"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "GOLD_ACTIONS",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "GOLD_RATE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "SILVER_ACTIONS",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "SILVER_RATE",
+    "name": "achievementTokenIds",
     "outputs": [
       {
         "internalType": "uint256",
@@ -436,6 +408,38 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "creatorMilestones",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "currentSeasonId",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "tokenId",
         "type": "uint256"
       }
@@ -452,6 +456,39 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "getCurrentSeasonLeaderboard",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "topSolver",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "topSolverWins",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "topCreator",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "topCreatorBounties",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "seasonEndTime",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -459,64 +496,87 @@
         "type": "address"
       }
     ],
-    "name": "getUserReputation",
+    "name": "getUserAchievements",
+    "outputs": [
+      {
+        "internalType": "enum QuintyReputation.AchievementType[]",
+        "name": "achievements",
+        "type": "uint8[]"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "tokenIds",
+        "type": "uint256[]"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      }
+    ],
+    "name": "getUserStats",
     "outputs": [
       {
         "components": [
           {
             "internalType": "uint256",
-            "name": "bountiesCreated",
+            "name": "totalSubmissions",
             "type": "uint256"
           },
           {
             "internalType": "uint256",
-            "name": "successfulBounties",
+            "name": "totalWins",
             "type": "uint256"
           },
           {
             "internalType": "uint256",
-            "name": "creationSuccessRate",
+            "name": "totalBountiesCreated",
             "type": "uint256"
           },
           {
             "internalType": "uint256",
-            "name": "firstBountyTimestamp",
+            "name": "firstActivity",
             "type": "uint256"
           },
           {
             "internalType": "uint256",
-            "name": "solvesAttempted",
+            "name": "lastActivity",
             "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "successfulSolves",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "solveSuccessRate",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "totalSolvedCount",
-            "type": "uint256"
-          },
-          {
-            "internalType": "string",
-            "name": "creatorLevel",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "solverLevel",
-            "type": "string"
           }
         ],
-        "internalType": "struct QuintyReputation.ReputationStats",
+        "internalType": "struct QuintyReputation.UserStats",
         "name": "",
         "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "enum QuintyReputation.AchievementType",
+        "name": "",
+        "type": "uint8"
+      }
+    ],
+    "name": "hasAchievement",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -592,8 +652,14 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "renounceOwnership",
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      }
+    ],
+    "name": "recordBountyCreation",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -602,64 +668,33 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "_user",
         "type": "address"
       }
     ],
-    "name": "reputations",
-    "outputs": [
+    "name": "recordSubmission",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
-        "internalType": "uint256",
-        "name": "bountiesCreated",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "successfulBounties",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "creationSuccessRate",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "firstBountyTimestamp",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "solvesAttempted",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "successfulSolves",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "solveSuccessRate",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalSolvedCount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "creatorLevel",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "solverLevel",
-        "type": "string"
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
       }
     ],
-    "stateMutability": "view",
+    "name": "recordWin",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "renounceOwnership",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -716,6 +751,94 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "seasonStats",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "submissions",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "wins",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "bountiesCreated",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "seasons",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "seasonId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "ended",
+        "type": "bool"
+      },
+      {
+        "internalType": "address",
+        "name": "topSolver",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "topCreator",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "topSolverWins",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "topCreatorBounties",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "operator",
         "type": "address"
@@ -742,6 +865,25 @@
     "name": "setBaseTokenURI",
     "outputs": [],
     "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "solverMilestones",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -835,36 +977,58 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_user",
+        "name": "",
         "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_success",
-        "type": "bool"
       }
     ],
-    "name": "updateCreatorRep",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "name": "userStats",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "totalSubmissions",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalWins",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalBountiesCreated",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "firstActivity",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "lastActivity",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
     "inputs": [
       {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_success",
-        "type": "bool"
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
-    "name": "updateSolverRep",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "name": "winnerMilestones",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   }
 ]
