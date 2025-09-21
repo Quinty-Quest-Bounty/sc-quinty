@@ -115,13 +115,12 @@ export default function ReputationDisplay() {
   // Load user profile data
   useEffect(() => {
     if (address && userStats && userAchievements) {
-      const statsArray = userStats as any[];
       const achievementsArray = userAchievements as any[];
 
       const stats = {
-        bountiesCreated: Number(statsArray[0] || 0),
-        submissions: Number(statsArray[1] || 0),
-        wins: Number(statsArray[2] || 0),
+        bountiesCreated: Number(userStats.totalBountiesCreated || 0),
+        submissions: Number(userStats.totalSubmissions || 0),
+        wins: Number(userStats.totalWins || 0),
       };
 
       const achievements = {
@@ -161,13 +160,10 @@ export default function ReputationDisplay() {
         }),
       ]);
 
-      const statsArray = statsData as any[];
-      const achievementsArray = achievementsData as any[];
-
       const stats = {
-        bountiesCreated: Number(statsArray[0] || 0),
-        submissions: Number(statsArray[1] || 0),
-        wins: Number(statsArray[2] || 0),
+        bountiesCreated: Number(statsData.totalBountiesCreated || 0),
+        submissions: Number(statsData.totalSubmissions || 0),
+        wins: Number(statsData.totalWins || 0),
       };
 
       const achievements = {
