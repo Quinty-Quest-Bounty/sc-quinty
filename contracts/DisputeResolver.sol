@@ -55,11 +55,19 @@ contract DisputeResolver is Ownable, ReentrancyGuard {
     }
 
     function initiatePengadilanDispute(uint256 _bountyId) external payable {
-        (,,uint256 amount,,,Quinty.BountyStatus status,) = quintyContract.bounties(_bountyId);
+        (address creator,,uint256 amount,,,Quinty.BountyStatus status,) = quintyContract.bounties(_bountyId);
         require(status == Quinty.BountyStatus.PENDING_REVEAL, "Dispute only for bounties pending reveal");
+        require(msg.sender == creator, "Only bounty creator can initiate pengadilan dispute");
+
+        // Check if there's already an active dispute for this bounty
+        for (uint256 i = 1; i <= disputeCounter; i++) {
+            if (disputes[i].bountyId == _bountyId && !disputes[i].resolved) {
+                revert("Bounty already has an active dispute");
+            }
+        }
 
         uint256 requiredStake = (amount * DISPUTE_STAKE_BPS) / 10000;
-        require(msg.value == requiredStake, "Insufficient stake to raise dispute");
+        require(msg.value >= requiredStake, "Insufficient stake to raise dispute");
 
         disputeCounter++;
         Dispute storage d = disputes[disputeCounter];
@@ -69,7 +77,11 @@ contract DisputeResolver is Ownable, ReentrancyGuard {
         d.amount = amount; // The whole bounty amount is at stake
         d.votingEnd = block.timestamp + VOTING_DURATION;
 
-        // quintyContract.updateBountyStatus(_bountyId, Quinty.BountyStatus.DISPUTED);
+        // Refund excess payment if any
+        if (msg.value > requiredStake) {
+            payable(msg.sender).transfer(msg.value - requiredStake);
+        }
+
         emit DisputeInitiated(disputeCounter, _bountyId, msg.sender, false);
     }
 
@@ -105,5 +117,42 @@ contract DisputeResolver is Ownable, ReentrancyGuard {
         // e.g., distribute d.amount to voters, refund stakes, pay new winner etc.
 
         emit DisputeResolved(_disputeId, winningIds);
+    }
+
+    // Helper functions for frontend
+    function getDispute(uint256 _disputeId) external view returns (
+        uint256 bountyId,
+        bool isExpiryVote,
+        uint256 amount,
+        uint256 votingEnd,
+        bool resolved,
+        uint256 voteCount
+    ) {
+        Dispute storage d = disputes[_disputeId];
+        return (
+            d.bountyId,
+            d.isExpiryVote,
+            d.amount,
+            d.votingEnd,
+            d.resolved,
+            d.votes.length
+        );
+    }
+
+    function hasVoted(uint256 _disputeId, address _voter) external view returns (bool) {
+        return disputes[_disputeId].hasVoted[_voter];
+    }
+
+    function getVoteCount(uint256 _disputeId) external view returns (uint256) {
+        return disputes[_disputeId].votes.length;
+    }
+
+    function isDisputeActive(uint256 _bountyId) external view returns (bool) {
+        for (uint256 i = 1; i <= disputeCounter; i++) {
+            if (disputes[i].bountyId == _bountyId && !disputes[i].resolved) {
+                return true;
+            }
+        }
+        return false;
     }
 }

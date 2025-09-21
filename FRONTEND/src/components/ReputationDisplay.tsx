@@ -42,13 +42,13 @@ export default function ReputationDisplay() {
   const [searchAddress, setSearchAddress] = useState("");
 
   // Read user's reputation
-  const { data: reputation, refetch: refetchReputation } = useReadContract({
+  const { data: reputation, refetch: refetchReputation, isLoading: reputationLoading, error: reputationError } = useReadContract({
     address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
       .QuintyReputation as `0x${string}`,
     abi: REPUTATION_ABI,
     functionName: "getUserReputation",
     args: address ? [address] : undefined,
-    query: { enabled: isConnected },
+    query: { enabled: isConnected && !!address },
   });
 
   // Watch for reputation updates
@@ -73,29 +73,58 @@ export default function ReputationDisplay() {
   });
 
   // Helper to parse reputation data from contract
-  const parseReputationData = (repData: any[]): UserReputation => ({
-    bountiesCreated: Number(repData[0]),
-    successfulBounties: Number(repData[1]),
-    creationSuccessRate: Number(repData[2]),
-    firstBountyTimestamp: Number(repData[3]),
-    solvesAttempted: Number(repData[4]),
-    successfulSolves: Number(repData[5]),
-    solveSuccessRate: Number(repData[6]),
-    totalSolvedCount: Number(repData[7]),
-    creatorLevel: repData[8] as string,
-    solverLevel: repData[9] as string,
-  });
+  const parseReputationData = (repData: any): UserReputation => {
+    // Handle both array format and object format from contract
+    if (Array.isArray(repData)) {
+      return {
+        bountiesCreated: Number(repData[0]),
+        successfulBounties: Number(repData[1]),
+        creationSuccessRate: Number(repData[2]),
+        firstBountyTimestamp: Number(repData[3]),
+        solvesAttempted: Number(repData[4]),
+        successfulSolves: Number(repData[5]),
+        solveSuccessRate: Number(repData[6]),
+        totalSolvedCount: Number(repData[7]),
+        creatorLevel: repData[8] as string,
+        solverLevel: repData[9] as string,
+      };
+    } else {
+      // Object format - convert BigInt to Number
+      return {
+        bountiesCreated: Number(repData.bountiesCreated || 0n),
+        successfulBounties: Number(repData.successfulBounties || 0n),
+        creationSuccessRate: Number(repData.creationSuccessRate || 0n),
+        firstBountyTimestamp: Number(repData.firstBountyTimestamp || 0n),
+        solvesAttempted: Number(repData.solvesAttempted || 0n),
+        successfulSolves: Number(repData.successfulSolves || 0n),
+        solveSuccessRate: Number(repData.solveSuccessRate || 0n),
+        totalSolvedCount: Number(repData.totalSolvedCount || 0n),
+        creatorLevel: repData.creatorLevel || "None",
+        solverLevel: repData.solverLevel || "None",
+      };
+    }
+  };
 
   // Load current user's stats
   useEffect(() => {
+    console.log("🔍 DEBUG ReputationDisplay - Status:", {
+      address,
+      isConnected,
+      reputationLoading,
+      hasReputation: !!reputation,
+      reputationError: reputationError?.message
+    });
+
     if (address && reputation) {
-      const userRep = parseReputationData(reputation as any[]);
+      console.log("🔍 DEBUG ReputationDisplay - Raw reputation data:", reputation);
+      const userRep = parseReputationData(reputation);
+      console.log("🔍 DEBUG ReputationDisplay - Parsed reputation:", userRep);
       setUserStats({
         address,
         reputation: userRep,
       });
     }
-  }, [address, reputation]);
+  }, [address, reputation, isConnected, reputationLoading, reputationError]);
 
   // Search for another user's reputation
   const searchUserReputation = async () => {
@@ -113,7 +142,7 @@ export default function ReputationDisplay() {
         });
 
         if (repData) {
-            const searchedRep = parseReputationData(repData as any[]);
+            const searchedRep = parseReputationData(repData);
             const searchedStats: UserStats = {
                 address: searchAddress,
                 reputation: searchedRep,
@@ -197,7 +226,51 @@ export default function ReputationDisplay() {
       </div>
 
       {/* Profile Tab */}
-      {selectedTab === "profile" && userStats && (
+      {selectedTab === "profile" && (
+        <>
+          {reputationLoading && (
+            <div className="bg-white rounded-lg shadow p-12 text-center">
+              <div className="text-6xl mb-4">⏳</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading Reputation...</h3>
+              <p className="text-gray-600">Fetching your reputation data from the blockchain.</p>
+            </div>
+          )}
+
+          {reputationError && (
+            <div className="bg-white rounded-lg shadow p-12 text-center">
+              <div className="text-6xl mb-4">❌</div>
+              <h3 className="text-xl font-semibold text-red-600 mb-2">Error Loading Reputation</h3>
+              <p className="text-gray-600 mb-4">{reputationError.message}</p>
+              <button
+                onClick={() => refetchReputation()}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!reputationLoading && !reputationError && !userStats && (
+            <div className="bg-white rounded-lg shadow p-12 text-center">
+              <div className="text-6xl mb-4">🆕</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Welcome to Quinty!</h3>
+              <p className="text-gray-600 mb-4">
+                You don't have any reputation data yet. Start by creating bounties or submitting solutions to build your reputation.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <NftBadge level="None" badgeType="Creator" />
+                  <p className="text-sm text-gray-600 mt-2 text-center">Create bounties to earn Creator badges</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <NftBadge level="None" badgeType="Solver" />
+                  <p className="text-sm text-gray-600 mt-2 text-center">Solve bounties to earn Solver badges</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {userStats && (
         <div className="space-y-8">
           {/* User Header */}
           <div className="bg-white rounded-lg shadow p-6">
@@ -238,6 +311,8 @@ export default function ReputationDisplay() {
             </div>
           </div>
         </div>
+          )}
+        </>
       )}
 
       {/* Leaderboard Tab */}
