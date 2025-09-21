@@ -24,7 +24,13 @@ import {
 import { uploadToIpfs, formatIpfsUrl, IpfsImage } from "../utils/ipfs";
 import { ensureSomniaNetwork } from "../utils/network";
 import AirdropCard from "./AirdropCard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
@@ -40,7 +46,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter
+  DialogFooter,
 } from "./ui/dialog";
 import {
   Plus,
@@ -60,7 +66,7 @@ import {
   Star,
   Trash2,
   FileText,
-  ExternalLink
+  ExternalLink,
 } from "lucide-react";
 
 interface Airdrop {
@@ -760,7 +766,9 @@ export default function AirdropManager() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
               <Gift className="h-8 w-8 text-primary" />
             </div>
-            <CardTitle className="text-center mb-2">Connect Your Wallet</CardTitle>
+            <CardTitle className="text-center mb-2">
+              Connect Your Wallet
+            </CardTitle>
             <CardDescription className="text-center">
               Please connect your wallet to access Airdrop Bounties
             </CardDescription>
@@ -786,9 +794,12 @@ export default function AirdropManager() {
           </div>
         </div>
         <div className="space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight">Airdrop Bounties</h1>
+          <h1 className="text-4xl font-bold tracking-tight">
+            Airdrop Bounties
+          </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Create transparent promotion tasks with verifiable social proofs and distribute rewards fairly
+            Create transparent promotion tasks with verifiable social proofs and
+            distribute rewards fairly
           </p>
         </div>
       </div>
@@ -815,9 +826,12 @@ export default function AirdropManager() {
       {activeTab === "create" && (
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Create Promotion Campaign</CardTitle>
+            <CardTitle className="text-2xl">
+              Create Promotion Campaign
+            </CardTitle>
             <CardDescription className="text-lg">
-              Launch transparent promotional campaigns with fixed STT rewards for verified social media engagement
+              Launch transparent promotional campaigns with fixed STT rewards
+              for verified social media engagement
             </CardDescription>
           </CardHeader>
 
@@ -849,7 +863,9 @@ export default function AirdropManager() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="requirements">Requirements (What users need to do) *</Label>
+              <Label htmlFor="requirements">
+                Requirements (What users need to do) *
+              </Label>
               <Textarea
                 id="requirements"
                 value={newAirdrop.requirements}
@@ -857,7 +873,7 @@ export default function AirdropManager() {
                   setNewAirdrop({ ...newAirdrop, requirements: e.target.value })
                 }
                 rows={3}
-                placeholder="e.g., Post on X/Twitter with #QuintyDAO hashtag, get 100+ likes, include wallet address..."
+                placeholder="e.g., Post on X/Twitter with #Quinty hashtag, get 100+ likes, include wallet address..."
                 required
               />
             </div>
@@ -896,9 +912,13 @@ export default function AirdropManager() {
                   >
                     <div className="space-y-4">
                       <div className="flex justify-center">
-                        <Upload className={`h-10 w-10 ${
-                          isDragOver ? "text-primary" : "text-muted-foreground"
-                        }`} />
+                        <Upload
+                          className={`h-10 w-10 ${
+                            isDragOver
+                              ? "text-primary"
+                              : "text-muted-foreground"
+                          }`}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label
@@ -909,7 +929,8 @@ export default function AirdropManager() {
                             Upload an image
                           </span>
                           <span className="text-muted-foreground">
-                            {" "}or drag and drop
+                            {" "}
+                            or drag and drop
                           </span>
                         </Label>
                         <Input
@@ -997,25 +1018,32 @@ export default function AirdropManager() {
             {newAirdrop.perQualifier && newAirdrop.maxQualifiers && (
               <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
                 <CardHeader>
-                  <CardTitle className="text-lg text-blue-900">Campaign Summary</CardTitle>
+                  <CardTitle className="text-lg text-blue-900">
+                    Campaign Summary
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <div className="text-sm font-medium text-muted-foreground">Total Budget</div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Total Budget
+                        </div>
                         <div className="text-2xl font-bold text-blue-600">
                           {(
                             parseFloat(newAirdrop.perQualifier) *
                             newAirdrop.maxQualifiers
-                          ).toFixed(2)} STT
+                          ).toFixed(2)}{" "}
+                          STT
                         </div>
                       </CardContent>
                     </Card>
 
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <div className="text-sm font-medium text-muted-foreground">Per User</div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Per User
+                        </div>
                         <div className="text-2xl font-bold text-green-600">
                           {newAirdrop.perQualifier} STT
                         </div>
@@ -1024,7 +1052,9 @@ export default function AirdropManager() {
 
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <div className="text-sm font-medium text-muted-foreground">Max Participants</div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Max Participants
+                        </div>
                         <div className="text-2xl font-bold text-purple-600">
                           {newAirdrop.maxQualifiers}
                         </div>
@@ -1033,8 +1063,12 @@ export default function AirdropManager() {
 
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <div className="text-sm font-medium text-muted-foreground">Distribution</div>
-                        <div className="text-sm font-semibold">First-come, first-served</div>
+                        <div className="text-sm font-medium text-muted-foreground">
+                          Distribution
+                        </div>
+                        <div className="text-sm font-semibold">
+                          First-come, first-served
+                        </div>
                       </CardContent>
                     </Card>
                   </div>
@@ -1066,10 +1100,12 @@ export default function AirdropManager() {
                   Create Campaign
                   {newAirdrop.perQualifier && newAirdrop.maxQualifiers && (
                     <span className="ml-2 opacity-90">
-                      ({(
+                      (
+                      {(
                         parseFloat(newAirdrop.perQualifier) *
                         newAirdrop.maxQualifiers
-                      ).toFixed(2)} STT)
+                      ).toFixed(2)}{" "}
+                      STT)
                     </span>
                   )}
                 </>
@@ -1085,10 +1121,13 @@ export default function AirdropManager() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-2xl font-bold">Active Campaigns</h2>
-              <p className="text-muted-foreground">Discover and participate in promotion campaigns</p>
+              <p className="text-muted-foreground">
+                Discover and participate in promotion campaigns
+              </p>
             </div>
             <Badge variant="secondary" className="px-4 py-2">
-              {airdrops.filter((a) => !a.resolved && !a.cancelled).length} active
+              {airdrops.filter((a) => !a.resolved && !a.cancelled).length}{" "}
+              active
             </Badge>
           </div>
 
@@ -1144,7 +1183,11 @@ export default function AirdropManager() {
                       id="twitterUrl"
                       type="url"
                       placeholder="https://twitter.com/..."
-                      value={newEntry.airdropId === modalAirdropId ? newEntry.twitterUrl : ""}
+                      value={
+                        newEntry.airdropId === modalAirdropId
+                          ? newEntry.twitterUrl
+                          : ""
+                      }
                       onChange={(e) =>
                         setNewEntry({
                           ...newEntry,
@@ -1162,7 +1205,11 @@ export default function AirdropManager() {
                   <Input
                     id="ipfsProof"
                     placeholder="QmExample123..."
-                    value={newEntry.airdropId === modalAirdropId ? newEntry.ipfsProofCid : ""}
+                    value={
+                      newEntry.airdropId === modalAirdropId
+                        ? newEntry.ipfsProofCid
+                        : ""
+                    }
                     onChange={(e) =>
                       setNewEntry({
                         ...newEntry,
@@ -1182,7 +1229,11 @@ export default function AirdropManager() {
                   <Textarea
                     id="notes"
                     placeholder="Any additional information..."
-                    value={newEntry.airdropId === modalAirdropId ? newEntry.description : ""}
+                    value={
+                      newEntry.airdropId === modalAirdropId
+                        ? newEntry.description
+                        : ""
+                    }
                     onChange={(e) =>
                       setNewEntry({
                         ...newEntry,
@@ -1211,7 +1262,10 @@ export default function AirdropManager() {
                     setShowSubmitModal(false);
                     setModalAirdropId(null);
                   }}
-                  disabled={!newEntry.ipfsProofCid || newEntry.airdropId !== modalAirdropId}
+                  disabled={
+                    !newEntry.ipfsProofCid ||
+                    newEntry.airdropId !== modalAirdropId
+                  }
                 >
                   <Send className="w-4 h-4 mr-2" />
                   Submit Entry
@@ -1238,7 +1292,10 @@ export default function AirdropManager() {
                 {entries[selectedAirdrop]?.length > 0 ? (
                   <div className="space-y-3">
                     {entries[selectedAirdrop].map((entry, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+                      <div
+                        key={index}
+                        className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
+                      >
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-semibold text-gray-900">
                             {formatAddress(entry.solver)}
@@ -1260,14 +1317,23 @@ export default function AirdropManager() {
                           </span>
                         </div>
                         <div className="text-sm text-gray-700">
-                          <div className="mb-1"><strong>IPFS:</strong> {entry.ipfsProofCid}</div>
                           <div className="mb-1">
-                            <strong>Submitted:</strong> {new Date(entry.timestamp * 1000).toLocaleDateString()}
+                            <strong>IPFS:</strong> {entry.ipfsProofCid}
+                          </div>
+                          <div className="mb-1">
+                            <strong>Submitted:</strong>{" "}
+                            {new Date(
+                              entry.timestamp * 1000
+                            ).toLocaleDateString()}
                           </div>
                           {entry.feedback && (
                             <div className="mt-2 p-3 bg-blue-50 rounded-lg">
-                              <strong className="text-blue-900">Feedback:</strong>
-                              <p className="text-blue-800 mt-1">{entry.feedback}</p>
+                              <strong className="text-blue-900">
+                                Feedback:
+                              </strong>
+                              <p className="text-blue-800 mt-1">
+                                {entry.feedback}
+                              </p>
                             </div>
                           )}
                         </div>
@@ -1277,9 +1343,7 @@ export default function AirdropManager() {
                 ) : (
                   <div className="text-center py-8">
                     <div className="text-4xl mb-2">📝</div>
-                    <p className="text-gray-600">
-                      No entries submitted yet.
-                    </p>
+                    <p className="text-gray-600">No entries submitted yet.</p>
                   </div>
                 )}
               </div>
@@ -1292,10 +1356,13 @@ export default function AirdropManager() {
       {activeTab === "manage" && (
         <div className="space-y-6">
           <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">Manage Your Campaigns</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              Manage Your Campaigns
+            </h3>
             <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 rounded-xl border border-blue-200 max-w-2xl mx-auto">
               <p className="text-blue-800 font-medium">
-                📝 Review submissions and select eligible participants for rewards
+                📝 Review submissions and select eligible participants for
+                rewards
               </p>
             </div>
           </div>
@@ -1311,7 +1378,8 @@ export default function AirdropManager() {
                   No Active Campaigns
                 </h4>
                 <p className="text-gray-600 mb-6 text-lg">
-                  You don't have any active campaigns to manage. Create your first campaign to get started!
+                  You don't have any active campaigns to manage. Create your
+                  first campaign to get started!
                 </p>
                 <button
                   onClick={() => setActiveTab("create")}

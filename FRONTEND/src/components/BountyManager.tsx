@@ -14,19 +14,37 @@ import {
   QUINTY_ABI,
   SOMNIA_TESTNET_ID,
 } from "../utils/contracts";
-import {
-  parseSTT,
-  wagmiConfig,
-} from "../utils/web3";
+import { parseSTT, wagmiConfig } from "../utils/web3";
 import BountyCard from "./BountyCard";
-import { uploadMetadataToIpfs, uploadToIpfs, BountyMetadata } from "../utils/ipfs";
+import {
+  uploadMetadataToIpfs,
+  uploadToIpfs,
+  BountyMetadata,
+} from "../utils/ipfs";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import { Separator } from "./ui/separator";
-import { Plus, Minus, Upload, X, Calendar as CalendarIcon, DollarSign, Target, Users, Clock, ChevronDown } from "lucide-react";
+import {
+  Plus,
+  Minus,
+  Upload,
+  X,
+  Calendar as CalendarIcon,
+  DollarSign,
+  Target,
+  Users,
+  Clock,
+  ChevronDown,
+} from "lucide-react";
 import { Calendar } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { format } from "date-fns";
@@ -112,7 +130,7 @@ export default function BountyManager() {
 
       // Format for datetime-local input
       const formattedDateTime = combinedDateTime.toISOString().slice(0, 16);
-      setNewBounty(prev => ({ ...prev, deadline: formattedDateTime }));
+      setNewBounty((prev) => ({ ...prev, deadline: formattedDateTime }));
     }
   }, [deadlineDate, deadlineTime]);
 
@@ -160,13 +178,13 @@ export default function BountyManager() {
     const files = e.target.files;
     if (files) {
       const newFiles = Array.from(files);
-      setUploadedFiles(prev => [...prev, ...newFiles]);
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
     }
   };
 
   // Remove image from upload list
   const removeImage = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Upload images to IPFS and get CIDs
@@ -180,7 +198,7 @@ export default function BountyManager() {
       for (const file of uploadedFiles) {
         const cid = await uploadToIpfs(file, {
           bountyTitle: newBounty.title,
-          type: 'bounty-image'
+          type: "bounty-image",
         });
         uploadedCids.push(cid);
       }
@@ -197,14 +215,18 @@ export default function BountyManager() {
   const loadBountiesAndSubmissions = async () => {
     if (!bountyCounter) return;
 
-    const bountyIds = Array.from({ length: Number(bountyCounter) }, (_, i) => i + 1);
+    const bountyIds = Array.from(
+      { length: Number(bountyCounter) },
+      (_, i) => i + 1
+    );
     const loadedBounties: Bounty[] = [];
 
     for (const id of bountyIds) {
       try {
         // 1. Get all bounty metadata using the new robust function
         const bountyData = await readContract(wagmiConfig, {
-          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+            .Quinty as `0x${string}`,
           abi: QUINTY_ABI,
           functionName: "getBountyData",
           args: [BigInt(id)],
@@ -227,7 +249,8 @@ export default function BountyManager() {
 
           // 2. Get submissions separately
           const submissionCount = await readContract(wagmiConfig, {
-            address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+            address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+              .Quinty as `0x${string}`,
             abi: QUINTY_ABI,
             functionName: "getSubmissionCount",
             args: [BigInt(id)],
@@ -236,7 +259,8 @@ export default function BountyManager() {
           const submissions: Submission[] = [];
           for (let i = 0; i < Number(submissionCount); i++) {
             const submissionData = await readContract(wagmiConfig, {
-              address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
+              address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+                .Quinty as `0x${string}`,
               abi: QUINTY_ABI,
               functionName: "getSubmissionStruct",
               args: [BigInt(id), BigInt(i)],
@@ -246,7 +270,9 @@ export default function BountyManager() {
             }
           }
 
-          const metadataMatch = description.match(/Metadata: ipfs:\/\/([a-zA-Z0-9]+)/);
+          const metadataMatch = description.match(
+            /Metadata: ipfs:\/\/([a-zA-Z0-9]+)/
+          );
           const metadataCid = metadataMatch ? metadataMatch[1] : undefined;
 
           // 3. Assemble the full bounty object
@@ -285,7 +311,9 @@ export default function BountyManager() {
     // Add client-side validation for the deadline
     const nowTimestamp = Math.floor(Date.now() / 1000);
     if (deadlineTimestamp <= nowTimestamp) {
-      alert("Error: The selected deadline is in the past. Please choose a future date and time.");
+      alert(
+        "Error: The selected deadline is in the past. Please choose a future date and time."
+      );
       return;
     }
 
@@ -471,13 +499,11 @@ export default function BountyManager() {
         address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
         abi: QUINTY_ABI,
         functionName: "addReply",
-        args: [
-          BigInt(bountyId),
-          BigInt(subId),
-          content,
-        ],
+        args: [BigInt(bountyId), BigInt(subId), content],
       });
-      alert("Reply submitted successfully! It will appear after the transaction is confirmed.");
+      alert(
+        "Reply submitted successfully! It will appear after the transaction is confirmed."
+      );
     } catch (error) {
       console.error("Error adding reply:", error);
       alert("Error adding reply");
@@ -485,7 +511,11 @@ export default function BountyManager() {
   };
 
   // Reveal solution
-  const revealSolution = async (bountyId: number, subId: number, revealCid: string) => {
+  const revealSolution = async (
+    bountyId: number,
+    subId: number,
+    revealCid: string
+  ) => {
     if (!isConnected || !revealCid.trim()) return;
 
     try {
@@ -493,13 +523,11 @@ export default function BountyManager() {
         address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].Quinty as `0x${string}`,
         abi: QUINTY_ABI,
         functionName: "revealSolution",
-        args: [
-          BigInt(bountyId),
-          BigInt(subId),
-          revealCid,
-        ],
+        args: [BigInt(bountyId), BigInt(subId), revealCid],
       });
-      alert("Solution revealed successfully! It will appear after the transaction is confirmed.");
+      alert(
+        "Solution revealed successfully! It will appear after the transaction is confirmed."
+      );
     } catch (error) {
       console.error("Error revealing solution:", error);
       alert("Error revealing solution");
@@ -524,10 +552,23 @@ export default function BountyManager() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <div className="flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Target className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        <h1 className="text-4xl font-bold tracking-tight">Quinty Bounty</h1>
+        <p className="text-muted-foreground text-lg">
+          Post tasks with 100% STT escrow and blinded submissions for secure,
+          transparent project completion.
+        </p>
+      </div>
       <div className="mb-6">
-        <h2 className="text-3xl font-bold text-gray-800 mb-4">
+        {/* <h2 className="text-3xl font-bold text-gray-800 mb-4">
           Quinty Bounty System
-        </h2>
+        </h2> */}
 
         {/* Tab Navigation */}
         <div className="border-b">
@@ -560,7 +601,8 @@ export default function BountyManager() {
                 Create New Bounty
               </CardTitle>
               <p className="text-muted-foreground">
-                Create a detailed bounty with IPFS metadata and smart contract escrow
+                Create a detailed bounty with IPFS metadata and smart contract
+                escrow
               </p>
             </CardHeader>
 
@@ -572,7 +614,9 @@ export default function BountyManager() {
                   <Card className="p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-semibold text-primary">1</span>
+                        <span className="text-xs font-semibold text-primary">
+                          1
+                        </span>
                       </div>
                       <h4 className="font-semibold">Basic Information</h4>
                     </div>
@@ -584,14 +628,19 @@ export default function BountyManager() {
                           type="text"
                           value={newBounty.title}
                           onChange={(e) =>
-                            setNewBounty({ ...newBounty, title: e.target.value })
+                            setNewBounty({
+                              ...newBounty,
+                              title: e.target.value,
+                            })
                           }
                           placeholder="e.g., Build a React Dashboard Component"
                         />
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Bounty Type</label>
+                        <label className="text-sm font-medium">
+                          Bounty Type
+                        </label>
                         <Select
                           value={newBounty.bountyType}
                           onValueChange={(value) =>
@@ -605,7 +654,9 @@ export default function BountyManager() {
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="development">Development</SelectItem>
+                            <SelectItem value="development">
+                              Development
+                            </SelectItem>
                             <SelectItem value="design">Design</SelectItem>
                             <SelectItem value="marketing">Marketing</SelectItem>
                             <SelectItem value="research">Research</SelectItem>
@@ -615,11 +666,16 @@ export default function BountyManager() {
                       </div>
 
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Description *</label>
+                        <label className="text-sm font-medium">
+                          Description *
+                        </label>
                         <textarea
                           value={newBounty.description}
                           onChange={(e) =>
-                            setNewBounty({ ...newBounty, description: e.target.value })
+                            setNewBounty({
+                              ...newBounty,
+                              description: e.target.value,
+                            })
                           }
                           className="w-full min-h-[80px] p-3 border border-input rounded-md bg-background resize-none text-sm"
                           placeholder="Detailed description of your bounty..."
@@ -632,7 +688,9 @@ export default function BountyManager() {
                   <Card className="p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-semibold text-primary">2</span>
+                        <span className="text-xs font-semibold text-primary">
+                          2
+                        </span>
                       </div>
                       <h4 className="font-semibold">Bounty Details</h4>
                     </div>
@@ -648,7 +706,10 @@ export default function BountyManager() {
                             type="number"
                             value={newBounty.amount}
                             onChange={(e) =>
-                              setNewBounty({ ...newBounty, amount: e.target.value })
+                              setNewBounty({
+                                ...newBounty,
+                                amount: e.target.value,
+                              })
                             }
                             placeholder="1.0"
                             step="0.01"
@@ -661,17 +722,25 @@ export default function BountyManager() {
                             Deadline *
                           </label>
                           <div className="flex gap-2">
-                            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                            <Popover
+                              open={isCalendarOpen}
+                              onOpenChange={setIsCalendarOpen}
+                            >
                               <PopoverTrigger asChild>
                                 <Button
                                   variant="outline"
                                   className="flex-1 justify-between font-normal"
                                 >
-                                  {deadlineDate ? format(deadlineDate, "PPP") : "Select date"}
+                                  {deadlineDate
+                                    ? format(deadlineDate, "PPP")
+                                    : "Select date"}
                                   <ChevronDown className="w-3 h-3" />
                                 </Button>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0" align="start">
+                              <PopoverContent
+                                className="w-auto p-0"
+                                align="start"
+                              >
                                 <Calendar
                                   mode="single"
                                   selected={deadlineDate}
@@ -727,12 +796,17 @@ export default function BountyManager() {
                               setNewBounty({
                                 ...newBounty,
                                 allowMultipleWinners: e.target.checked,
-                                winnerShares: e.target.checked ? [50, 50] : [100],
+                                winnerShares: e.target.checked
+                                  ? [50, 50]
+                                  : [100],
                               })
                             }
                             className="h-4 w-4 text-primary border-gray-300 rounded"
                           />
-                          <label htmlFor="allowMultipleWinners" className="text-sm font-medium flex items-center gap-1">
+                          <label
+                            htmlFor="allowMultipleWinners"
+                            className="text-sm font-medium flex items-center gap-1"
+                          >
                             <Users className="w-4 h-4" />
                             Allow Multiple Winners
                           </label>
@@ -740,16 +814,27 @@ export default function BountyManager() {
 
                         {newBounty.allowMultipleWinners && (
                           <div className="p-3 bg-muted/50 rounded-lg space-y-2">
-                            <label className="text-sm font-medium">Winner Shares (%)</label>
+                            <label className="text-sm font-medium">
+                              Winner Shares (%)
+                            </label>
                             {newBounty.winnerShares.map((share, index) => (
-                              <div key={index} className="flex gap-2 items-center">
+                              <div
+                                key={index}
+                                className="flex gap-2 items-center"
+                              >
                                 <Input
                                   type="number"
                                   value={share}
                                   onChange={(e) => {
-                                    const newShares = [...newBounty.winnerShares];
-                                    newShares[index] = parseInt(e.target.value) || 0;
-                                    setNewBounty({ ...newBounty, winnerShares: newShares });
+                                    const newShares = [
+                                      ...newBounty.winnerShares,
+                                    ];
+                                    newShares[index] =
+                                      parseInt(e.target.value) || 0;
+                                    setNewBounty({
+                                      ...newBounty,
+                                      winnerShares: newShares,
+                                    });
                                   }}
                                   placeholder={`Winner ${index + 1}`}
                                   className="flex-1"
@@ -759,10 +844,14 @@ export default function BountyManager() {
                                   variant="outline"
                                   size="icon"
                                   onClick={() => {
-                                    const newShares = newBounty.winnerShares.filter(
-                                      (_, i) => i !== index
-                                    );
-                                    setNewBounty({ ...newBounty, winnerShares: newShares });
+                                    const newShares =
+                                      newBounty.winnerShares.filter(
+                                        (_, i) => i !== index
+                                      );
+                                    setNewBounty({
+                                      ...newBounty,
+                                      winnerShares: newShares,
+                                    });
                                   }}
                                   className="h-8 w-8"
                                 >
@@ -778,15 +867,32 @@ export default function BountyManager() {
                                 onClick={() =>
                                   setNewBounty({
                                     ...newBounty,
-                                    winnerShares: [...newBounty.winnerShares, 0],
+                                    winnerShares: [
+                                      ...newBounty.winnerShares,
+                                      0,
+                                    ],
                                   })
                                 }
                               >
                                 <Plus className="w-3 h-3 mr-1" />
                                 Add Share
                               </Button>
-                              <Badge variant={newBounty.winnerShares.reduce((a, b) => a + b, 0) === 100 ? "default" : "destructive"}>
-                                Total: {newBounty.winnerShares.reduce((a, b) => a + b, 0)}%
+                              <Badge
+                                variant={
+                                  newBounty.winnerShares.reduce(
+                                    (a, b) => a + b,
+                                    0
+                                  ) === 100
+                                    ? "default"
+                                    : "destructive"
+                                }
+                              >
+                                Total:{" "}
+                                {newBounty.winnerShares.reduce(
+                                  (a, b) => a + b,
+                                  0
+                                )}
+                                %
                               </Badge>
                             </div>
                           </div>
@@ -802,7 +908,9 @@ export default function BountyManager() {
                   <Card className="p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-semibold text-primary">3</span>
+                        <span className="text-xs font-semibold text-primary">
+                          3
+                        </span>
                       </div>
                       <h4 className="font-semibold">Requirements & Skills</h4>
                     </div>
@@ -810,7 +918,9 @@ export default function BountyManager() {
                     <div className="space-y-4">
                       {/* Requirements */}
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Requirements</label>
+                        <label className="text-sm font-medium">
+                          Requirements
+                        </label>
                         <div className="space-y-2">
                           {newBounty.requirements.map((req, index) => (
                             <div key={index} className="flex gap-2">
@@ -820,7 +930,10 @@ export default function BountyManager() {
                                 onChange={(e) => {
                                   const newReqs = [...newBounty.requirements];
                                   newReqs[index] = e.target.value;
-                                  setNewBounty({ ...newBounty, requirements: newReqs });
+                                  setNewBounty({
+                                    ...newBounty,
+                                    requirements: newReqs,
+                                  });
                                 }}
                                 placeholder="Enter a requirement..."
                                 className="flex-1"
@@ -833,7 +946,10 @@ export default function BountyManager() {
                                   const newReqs = newBounty.requirements.filter(
                                     (_, i) => i !== index
                                   );
-                                  setNewBounty({ ...newBounty, requirements: newReqs });
+                                  setNewBounty({
+                                    ...newBounty,
+                                    requirements: newReqs,
+                                  });
                                 }}
                                 className="h-8 w-8"
                               >
@@ -860,7 +976,9 @@ export default function BountyManager() {
 
                       {/* Deliverables */}
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Deliverables</label>
+                        <label className="text-sm font-medium">
+                          Deliverables
+                        </label>
                         <div className="space-y-2">
                           {newBounty.deliverables.map((del, index) => (
                             <div key={index} className="flex gap-2">
@@ -870,7 +988,10 @@ export default function BountyManager() {
                                 onChange={(e) => {
                                   const newDels = [...newBounty.deliverables];
                                   newDels[index] = e.target.value;
-                                  setNewBounty({ ...newBounty, deliverables: newDels });
+                                  setNewBounty({
+                                    ...newBounty,
+                                    deliverables: newDels,
+                                  });
                                 }}
                                 placeholder="Enter a deliverable..."
                                 className="flex-1"
@@ -883,7 +1004,10 @@ export default function BountyManager() {
                                   const newDels = newBounty.deliverables.filter(
                                     (_, i) => i !== index
                                   );
-                                  setNewBounty({ ...newBounty, deliverables: newDels });
+                                  setNewBounty({
+                                    ...newBounty,
+                                    deliverables: newDels,
+                                  });
                                 }}
                                 className="h-8 w-8"
                               >
@@ -910,7 +1034,9 @@ export default function BountyManager() {
 
                       {/* Skills */}
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Required Skills</label>
+                        <label className="text-sm font-medium">
+                          Required Skills
+                        </label>
                         <div className="space-y-2">
                           {newBounty.skills.map((skill, index) => (
                             <div key={index} className="flex gap-2">
@@ -920,7 +1046,10 @@ export default function BountyManager() {
                                 onChange={(e) => {
                                   const newSkills = [...newBounty.skills];
                                   newSkills[index] = e.target.value;
-                                  setNewBounty({ ...newBounty, skills: newSkills });
+                                  setNewBounty({
+                                    ...newBounty,
+                                    skills: newSkills,
+                                  });
                                 }}
                                 placeholder="e.g., React, TypeScript..."
                                 className="flex-1"
@@ -933,7 +1062,10 @@ export default function BountyManager() {
                                   const newSkills = newBounty.skills.filter(
                                     (_, i) => i !== index
                                   );
-                                  setNewBounty({ ...newBounty, skills: newSkills });
+                                  setNewBounty({
+                                    ...newBounty,
+                                    skills: newSkills,
+                                  });
                                 }}
                                 className="h-8 w-8"
                               >
@@ -964,13 +1096,17 @@ export default function BountyManager() {
                   <Card className="p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-semibold text-primary">4</span>
+                        <span className="text-xs font-semibold text-primary">
+                          4
+                        </span>
                       </div>
                       <h4 className="font-semibold">Media & Assets</h4>
                     </div>
 
                     <div className="space-y-3">
-                      <label className="text-sm font-medium">Images (Optional)</label>
+                      <label className="text-sm font-medium">
+                        Images (Optional)
+                      </label>
 
                       <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 hover:border-muted-foreground/50 transition-colors">
                         <input
@@ -988,8 +1124,12 @@ export default function BountyManager() {
                           <div className="w-12 h-12 mb-2 bg-muted rounded-full flex items-center justify-center">
                             <Upload className="w-6 h-6" />
                           </div>
-                          <span className="text-sm font-medium mb-1">Click to upload images</span>
-                          <span className="text-xs text-center">JPG, PNG, GIF up to 10MB each</span>
+                          <span className="text-sm font-medium mb-1">
+                            Click to upload images
+                          </span>
+                          <span className="text-xs text-center">
+                            JPG, PNG, GIF up to 10MB each
+                          </span>
                         </label>
                       </div>
 
@@ -1034,7 +1174,9 @@ export default function BountyManager() {
                   <Card className="p-4">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-xs font-semibold text-primary">5</span>
+                        <span className="text-xs font-semibold text-primary">
+                          5
+                        </span>
                       </div>
                       <h4 className="font-semibold">Create Bounty</h4>
                     </div>
@@ -1080,7 +1222,9 @@ export default function BountyManager() {
                       {hash && (
                         <div className="p-3 bg-blue-50/50 border border-blue-200 rounded-lg">
                           <div className="space-y-2">
-                            <p className="text-xs font-medium">Transaction Hash:</p>
+                            <p className="text-xs font-medium">
+                              Transaction Hash:
+                            </p>
                             <a
                               href={`https://shannon-explorer.somnia.network/tx/${hash}`}
                               target="_blank"
@@ -1187,8 +1331,6 @@ export default function BountyManager() {
           )}
         </div>
       )}
-
-
     </div>
   );
 }

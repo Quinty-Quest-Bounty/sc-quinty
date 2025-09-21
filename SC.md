@@ -7,7 +7,7 @@ The primary focus areas are:
 - **Escrow Management**: Trustless handling of funds with 100% locking in Somnia Testnet's native token (STT), timed releases, slashing (25-50% on expiry), and refunds. Extensible for ERC-20 or fee structures.
 - **NFT-Based Reputation**: Soulbound ERC-721 NFTs with IPFS-hosted images and dynamic metadata for visual badges, tracking detailed metrics for creators and solvers. Utilities include reputation-gated features (e.g., discounts or access).
 - **IPFS Integration**: Decentralized storage for blinded submissions, solution reveals, and NFT assets (images/metadata). On-chain storage of IPFS CIDs ensures immutability; frontend handles uploads.
-- **Voting and Dispute System**: Community voting (DAO-style "pengadilan") for expired bounties and post-resolution disputes. Voters stake ~0.0001 STT to vote on top submissions (rank 1-3). Rewards: True voters get 5% of bounty; top non-winner gets 10% if ranked high but not selected. For disputes: If community overturns winner, 80% refund to creator, 10% to true voters, 10% to solver.
+- **Voting and Dispute System**: Community voting (-style "pengadilan") for expired bounties and post-resolution disputes. Voters stake ~0.0001 STT to vote on top submissions (rank 1-3). Rewards: True voters get 5% of bounty; top non-winner gets 10% if ranked high but not selected. For disputes: If community overturns winner, 80% refund to creator, 10% to true voters, 10% to solver.
 - **Transparent Airdrop Tasks**: Separate contract for protocol promotion/airdrop bounties with verifiable social proofs (e.g., X posts via IPFS).
 
 All development and testing target the **Somnia Testnet (chainId: 50312)** with native **STT** tokens. Staking for voting/disputes uses **0.0001 STT** to keep costs low, ensuring accessibility for POC.
@@ -21,7 +21,7 @@ This setup assumes an EVM-compatible chain (Somnia Testnet). All code examples a
 
 ## Project Overview
 
-Quinty is an on-chain task bounty DAO built on the Somnia Testnet. It operates as a trustless platform where creators post bounties with 100% escrow in STT, solvers submit blinded solutions (via IPFS) to protect intellectual property, and disputes/expiries are resolved through decentralized DAO voting ("pengadilan DAO") with staking (0.0001 STT). Users can act as "hakim" (judges) by staking to vote on top submissions, earning rewards for accurate votes. The project encompasses:
+Quinty is an on-chain task bounty built on the Somnia Testnet. It operates as a trustless platform where creators post bounties with 100% escrow in STT, solvers submit blinded solutions (via IPFS) to protect intellectual property, and disputes/expiries are resolved through decentralized voting ("pengadilan ") with staking (0.0001 STT). Users can act as "hakim" (judges) by staking to vote on top submissions, earning rewards for accurate votes. The project encompasses:
 
 - **Backend/Smart Contracts**: Written in Solidity using Hardhat for development, testing, deployment, and verification. Contracts are modular for easy extension.
 - **Frontend**: A Next.js application with Web3 integration for user interactions, voting, and IPFS uploads.
@@ -29,7 +29,7 @@ Quinty is an on-chain task bounty DAO built on the Somnia Testnet. It operates a
   - Blinded submissions via IPFS CIDs.
   - Threaded communication (on-chain for POC).
   - Slashing (25-50% of bounty) on expiry, distributed via vote: 10% to top non-winner, 5% to true voters.
-  - Dispute DAO: Overturn winners with 80% creator refund, 10% voters, 10% solver.
+  - Dispute : Overturn winners with 80% creator refund, 10% voters, 10% solver.
   - NFT-based reputation with IPFS images/metadata.
   - Airdrop bounties: Transparent rewards for promotion tasks.
 - **Extensibility Points**: Proxy patterns, interfaces, virtual functions for custom logic (e.g., oracle for X engagement).
@@ -83,7 +83,7 @@ module.exports = {
 Contracts are organized in `/contracts/` with subfolders (e.g., `/core/`, `/reputation/`, `/dispute/`, `/airdrop/`). Solidity 0.8.28 with optimizer enabled. Key contracts:
 
 - **Quinty.sol**: Core bounty and escrow management – 100% STT escrow, IPFS submissions, winner selection, expiry triggers voting.
-- **DisputeResolver.sol**: Voting and DAO court – 0.0001 STT stakes, ranks submissions, distributes slash/rewards.
+- **DisputeResolver.sol**: Voting and court – 0.0001 STT stakes, ranks submissions, distributes slash/rewards.
 - **QuintyReputation.sol**: ERC-721 NFT – soulbound, IPFS images/metadata.
 - **AirdropBounty.sol**: Promotion/airdrop tasks – fixed STT rewards for qualifiers.
 
@@ -107,7 +107,7 @@ For extensibility: Use `virtual` functions, proxies (via @openzeppelin/upgrades)
 - **State**: React hooks + Wagmi; Zustand for voting/airdrop state.
 - **Fonts**: Playfair Display (headings), Inter (body).
 
-Structure: Add `/components/voting/` (DAO interfaces), `/components/airdrop/` (X proof uploads).
+Structure: Add `/components/voting/` ( interfaces), `/components/airdrop/` (X proof uploads).
 
 ### Web3 Integration
 
@@ -174,7 +174,7 @@ Quinty supports freelance tasks and transparent protocol promotion/airdrops. Flo
 
 - **Escrow**: Create (lock STT) → Submit (IPFS) → Resolve (release) → Expiry (slash to vote).
 - **Voting (Expiry)**: Stake 0.0001 STT → Rank 1-3 → Top non-winner 10%, true voters 5%.
-- **Dispute (Pengadilan DAO)**: Stake → Vote to overturn → 80% creator, 10% voters, 10% solver if successful.
+- **Dispute (Pengadilan )**: Stake → Vote to overturn → 80% creator, 10% voters, 10% solver if successful.
 - **NFT**: Update metrics → Set IPFS image/metadata.
 - **Airdrop**: Escrow STT → Submit X proofs (IPFS) → Verify first 100 → Distribute.
 
@@ -392,7 +392,7 @@ string revealIpfsCid; // Revealed solution
 
 }
 
-// 3. Voting and Pengadilan DAO
+// 3. Voting and Pengadilan
 contract DisputeResolver is QuintySubmissions {
 using SafeMath for uint256;
 

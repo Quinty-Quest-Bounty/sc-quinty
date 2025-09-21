@@ -10,14 +10,28 @@ import {
 import { readContract } from "@wagmi/core";
 import { formatAddress, wagmiConfig } from "../utils/web3";
 import { isAddress } from "viem";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Progress } from "./ui/progress";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { Separator } from "./ui/separator";
-import { Trophy, Target, User, Search, Award, TrendingUp, Medal, Star } from "lucide-react";
+import {
+  Trophy,
+  Target,
+  User,
+  Search,
+  Award,
+  TrendingUp,
+  Medal,
+  Star,
+} from "lucide-react";
 
 interface UserStatsData {
   bountiesCreated: number;
@@ -38,10 +52,23 @@ interface UserProfile {
 
 // Achievement Type Enum (matching contract)
 const ACHIEVEMENT_TYPES = [
-  "FIRST_SOLVER", "ACTIVE_SOLVER", "SKILLED_SOLVER", "EXPERT_SOLVER", "LEGEND_SOLVER",
-  "FIRST_WIN", "SKILLED_WINNER", "EXPERT_WINNER", "CHAMPION_WINNER", "LEGEND_WINNER",
-  "FIRST_CREATOR", "ACTIVE_CREATOR", "SKILLED_CREATOR", "EXPERT_CREATOR", "LEGEND_CREATOR",
-  "MONTHLY_CHAMPION", "MONTHLY_BUILDER"
+  "FIRST_SOLVER",
+  "ACTIVE_SOLVER",
+  "SKILLED_SOLVER",
+  "EXPERT_SOLVER",
+  "LEGEND_SOLVER",
+  "FIRST_WIN",
+  "SKILLED_WINNER",
+  "EXPERT_WINNER",
+  "CHAMPION_WINNER",
+  "LEGEND_WINNER",
+  "FIRST_CREATOR",
+  "ACTIVE_CREATOR",
+  "SKILLED_CREATOR",
+  "EXPERT_CREATOR",
+  "LEGEND_CREATOR",
+  "MONTHLY_CHAMPION",
+  "MONTHLY_BUILDER",
 ];
 
 const ACHIEVEMENT_NAMES = {
@@ -61,7 +88,7 @@ const ACHIEVEMENT_NAMES = {
   13: "Expert Creator",
   14: "Legend Creator",
   15: "Monthly Champion",
-  16: "Monthly Builder"
+  16: "Monthly Builder",
 };
 
 const ACHIEVEMENT_MILESTONES = [1, 10, 25, 50, 100];
@@ -89,14 +116,15 @@ export default function ReputationDisplay() {
   });
 
   // Read user achievements
-  const { data: userAchievements, refetch: refetchAchievements } = useReadContract({
-    address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
-      .QuintyReputation as `0x${string}`,
-    abi: REPUTATION_ABI,
-    functionName: "getUserAchievements",
-    args: address ? [address] : undefined,
-    query: { enabled: isConnected && !!address },
-  });
+  const { data: userAchievements, refetch: refetchAchievements } =
+    useReadContract({
+      address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+        .QuintyReputation as `0x${string}`,
+      abi: REPUTATION_ABI,
+      functionName: "getUserAchievements",
+      args: address ? [address] : undefined,
+      query: { enabled: isConnected && !!address },
+    });
 
   // Read user's NFT balance
   const { data: nftBalance } = useReadContract({
@@ -132,8 +160,12 @@ export default function ReputationDisplay() {
       };
 
       const achievements = {
-        achievements: achievementsArray[0] ? achievementsArray[0].map((a: any) => Number(a)) : [],
-        tokenIds: achievementsArray[1] ? achievementsArray[1].map((t: any) => Number(t)) : [],
+        achievements: achievementsArray[0]
+          ? achievementsArray[0].map((a: any) => Number(a))
+          : [],
+        tokenIds: achievementsArray[1]
+          ? achievementsArray[1].map((t: any) => Number(t))
+          : [],
       };
 
       setUserProfile({
@@ -155,13 +187,15 @@ export default function ReputationDisplay() {
     try {
       const [statsData, achievementsData] = await Promise.all([
         readContract(wagmiConfig, {
-          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation as `0x${string}`,
+          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+            .QuintyReputation as `0x${string}`,
           abi: REPUTATION_ABI,
           functionName: "getUserStats",
           args: [searchAddress as `0x${string}`],
         }),
         readContract(wagmiConfig, {
-          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation as `0x${string}`,
+          address: CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+            .QuintyReputation as `0x${string}`,
           abi: REPUTATION_ABI,
           functionName: "getUserAchievements",
           args: [searchAddress as `0x${string}`],
@@ -176,8 +210,12 @@ export default function ReputationDisplay() {
 
       const achievementsArray = achievementsData as any[];
       const achievements = {
-        achievements: achievementsArray[0] ? achievementsArray[0].map((a: any) => Number(a)) : [],
-        tokenIds: achievementsArray[1] ? achievementsArray[1].map((t: any) => Number(t)) : [],
+        achievements: achievementsArray[0]
+          ? achievementsArray[0].map((a: any) => Number(a))
+          : [],
+        tokenIds: achievementsArray[1]
+          ? achievementsArray[1].map((t: any) => Number(t))
+          : [],
       };
 
       const searchedProfile: UserProfile = {
@@ -187,9 +225,14 @@ export default function ReputationDisplay() {
       };
 
       setLeaderboard((prev) => {
-        const filtered = prev.filter((u) => u.address.toLowerCase() !== searchAddress.toLowerCase());
+        const filtered = prev.filter(
+          (u) => u.address.toLowerCase() !== searchAddress.toLowerCase()
+        );
         return [...filtered, searchedProfile].sort(
-          (a, b) => (b.stats.wins + b.stats.bountiesCreated) - (a.stats.wins + a.stats.bountiesCreated)
+          (a, b) =>
+            b.stats.wins +
+            b.stats.bountiesCreated -
+            (a.stats.wins + a.stats.bountiesCreated)
         );
       });
     } catch (error) {
@@ -200,20 +243,31 @@ export default function ReputationDisplay() {
 
   // Helper functions
   const getAchievementBadge = (achievementType: number) => {
-    const name = ACHIEVEMENT_NAMES[achievementType as keyof typeof ACHIEVEMENT_NAMES] || "Unknown";
-    const category = achievementType < 5 ? "Solver" :
-                    achievementType < 10 ? "Winner" :
-                    achievementType < 15 ? "Creator" : "Season";
+    const name =
+      ACHIEVEMENT_NAMES[achievementType as keyof typeof ACHIEVEMENT_NAMES] ||
+      "Unknown";
+    const category =
+      achievementType < 5
+        ? "Solver"
+        : achievementType < 10
+        ? "Winner"
+        : achievementType < 15
+        ? "Creator"
+        : "Season";
 
-    const tier = achievementType < 15 ?
-      ACHIEVEMENT_MILESTONES[achievementType % 5] :
-      "Monthly";
+    const tier =
+      achievementType < 15
+        ? ACHIEVEMENT_MILESTONES[achievementType % 5]
+        : "Monthly";
 
     return { name, category, tier };
   };
 
-  const getProgressToNext = (current: number, type: "solver" | "winner" | "creator") => {
-    const nextMilestone = ACHIEVEMENT_MILESTONES.find(m => m > current);
+  const getProgressToNext = (
+    current: number,
+    type: "solver" | "winner" | "creator"
+  ) => {
+    const nextMilestone = ACHIEVEMENT_MILESTONES.find((m) => m > current);
     return nextMilestone ? nextMilestone - current : 0;
   };
 
@@ -223,7 +277,9 @@ export default function ReputationDisplay() {
         <Card className="w-full max-w-md">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <User className="h-12 w-12 text-muted-foreground mb-4" />
-            <CardTitle className="text-center mb-2">Connect Your Wallet</CardTitle>
+            <CardTitle className="text-center mb-2">
+              Connect Your Wallet
+            </CardTitle>
             <CardDescription className="text-center">
               Please connect your wallet to view reputation data.
             </CardDescription>
@@ -237,6 +293,11 @@ export default function ReputationDisplay() {
     <div className="container mx-auto p-6 space-y-8">
       {/* Header */}
       <div className="text-center space-y-2">
+        <div className="flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Trophy className="h-8 w-8 text-primary" />
+          </div>
+        </div>
         <h1 className="text-4xl font-bold tracking-tight">Quinty Reputation</h1>
         <p className="text-muted-foreground text-lg">
           Earn milestone-based NFT achievements for your contributions
@@ -273,7 +334,9 @@ export default function ReputationDisplay() {
               <CardContent className="flex flex-col items-center justify-center py-16">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
                 <CardTitle className="mb-2">Loading Profile</CardTitle>
-                <CardDescription>Fetching your achievement data from the blockchain</CardDescription>
+                <CardDescription>
+                  Fetching your achievement data from the blockchain
+                </CardDescription>
               </CardContent>
             </Card>
           )}
@@ -284,7 +347,8 @@ export default function ReputationDisplay() {
                 <Star className="h-12 w-12 text-muted-foreground mb-4" />
                 <CardTitle className="mb-2">Welcome to Quinty!</CardTitle>
                 <CardDescription className="text-center max-w-md">
-                  You haven't started your journey yet. Create bounties or submit solutions to earn your first achievements!
+                  You haven't started your journey yet. Create bounties or
+                  submit solutions to earn your first achievements!
                 </CardDescription>
               </CardContent>
             </Card>
@@ -302,9 +366,12 @@ export default function ReputationDisplay() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <CardTitle className="text-2xl">{formatAddress(userProfile.address)}</CardTitle>
+                      <CardTitle className="text-2xl">
+                        {formatAddress(userProfile.address)}
+                      </CardTitle>
                       <CardDescription>
-                        {userProfile.achievements.achievements.length} achievements earned
+                        {userProfile.achievements.achievements.length}{" "}
+                        achievements earned
                       </CardDescription>
                     </div>
                   </div>
@@ -315,14 +382,23 @@ export default function ReputationDisplay() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Solutions Submitted</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      Solutions Submitted
+                    </CardTitle>
                     <Target className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{userProfile.stats.submissions}</div>
+                    <div className="text-2xl font-bold">
+                      {userProfile.stats.submissions}
+                    </div>
                     <div className="flex items-center justify-between mt-2">
                       <p className="text-xs text-muted-foreground">
-                        Next milestone: {getProgressToNext(userProfile.stats.submissions, "solver")} more
+                        Next milestone:{" "}
+                        {getProgressToNext(
+                          userProfile.stats.submissions,
+                          "solver"
+                        )}{" "}
+                        more
                       </p>
                     </div>
                     <Progress
@@ -334,14 +410,20 @@ export default function ReputationDisplay() {
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Bounties Won</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      Bounties Won
+                    </CardTitle>
                     <Trophy className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{userProfile.stats.wins}</div>
+                    <div className="text-2xl font-bold">
+                      {userProfile.stats.wins}
+                    </div>
                     <div className="flex items-center justify-between mt-2">
                       <p className="text-xs text-muted-foreground">
-                        Next milestone: {getProgressToNext(userProfile.stats.wins, "winner")} more
+                        Next milestone:{" "}
+                        {getProgressToNext(userProfile.stats.wins, "winner")}{" "}
+                        more
                       </p>
                     </div>
                     <Progress
@@ -353,14 +435,23 @@ export default function ReputationDisplay() {
 
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Bounties Created</CardTitle>
+                    <CardTitle className="text-sm font-medium">
+                      Bounties Created
+                    </CardTitle>
                     <Medal className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-2xl font-bold">{userProfile.stats.bountiesCreated}</div>
+                    <div className="text-2xl font-bold">
+                      {userProfile.stats.bountiesCreated}
+                    </div>
                     <div className="flex items-center justify-between mt-2">
                       <p className="text-xs text-muted-foreground">
-                        Next milestone: {getProgressToNext(userProfile.stats.bountiesCreated, "creator")} more
+                        Next milestone:{" "}
+                        {getProgressToNext(
+                          userProfile.stats.bountiesCreated,
+                          "creator"
+                        )}{" "}
+                        more
                       </p>
                     </div>
                     <Progress
@@ -376,7 +467,8 @@ export default function ReputationDisplay() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Award className="h-5 w-5" />
-                    Achievements ({userProfile.achievements.achievements.length})
+                    Achievements ({userProfile.achievements.achievements.length}
+                    )
                   </CardTitle>
                   <CardDescription>
                     Milestone-based NFT badges for your contributions
@@ -385,35 +477,48 @@ export default function ReputationDisplay() {
                 <CardContent>
                   {userProfile.achievements.achievements.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {userProfile.achievements.achievements.map((achievement, index) => {
-                        const badge = getAchievementBadge(achievement);
-                        const tokenId = userProfile.achievements.tokenIds[index];
-                        return (
-                          <Card key={achievement} className="relative overflow-hidden">
-                            <CardContent className="p-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/60 rounded-lg flex items-center justify-center text-primary-foreground font-bold">
-                                  {badge.category[0]}
+                      {userProfile.achievements.achievements.map(
+                        (achievement, index) => {
+                          const badge = getAchievementBadge(achievement);
+                          const tokenId =
+                            userProfile.achievements.tokenIds[index];
+                          return (
+                            <Card
+                              key={achievement}
+                              className="relative overflow-hidden"
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/60 rounded-lg flex items-center justify-center text-primary-foreground font-bold">
+                                    {badge.category[0]}
+                                  </div>
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold">
+                                      {badge.name}
+                                    </h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      {badge.category} • Level {badge.tier}
+                                    </p>
+                                    <Badge
+                                      variant="outline"
+                                      className="text-xs mt-1"
+                                    >
+                                      NFT #{tokenId}
+                                    </Badge>
+                                  </div>
                                 </div>
-                                <div className="flex-1">
-                                  <h4 className="font-semibold">{badge.name}</h4>
-                                  <p className="text-sm text-muted-foreground">
-                                    {badge.category} • Level {badge.tier}
-                                  </p>
-                                  <Badge variant="outline" className="text-xs mt-1">
-                                    NFT #{tokenId}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        );
-                      })}
+                              </CardContent>
+                            </Card>
+                          );
+                        }
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-12">
                       <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No achievements yet</h3>
+                      <h3 className="text-lg font-semibold mb-2">
+                        No achievements yet
+                      </h3>
                       <p className="text-muted-foreground">
                         Start participating to earn your first badge!
                       </p>
@@ -445,11 +550,16 @@ export default function ReputationDisplay() {
                       <li>
                         Contract:{" "}
                         <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
-                          {CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation}
+                          {
+                            CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID]
+                              .QuintyReputation
+                          }
                         </code>
                       </li>
                       <li>
-                        Token IDs: {userProfile.achievements.tokenIds.join(", ") || "None yet"}
+                        Token IDs:{" "}
+                        {userProfile.achievements.tokenIds.join(", ") ||
+                          "None yet"}
                       </li>
                     </ol>
                   </div>
@@ -471,7 +581,8 @@ export default function ReputationDisplay() {
                 Search User Achievements
               </CardTitle>
               <CardDescription>
-                Enter a wallet address to view achievements and add to leaderboard
+                Enter a wallet address to view achievements and add to
+                leaderboard
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -509,7 +620,9 @@ export default function ReputationDisplay() {
               {leaderboard.length === 0 ? (
                 <div className="text-center py-12">
                   <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No users in leaderboard</h3>
+                  <h3 className="text-lg font-semibold mb-2">
+                    No users in leaderboard
+                  </h3>
                   <p className="text-muted-foreground">
                     Search for users to build the leaderboard
                   </p>
@@ -517,7 +630,10 @@ export default function ReputationDisplay() {
               ) : (
                 <div className="space-y-4">
                   {leaderboard.map((user, index) => (
-                    <div key={user.address} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors">
+                    <div
+                      key={user.address}
+                      className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                    >
                       <div className="flex items-center space-x-4">
                         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold">
                           {index + 1}
@@ -528,10 +644,13 @@ export default function ReputationDisplay() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h4 className="font-medium">{formatAddress(user.address)}</h4>
+                          <h4 className="font-medium">
+                            {formatAddress(user.address)}
+                          </h4>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
                             <Badge variant="outline" className="text-xs">
-                              {user.achievements.achievements.length} achievements
+                              {user.achievements.achievements.length}{" "}
+                              achievements
                             </Badge>
                           </div>
                         </div>
@@ -541,7 +660,8 @@ export default function ReputationDisplay() {
                           {user.stats.wins + user.stats.bountiesCreated}
                         </div>
                         <div className="text-sm text-muted-foreground">
-                          {user.stats.bountiesCreated} Created • {user.stats.wins} Won
+                          {user.stats.bountiesCreated} Created •{" "}
+                          {user.stats.wins} Won
                         </div>
                       </div>
                     </div>
@@ -563,7 +683,8 @@ export default function ReputationDisplay() {
                 Achievement Categories
               </CardTitle>
               <CardDescription>
-                Learn about the different types of achievements and how to earn them
+                Learn about the different types of achievements and how to earn
+                them
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -581,8 +702,13 @@ export default function ReputationDisplay() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
-                      <div key={milestone} className="flex items-center justify-between p-2 rounded-md bg-blue-50">
-                        <span className="text-sm font-medium">Level {index + 1}</span>
+                      <div
+                        key={milestone}
+                        className="flex items-center justify-between p-2 rounded-md bg-blue-50"
+                      >
+                        <span className="text-sm font-medium">
+                          Level {index + 1}
+                        </span>
                         <Badge variant="outline" className="text-blue-600">
                           {milestone} submissions
                         </Badge>
@@ -604,8 +730,13 @@ export default function ReputationDisplay() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
-                      <div key={milestone} className="flex items-center justify-between p-2 rounded-md bg-green-50">
-                        <span className="text-sm font-medium">Level {index + 1}</span>
+                      <div
+                        key={milestone}
+                        className="flex items-center justify-between p-2 rounded-md bg-green-50"
+                      >
+                        <span className="text-sm font-medium">
+                          Level {index + 1}
+                        </span>
                         <Badge variant="outline" className="text-green-600">
                           {milestone} wins
                         </Badge>
@@ -627,8 +758,13 @@ export default function ReputationDisplay() {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
-                      <div key={milestone} className="flex items-center justify-between p-2 rounded-md bg-purple-50">
-                        <span className="text-sm font-medium">Level {index + 1}</span>
+                      <div
+                        key={milestone}
+                        className="flex items-center justify-between p-2 rounded-md bg-purple-50"
+                      >
+                        <span className="text-sm font-medium">
+                          Level {index + 1}
+                        </span>
                         <Badge variant="outline" className="text-purple-600">
                           {milestone} bounties
                         </Badge>
@@ -661,7 +797,8 @@ export default function ReputationDisplay() {
                     <div>
                       <h4 className="font-semibold">Soulbound NFTs</h4>
                       <p className="text-sm text-muted-foreground">
-                        Permanent, non-transferable reputation tokens that stay with you forever
+                        Permanent, non-transferable reputation tokens that stay
+                        with you forever
                       </p>
                     </div>
                   </div>
@@ -673,7 +810,8 @@ export default function ReputationDisplay() {
                     <div>
                       <h4 className="font-semibold">Custom Artwork</h4>
                       <p className="text-sm text-muted-foreground">
-                        Each achievement features unique IPFS-hosted images and metadata
+                        Each achievement features unique IPFS-hosted images and
+                        metadata
                       </p>
                     </div>
                   </div>
@@ -685,7 +823,8 @@ export default function ReputationDisplay() {
                     <div>
                       <h4 className="font-semibold">Milestone-Based</h4>
                       <p className="text-sm text-muted-foreground">
-                        Clear progression system with set targets to work towards
+                        Clear progression system with set targets to work
+                        towards
                       </p>
                     </div>
                   </div>

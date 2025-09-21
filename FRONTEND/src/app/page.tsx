@@ -50,10 +50,10 @@ export default function Home() {
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                {/* <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                   <Target className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <h1 className="text-xl font-bold tracking-tight">Quinty DAO</h1>
+                </div> */}
+                <h1 className="text-xl font-bold tracking-tight">Quinty </h1>
               </div>
 
               {/* Desktop Navigation */}
@@ -119,12 +119,11 @@ export default function Home() {
                 </div>
                 <div className="space-y-4">
                   <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-                    Welcome to Quinty DAO
+                    Welcome to Quinty
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    A decentralized bounty platform with DAO governance,
-                    reputation NFTs, and transparent dispute resolution on
-                    Somnia Testnet.
+                    A decentralized bounty platform with governance, reputation
+                    NFTs, and transparent dispute resolution on Somnia Testnet.
                   </p>
                 </div>
                 <div className="pt-4">
@@ -157,7 +156,7 @@ export default function Home() {
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
                         <Scale className="h-5 w-5 text-green-600" />
                       </div>
-                      <CardTitle>DAO Disputes</CardTitle>
+                      <CardTitle> Disputes</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -224,7 +223,7 @@ export default function Home() {
                 <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
                   <Target className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <h3 className="text-lg font-semibold">Quinty DAO</h3>
+                <h3 className="text-lg font-semibold">Quinty </h3>
               </div>
               <p className="text-sm text-muted-foreground">
                 Decentralized bounty system with transparent governance and
@@ -245,7 +244,7 @@ export default function Home() {
                 </li>
                 <li className="flex items-center space-x-2">
                   <Users className="h-3 w-3" />
-                  <span>DAO Voting & Disputes</span>
+                  <span> Voting & Disputes</span>
                 </li>
                 <li className="flex items-center space-x-2">
                   <Trophy className="h-3 w-3" />

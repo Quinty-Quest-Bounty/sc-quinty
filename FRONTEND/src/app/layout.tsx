@@ -1,9 +1,10 @@
-import './globals.css';
-import Providers from './providers';
+import "./globals.css";
+import Providers from "./providers";
 
 export const metadata = {
-  title: 'Quinty DAO - Decentralized Bounty System',
-  description: 'A transparent bounty platform with DAO governance, reputation NFTs, and dispute resolution on Somnia Testnet',
+  title: "Quinty  - Decentralized Bounty System",
+  description:
+    "A transparent bounty platform with  governance, reputation NFTs, and dispute resolution on Somnia Testnet",
 };
 
 export default function RootLayout({
@@ -14,9 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Providers>
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -2,11 +2,11 @@
 
 ## Overview
 
-Quinty is a complete on-chain task bounty DAO system built for the Somnia Testnet. The system includes:
+Quinty is a complete on-chain task bounty system built for the Somnia Testnet. The system includes:
 
 - **Core Quinty Contract**: Handles bounty creation, submission management, and escrow
 - **Reputation System**: NFT-based soulbound badges with IPFS metadata
-- **Dispute Resolution**: DAO voting system with staking for expiry and pengadilan disputes
+- **Dispute Resolution**: voting system with staking for expiry and pengadilan disputes
 - **Airdrop Bounties**: Transparent promotion task rewards
 
 ## Quick Start

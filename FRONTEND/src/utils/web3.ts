@@ -1,30 +1,34 @@
-import { createConfig, http } from 'wagmi';
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { defineChain } from 'viem';
+import { createConfig, http } from "wagmi";
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
+import { defineChain } from "viem";
 
 // Define Somnia Testnet with proper chain structure
 const somniaTestnetChain = defineChain({
   id: 50312,
-  name: 'Somnia Testnet',
-  network: 'somnia-testnet',
+  name: "Somnia Testnet",
+  network: "somnia-testnet",
   nativeCurrency: {
     decimals: 18,
-    name: 'Somnia Test Token',
-    symbol: 'STT',
+    name: "Somnia Test Token",
+    symbol: "STT",
   },
   rpcUrls: {
-    public: { http: ['https://dream-rpc.somnia.network/'] },
-    default: { http: ['https://dream-rpc.somnia.network/'] },
+    public: { http: ["https://dream-rpc.somnia.network/"] },
+    default: { http: ["https://dream-rpc.somnia.network/"] },
   },
   blockExplorers: {
-    default: { name: 'Somnia Explorer', url: 'https://shannon-explorer.somnia.network' },
+    default: {
+      name: "Somnia Explorer",
+      url: "https://shannon-explorer.somnia.network",
+    },
   },
   testnet: true,
 });
 
 export const wagmiConfig = getDefaultConfig({
-  appName: 'Quinty DAO',
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || 'demo-project-id',
+  appName: "Quinty ",
+  projectId:
+    process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "demo-project-id",
   chains: [somniaTestnetChain],
   transports: {
     [somniaTestnetChain.id]: http(),
