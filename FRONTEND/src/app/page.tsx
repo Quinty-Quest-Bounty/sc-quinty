@@ -1,52 +1,80 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useAccount } from 'wagmi';
-import BountyManager from '../components/BountyManager';
-import DisputeManager from '../components/DisputeManager';
-import ReputationDisplay from '../components/ReputationDisplay';
-import AirdropManager from '../components/AirdropManager';
-import NetworkBanner from '../components/NetworkBanner';
+import React, { useState } from "react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
+import BountyManager from "../components/BountyManager";
+import DisputeManager from "../components/DisputeManager";
+import ReputationDisplay from "../components/ReputationDisplay";
+import AirdropManager from "../components/AirdropManager";
+import NetworkBanner from "../components/NetworkBanner";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Separator } from "../components/ui/separator";
+import {
+  Target,
+  Scale,
+  Trophy,
+  Gift,
+  Users,
+  Code,
+  Coins,
+  Shield,
+} from "lucide-react";
 
 export default function Home() {
   const { isConnected } = useAccount();
-  const [activeSection, setActiveSection] = useState<'bounties' | 'disputes' | 'reputation' | 'airdrops'>('bounties');
+  const [activeSection, setActiveSection] = useState<
+    "bounties" | "disputes" | "reputation" | "airdrops"
+  >("bounties");
+
+  const navigationItems = [
+    { id: "bounties", label: "Bounties", icon: Target },
+    { id: "disputes", label: "Disputes", icon: Scale },
+    { id: "reputation", label: "Reputation", icon: Trophy },
+    { id: "airdrops", label: "Airdrops", icon: Gift },
+  ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <h1 className="text-2xl font-bold text-primary-600">Quinty DAO</h1>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center space-x-8">
+              <div className="flex items-center space-x-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+                  <Target className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <h1 className="text-xl font-bold tracking-tight">Quinty DAO</h1>
               </div>
-              <div className="hidden md:block ml-8">
-                <div className="ml-10 flex items-baseline space-x-4">
-                  {[
-                    { id: 'bounties', label: 'Bounties', icon: '🎯' },
-                    { id: 'disputes', label: 'Disputes', icon: '⚖️' },
-                    { id: 'reputation', label: 'Reputation', icon: '🏆' },
-                    { id: 'airdrops', label: 'Airdrops', icon: '🎁' }
-                  ].map((section) => (
-                    <button
-                      key={section.id}
-                      onClick={() => setActiveSection(section.id as any)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        activeSection === section.id
-                          ? 'bg-primary-100 text-primary-700'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                      }`}
+
+              {/* Desktop Navigation */}
+              <nav className="hidden md:flex">
+                <div className="flex items-center space-x-1">
+                  {navigationItems.map((item) => (
+                    <Button
+                      key={item.id}
+                      variant={activeSection === item.id ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => setActiveSection(item.id as any)}
+                      className="flex items-center space-x-2"
                     >
-                      <span className="mr-2">{section.icon}</span>
-                      {section.label}
-                    </button>
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </Button>
                   ))}
                 </div>
-              </div>
+              </nav>
             </div>
+
             <div className="flex items-center space-x-4">
               <ConnectButton />
             </div>
@@ -55,145 +83,248 @@ export default function Home() {
       </header>
 
       {/* Mobile Navigation */}
-      <div className="md:hidden bg-white border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-4 py-3 overflow-x-auto">
-            {[
-              { id: 'bounties', label: 'Bounties', icon: '🎯' },
-              { id: 'disputes', label: 'Disputes', icon: '⚖️' },
-              { id: 'reputation', label: 'Reputation', icon: '🏆' },
-              { id: 'airdrops', label: 'Airdrops', icon: '🎁' }
-            ].map((section) => (
-              <button
-                key={section.id}
-                onClick={() => setActiveSection(section.id as any)}
-                className={`flex-shrink-0 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeSection === section.id
-                    ? 'bg-primary-100 text-primary-700'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                }`}
+      <div className="md:hidden border-b bg-background">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-2 py-3 overflow-x-auto">
+            {navigationItems.map((item) => (
+              <Button
+                key={item.id}
+                variant={activeSection === item.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveSection(item.id as any)}
+                className="flex-shrink-0 flex items-center space-x-2"
               >
-                <span className="mr-2">{section.icon}</span>
-                {section.label}
-              </button>
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </Button>
             ))}
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Network Banner */}
         {isConnected && <NetworkBanner />}
 
         {!isConnected ? (
-          <div className="text-center py-12">
-            <div className="mx-auto max-w-md">
-              <div className="w-24 h-24 mx-auto mb-6 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-4xl">🎯</span>
-              </div>
-              <h2 className="text-3xl font-bold text-gray-800 mb-4">
-                Welcome to Quinty DAO
-              </h2>
-              <p className="text-lg text-gray-700 mb-8">
-                A decentralized bounty platform with DAO governance, reputation NFTs, and transparent dispute resolution on Somnia Testnet.
-              </p>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                  <div className="bg-white rounded-lg p-4 shadow">
-                    <div className="text-2xl mb-2">🎯</div>
-                    <h3 className="font-semibold mb-1 text-gray-800">Create Bounties</h3>
-                    <p className="text-gray-700">Post tasks with 100% STT escrow and blinded submissions</p>
+          <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)]">
+            <div className="max-w-4xl mx-auto text-center space-y-8">
+              {/* Hero Section */}
+              <div className="space-y-6">
+                <div className="flex justify-center">
+                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
+                    <Target className="h-10 w-10 text-primary" />
                   </div>
-                  <div className="bg-white rounded-lg p-4 shadow">
-                    <div className="text-2xl mb-2">⚖️</div>
-                    <h3 className="font-semibold mb-1 text-gray-800">DAO Disputes</h3>
-                    <p className="text-gray-700">Community voting with staking for fair resolution</p>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 shadow">
-                    <div className="text-2xl mb-2">🏆</div>
-                    <h3 className="font-semibold mb-1 text-gray-800">NFT Reputation</h3>
-                    <p className="text-gray-700">Earn soulbound badges for successful participation</p>
-                  </div>
-                  <div className="bg-white rounded-lg p-4 shadow">
-                    <div className="text-2xl mb-2">🎁</div>
-                    <h3 className="font-semibold mb-1 text-gray-800">Airdrop Tasks</h3>
-                    <p className="text-gray-700">Transparent promotion campaigns with verified rewards</p>
-                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+                    Welcome to Quinty DAO
+                  </h1>
+                  <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+                    A decentralized bounty platform with DAO governance,
+                    reputation NFTs, and transparent dispute resolution on
+                    Somnia Testnet.
+                  </p>
                 </div>
                 <div className="pt-4">
                   <ConnectButton />
                 </div>
               </div>
+
+              {/* Features Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-16">
+                <Card className="text-left">
+                  <CardHeader>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                        <Target className="h-5 w-5 text-blue-600" />
+                      </div>
+                      <CardTitle>Create Bounties</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      Post tasks with 100% STT escrow and blinded submissions
+                      for secure, transparent project completion.
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+
+                <Card className="text-left">
+                  <CardHeader>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+                        <Scale className="h-5 w-5 text-green-600" />
+                      </div>
+                      <CardTitle>DAO Disputes</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      Community voting with staking mechanisms ensures fair
+                      resolution of conflicts and disputes.
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+
+                <Card className="text-left">
+                  <CardHeader>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-100">
+                        <Trophy className="h-5 w-5 text-yellow-600" />
+                      </div>
+                      <CardTitle>NFT Reputation</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      Earn soulbound achievement badges that showcase your
+                      successful participation and contributions.
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+
+                <Card className="text-left">
+                  <CardHeader>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-100">
+                        <Gift className="h-5 w-5 text-purple-600" />
+                      </div>
+                      <CardTitle>Airdrop Tasks</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription>
+                      Participate in transparent promotion campaigns with
+                      verified rewards and community benefits.
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </div>
         ) : (
-          <div>
-            {/* Network Status */}
-            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-800">
-                    Connected to <strong>Somnia Testnet</strong> • Chain ID: 50312 • Native Token: STT
-                  </p>
-                </div>
-              </div>
-            </div>
-
+          <div className="space-y-6">
             {/* Active Section Content */}
-            {activeSection === 'bounties' && <BountyManager />}
-            {activeSection === 'disputes' && <DisputeManager />}
-            {activeSection === 'reputation' && <ReputationDisplay />}
-            {activeSection === 'airdrops' && <AirdropManager />}
+            {activeSection === "bounties" && <BountyManager />}
+            {activeSection === "disputes" && <DisputeManager />}
+            {activeSection === "reputation" && <ReputationDisplay />}
+            {activeSection === "airdrops" && <AirdropManager />}
           </div>
         )}
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <footer className="border-t bg-background">
+        <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Quinty DAO</h3>
-              <p className="text-gray-700 text-sm">
-                Decentralized bounty system with transparent governance and reputation-based rewards.
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
+                  <Target className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <h3 className="text-lg font-semibold">Quinty DAO</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Decentralized bounty system with transparent governance and
+                reputation-based rewards on Somnia Testnet.
               </p>
             </div>
-            <div>
-              <h4 className="text-sm font-semibold text-gray-800 mb-3">Features</h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li>• 100% STT Escrow</li>
-                <li>• Blinded IPFS Submissions</li>
-                <li>• DAO Voting & Disputes</li>
-                <li>• Soulbound NFT Badges</li>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold">Features</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center space-x-2">
+                  <Shield className="h-3 w-3" />
+                  <span>100% STT Escrow</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <Code className="h-3 w-3" />
+                  <span>Blinded IPFS Submissions</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <Users className="h-3 w-3" />
+                  <span>DAO Voting & Disputes</span>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <Trophy className="h-3 w-3" />
+                  <span>Soulbound NFT Badges</span>
+                </li>
               </ul>
             </div>
-            <div>
-              <h4 className="text-sm font-semibold text-gray-800 mb-3">Network</h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li>• Somnia Testnet</li>
-                <li>• Chain ID: 50312</li>
-                <li>• Native STT Token</li>
-                <li>• Low-Cost Transactions</li>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold">Network</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <Badge variant="outline" className="mr-2">
+                    Somnia Testnet
+                  </Badge>
+                </li>
+                <li>
+                  <Badge variant="outline" className="mr-2">
+                    Chain ID: 50312
+                  </Badge>
+                </li>
+                <li className="flex items-center space-x-2">
+                  <Coins className="h-3 w-3" />
+                  <span>Native STT Token</span>
+                </li>
+                <li>Low-Cost Transactions</li>
               </ul>
             </div>
-            <div>
-              <h4 className="text-sm font-semibold text-gray-800 mb-3">Smart Contracts</h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li>• Quinty: 0x76FD...DC0f</li>
-                <li>• Reputation: 0x43FE...C4cC</li>
-                <li>• Disputes: 0xDc69...C75</li>
-                <li>• Airdrops: 0xB265...6F94</li>
+
+            <div className="space-y-4">
+              <h4 className="text-sm font-semibold">Smart Contracts</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Quinty</span>
+                    <code className="text-xs">
+                      0x5110CE4c643923CA05f3c48aDb5a0f7718Ddfd15
+                    </code>
+                  </div>
+                </li>
+                <li>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Reputation</span>
+                    <code className="text-xs">
+                      0x347B1EEE3Fb806EE1aF1D02Bd1781CF1523d8A3F
+                    </code>
+                  </div>
+                </li>
+                <li>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Disputes</span>
+                    <code className="text-xs">
+                      0x25e505A0E77BAc255bEA230e2Ad1b93c1490d7F2
+                    </code>
+                  </div>
+                </li>
+                <li>
+                  <div className="flex flex-col">
+                    <span className="font-medium">Airdrops</span>
+                    <code className="text-xs">
+                      0xaa00D6519d7bbECb27a5e0cF07dC5Bc0f75F46Df
+                    </code>
+                  </div>
+                </li>
               </ul>
             </div>
           </div>
-          <div className="mt-8 pt-8 border-t border-gray-200">
-            <p className="text-center text-sm text-gray-500">
-              Built with ❤️ for the Somnia Testnet ecosystem. Open source and decentralized.
+
+          <Separator className="my-8" />
+
+          <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+            <p className="text-sm text-muted-foreground">
+              Built with ❤️ for the Somnia Testnet ecosystem
             </p>
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <span>Open Source</span>
+              <Separator orientation="vertical" className="h-4" />
+              <span>Decentralized</span>
+            </div>
           </div>
         </div>
       </footer>

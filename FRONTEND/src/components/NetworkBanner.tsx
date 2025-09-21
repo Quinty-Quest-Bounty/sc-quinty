@@ -1,8 +1,11 @@
-'use client';
+"use client";
 
-import { useChainId } from 'wagmi';
-import { SOMNIA_TESTNET_ID } from '../utils/contracts';
-import { ensureSomniaNetwork } from '../utils/network';
+import { useChainId } from "wagmi";
+import { SOMNIA_TESTNET_ID } from "../utils/contracts";
+import { ensureSomniaNetwork } from "../utils/network";
+import { Alert, AlertDescription } from "./ui/alert";
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 
 export default function NetworkBanner() {
   const chainId = useChainId();
@@ -18,44 +21,49 @@ export default function NetworkBanner() {
 
   if (isOnSomnia) {
     return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <span className="text-green-500">✅</span>
+      <Alert variant="success" className="py-2">
+        {/* <CheckCircle className="h-3 w-3 mt-0.5" /> */}
+        <AlertDescription className="flex items-center justify-between min-h-[20px]">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium leading-5">
+              Somnia Testnet
+            </span>
+            <Badge
+              variant="outline"
+              className="text-xs h-5 px-2 flex items-center bg-green-100 text-green-700 border-green-300"
+            >
+              STT
+            </Badge>
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-green-800">
-              Connected to <strong>Somnia Testnet</strong> • All transactions will use <strong>STT tokens</strong>
-            </p>
-          </div>
-        </div>
-      </div>
+          <span className="text-xs text-green-600 leading-5">
+            Chain {chainId}
+          </span>
+        </AlertDescription>
+      </Alert>
     );
   }
 
   return (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <span className="text-yellow-500">⚠️</span>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-800">
-              <strong>Wrong Network:</strong> Please switch to Somnia Testnet to use Quinty features
-            </p>
-            <p className="text-xs text-yellow-700 mt-1">
-              Current network does not support STT tokens
-            </p>
-          </div>
+    <Alert variant="warning" className="py-2">
+      {/* <AlertTriangle className="h-3 w-3 mt-0.5" /> */}
+      <AlertDescription className="flex items-center justify-between min-h-[20px]">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium leading-5">Wrong Network</span>
+          <Badge
+            variant="outline"
+            className="text-xs h-5 px-2 flex items-center bg-yellow-100 text-yellow-700 border-yellow-300"
+          >
+            {chainId}
+          </Badge>
         </div>
-        <button
+        <Button
           onClick={handleSwitchNetwork}
-          className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm px-4 py-2 rounded-md font-medium"
+          size="sm"
+          className="h-6 px-2 text-xs flex items-center"
         >
-          Switch to Somnia
-        </button>
-      </div>
-    </div>
+          Switch
+        </Button>
+      </AlertDescription>
+    </Alert>
   );
 }

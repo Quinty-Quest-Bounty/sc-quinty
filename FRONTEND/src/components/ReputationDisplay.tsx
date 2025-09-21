@@ -10,6 +10,14 @@ import {
 import { readContract } from "@wagmi/core";
 import { formatAddress, wagmiConfig } from "../utils/web3";
 import { isAddress } from "viem";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Progress } from "./ui/progress";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Separator } from "./ui/separator";
+import { Trophy, Target, User, Search, Award, TrendingUp, Medal, Star } from "lucide-react";
 
 interface UserStatsData {
   bountiesCreated: number;
@@ -166,6 +174,7 @@ export default function ReputationDisplay() {
         wins: Number(statsData.totalWins || 0),
       };
 
+      const achievementsArray = achievementsData as any[];
       const achievements = {
         achievements: achievementsArray[0] ? achievementsArray[0].map((a: any) => Number(a)) : [],
         tokenIds: achievementsArray[1] ? achievementsArray[1].map((t: any) => Number(t)) : [],
@@ -210,296 +219,518 @@ export default function ReputationDisplay() {
 
   if (!isConnected) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-600">
-          Please connect your wallet to view reputation data.
-        </p>
+      <div className="min-h-[400px] flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <User className="h-12 w-12 text-muted-foreground mb-4" />
+            <CardTitle className="text-center mb-2">Connect Your Wallet</CardTitle>
+            <CardDescription className="text-center">
+              Please connect your wallet to view reputation data.
+            </CardDescription>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-6">
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">
-          Quinty Achievement System
-        </h2>
-        <p className="text-gray-700">
-          Earn milestone-based NFT achievements for your contributions to the Quinty ecosystem
+    <div className="container mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight">Quinty Reputation</h1>
+        <p className="text-muted-foreground text-lg">
+          Earn milestone-based NFT achievements for your contributions
         </p>
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
+      <div className="flex justify-center">
+        <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
           {[
-            { id: "profile", label: "My Profile" },
-            { id: "leaderboard", label: "Leaderboard" },
-            { id: "achievements", label: "Achievement Guide" },
+            { id: "profile", label: "Profile", icon: User },
+            { id: "leaderboard", label: "Leaderboard", icon: TrendingUp },
+            { id: "achievements", label: "Guide", icon: Award },
           ].map((tab) => (
-            <button
+            <Button
               key={tab.id}
+              variant={selectedTab === tab.id ? "default" : "ghost"}
+              size="sm"
               onClick={() => setSelectedTab(tab.id as any)}
-              className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                selectedTab === tab.id
-                  ? "border-primary-500 text-primary-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all"
             >
+              <tab.icon className="h-4 w-4 mr-2" />
               {tab.label}
-            </button>
+            </Button>
           ))}
-        </nav>
+        </div>
       </div>
 
       {/* Profile Tab */}
       {selectedTab === "profile" && (
-        <>
+        <div className="space-y-6">
           {loading && (
-            <div className="bg-white rounded-lg shadow p-12 text-center">
-              <div className="text-6xl mb-4">⏳</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Loading Profile...</h3>
-              <p className="text-gray-600">Fetching your achievement data from the blockchain.</p>
-            </div>
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
+                <CardTitle className="mb-2">Loading Profile</CardTitle>
+                <CardDescription>Fetching your achievement data from the blockchain</CardDescription>
+              </CardContent>
+            </Card>
           )}
 
           {!loading && !userProfile && (
-            <div className="bg-white rounded-lg shadow p-12 text-center">
-              <div className="text-6xl mb-4">🆕</div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Welcome to Quinty!</h3>
-              <p className="text-gray-600 mb-4">
-                You haven't started your journey yet. Create bounties or submit solutions to earn your first achievements!
-              </p>
-            </div>
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <Star className="h-12 w-12 text-muted-foreground mb-4" />
+                <CardTitle className="mb-2">Welcome to Quinty!</CardTitle>
+                <CardDescription className="text-center max-w-md">
+                  You haven't started your journey yet. Create bounties or submit solutions to earn your first achievements!
+                </CardDescription>
+              </CardContent>
+            </Card>
           )}
 
           {userProfile && (
-            <div className="space-y-8">
+            <div className="space-y-6">
               {/* Profile Header */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  {formatAddress(userProfile.address)}
-                </h3>
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center space-x-4">
+                    <Avatar className="h-16 w-16">
+                      <AvatarFallback className="text-lg font-semibold">
+                        {userProfile.address.slice(2, 4).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <CardTitle className="text-2xl">{formatAddress(userProfile.address)}</CardTitle>
+                      <CardDescription>
+                        {userProfile.achievements.achievements.length} achievements earned
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
 
-                {/* Stats Overview */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <div className="bg-blue-50 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-blue-600">{userProfile.stats.submissions}</div>
-                    <div className="text-sm text-blue-800">Solutions Submitted</div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      Progress to next: {getProgressToNext(userProfile.stats.submissions, "solver")} more
+              {/* Stats Overview */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Solutions Submitted</CardTitle>
+                    <Target className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userProfile.stats.submissions}</div>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-muted-foreground">
+                        Next milestone: {getProgressToNext(userProfile.stats.submissions, "solver")} more
+                      </p>
                     </div>
-                  </div>
-                  <div className="bg-green-50 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-green-600">{userProfile.stats.wins}</div>
-                    <div className="text-sm text-green-800">Bounties Won</div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      Progress to next: {getProgressToNext(userProfile.stats.wins, "winner")} more
-                    </div>
-                  </div>
-                  <div className="bg-purple-50 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-purple-600">{userProfile.stats.bountiesCreated}</div>
-                    <div className="text-sm text-purple-800">Bounties Created</div>
-                    <div className="text-xs text-gray-600 mt-1">
-                      Progress to next: {getProgressToNext(userProfile.stats.bountiesCreated, "creator")} more
-                    </div>
-                  </div>
-                </div>
+                    <Progress
+                      value={(userProfile.stats.submissions % 10) * 10}
+                      className="mt-2"
+                    />
+                  </CardContent>
+                </Card>
 
-                {/* Achievements */}
-                <div className="border-t pt-6">
-                  <h4 className="text-lg font-semibold mb-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Bounties Won</CardTitle>
+                    <Trophy className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userProfile.stats.wins}</div>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-muted-foreground">
+                        Next milestone: {getProgressToNext(userProfile.stats.wins, "winner")} more
+                      </p>
+                    </div>
+                    <Progress
+                      value={(userProfile.stats.wins % 10) * 10}
+                      className="mt-2"
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Bounties Created</CardTitle>
+                    <Medal className="h-4 w-4 text-muted-foreground" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{userProfile.stats.bountiesCreated}</div>
+                    <div className="flex items-center justify-between mt-2">
+                      <p className="text-xs text-muted-foreground">
+                        Next milestone: {getProgressToNext(userProfile.stats.bountiesCreated, "creator")} more
+                      </p>
+                    </div>
+                    <Progress
+                      value={(userProfile.stats.bountiesCreated % 10) * 10}
+                      className="mt-2"
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Achievements */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Award className="h-5 w-5" />
                     Achievements ({userProfile.achievements.achievements.length})
-                  </h4>
-
+                  </CardTitle>
+                  <CardDescription>
+                    Milestone-based NFT badges for your contributions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
                   {userProfile.achievements.achievements.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {userProfile.achievements.achievements.map((achievement, index) => {
                         const badge = getAchievementBadge(achievement);
                         const tokenId = userProfile.achievements.tokenIds[index];
                         return (
-                          <div key={achievement} className="bg-gray-50 rounded-lg p-4 border">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 bg-gradient-to-r from-blue-400 to-purple-400 rounded-lg flex items-center justify-center text-white font-bold">
-                                {badge.category[0]}
+                          <Card key={achievement} className="relative overflow-hidden">
+                            <CardContent className="p-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 bg-gradient-to-r from-primary to-primary/60 rounded-lg flex items-center justify-center text-primary-foreground font-bold">
+                                  {badge.category[0]}
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-semibold">{badge.name}</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    {badge.category} • Level {badge.tier}
+                                  </p>
+                                  <Badge variant="outline" className="text-xs mt-1">
+                                    NFT #{tokenId}
+                                  </Badge>
+                                </div>
                               </div>
-                              <div>
-                                <div className="font-semibold text-gray-900">{badge.name}</div>
-                                <div className="text-sm text-gray-600">{badge.category} • Level {badge.tier}</div>
-                                <div className="text-xs text-gray-500">NFT #{tokenId}</div>
-                              </div>
-                            </div>
-                          </div>
+                            </CardContent>
+                          </Card>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <div className="text-4xl mb-2">🏆</div>
-                      <p>No achievements yet. Start participating to earn your first badge!</p>
+                    <div className="text-center py-12">
+                      <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No achievements yet</h3>
+                      <p className="text-muted-foreground">
+                        Start participating to earn your first badge!
+                      </p>
                     </div>
                   )}
-                </div>
+                </CardContent>
+              </Card>
 
-                {/* NFT Info */}
-                <div className="border-t pt-6 mt-6">
-                  <h4 className="text-lg font-semibold mb-4">NFT Wallet Integration</h4>
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="font-medium">NFT Balance:</span>
-                      <span className="text-blue-600 font-bold">{Number(nftBalance || 0)} NFTs</span>
-                    </div>
-                    <div className="text-sm text-blue-800 space-y-1">
-                      <p><strong>To view in MetaMask:</strong></p>
-                      <p>1. Go to NFTs tab → Import NFT</p>
-                      <p>2. Contract: <code className="bg-blue-100 px-1 rounded text-xs">{CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation}</code></p>
-                      <p>3. Token IDs: {userProfile.achievements.tokenIds.join(", ") || "None yet"}</p>
-                    </div>
+              {/* NFT Integration */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>NFT Wallet Integration</CardTitle>
+                  <CardDescription>
+                    View your achievements in compatible wallets
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                    <span className="font-medium">NFT Balance</span>
+                    <Badge variant="secondary" className="text-sm">
+                      {Number(nftBalance || 0)} NFTs
+                    </Badge>
                   </div>
-                </div>
-              </div>
+
+                  <div className="space-y-3 text-sm">
+                    <h4 className="font-medium">To view in MetaMask:</h4>
+                    <ol className="space-y-2 text-muted-foreground list-decimal list-inside">
+                      <li>Go to NFTs tab → Import NFT</li>
+                      <li>
+                        Contract:{" "}
+                        <code className="bg-muted px-1 py-0.5 rounded text-xs font-mono">
+                          {CONTRACT_ADDRESSES[SOMNIA_TESTNET_ID].QuintyReputation}
+                        </code>
+                      </li>
+                      <li>
+                        Token IDs: {userProfile.achievements.tokenIds.join(", ") || "None yet"}
+                      </li>
+                    </ol>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Leaderboard Tab */}
       {selectedTab === "leaderboard" && (
         <div className="space-y-6">
           {/* Search User */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-xl font-semibold mb-4">Search User Achievements</h3>
-            <div className="flex gap-4">
-              <input
-                type="text"
-                placeholder="Enter wallet address (0x...)"
-                value={searchAddress}
-                onChange={(e) => setSearchAddress(e.target.value)}
-                className="flex-1 border border-gray-300 rounded-md px-3 py-2"
-              />
-              <button
-                onClick={searchUserProfile}
-                disabled={!searchAddress.trim()}
-                className="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 disabled:opacity-50"
-              >
-                Search
-              </button>
-            </div>
-          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Search className="h-5 w-5" />
+                Search User Achievements
+              </CardTitle>
+              <CardDescription>
+                Enter a wallet address to view achievements and add to leaderboard
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-4">
+                <Input
+                  placeholder="Enter wallet address (0x...)"
+                  value={searchAddress}
+                  onChange={(e) => setSearchAddress(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={searchUserProfile}
+                  disabled={!searchAddress.trim()}
+                  className="px-6"
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Leaderboard */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-semibold">Top Contributors</h3>
-            </div>
-
-            {leaderboard.length === 0 ? (
-              <div className="p-6 text-center text-gray-500">
-                Search for users to build the leaderboard
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200">
-                {leaderboard.map((user, index) => (
-                  <div key={user.address} className="p-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-600">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-800">
-                          {formatAddress(user.address)}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="h-5 w-5" />
+                Top Contributors
+              </CardTitle>
+              <CardDescription>
+                Community leaderboard based on achievements and contributions
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {leaderboard.length === 0 ? (
+                <div className="text-center py-12">
+                  <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">No users in leaderboard</h3>
+                  <p className="text-muted-foreground">
+                    Search for users to build the leaderboard
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {leaderboard.map((user, index) => (
+                    <div key={user.address} className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10 text-primary font-bold">
+                          {index + 1}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {user.achievements.achievements.length} achievements
+                        <Avatar>
+                          <AvatarFallback>
+                            {user.address.slice(2, 4).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h4 className="font-medium">{formatAddress(user.address)}</h4>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Badge variant="outline" className="text-xs">
+                              {user.achievements.achievements.length} achievements
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="font-semibold text-lg">
+                          {user.stats.wins + user.stats.bountiesCreated}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.stats.bountiesCreated} Created • {user.stats.wins} Won
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-medium text-lg text-gray-800">
-                        {user.stats.wins + user.stats.bountiesCreated} Total
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {user.stats.bountiesCreated} Created • {user.stats.wins} Won
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {/* Achievement Guide Tab */}
       {selectedTab === "achievements" && (
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-xl font-semibold mb-4">Achievement Categories</h3>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Award className="h-5 w-5" />
+                Achievement Categories
+              </CardTitle>
+              <CardDescription>
+                Learn about the different types of achievements and how to earn them
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Solver Achievements */}
+                <Card className="border-blue-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2 text-blue-600">
+                      <Target className="h-5 w-5" />
+                      Solver Badges
+                    </CardTitle>
+                    <CardDescription>
+                      Earned by submitting solutions to bounties
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
+                      <div key={milestone} className="flex items-center justify-between p-2 rounded-md bg-blue-50">
+                        <span className="text-sm font-medium">Level {index + 1}</span>
+                        <Badge variant="outline" className="text-blue-600">
+                          {milestone} submissions
+                        </Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Solver Achievements */}
-              <div className="border border-blue-200 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-blue-600 mb-4">🔧 Solver Badges</h4>
-                <div className="space-y-3">
-                  {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
-                    <div key={milestone} className="flex justify-between">
-                      <span className="text-sm">Level {index + 1}:</span>
-                      <span className="text-sm font-medium">{milestone} submissions</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-600 mt-3">
-                  Earned by submitting solutions to bounties
-                </p>
+                {/* Winner Achievements */}
+                <Card className="border-green-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2 text-green-600">
+                      <Trophy className="h-5 w-5" />
+                      Winner Badges
+                    </CardTitle>
+                    <CardDescription>
+                      Earned by winning bounty competitions
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
+                      <div key={milestone} className="flex items-center justify-between p-2 rounded-md bg-green-50">
+                        <span className="text-sm font-medium">Level {index + 1}</span>
+                        <Badge variant="outline" className="text-green-600">
+                          {milestone} wins
+                        </Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Creator Achievements */}
+                <Card className="border-purple-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2 text-purple-600">
+                      <Medal className="h-5 w-5" />
+                      Creator Badges
+                    </CardTitle>
+                    <CardDescription>
+                      Earned by creating bounties for the community
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
+                      <div key={milestone} className="flex items-center justify-between p-2 rounded-md bg-purple-50">
+                        <span className="text-sm font-medium">Level {index + 1}</span>
+                        <Badge variant="outline" className="text-purple-600">
+                          {milestone} bounties
+                        </Badge>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Winner Achievements */}
-              <div className="border border-green-200 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-green-600 mb-4">🏆 Winner Badges</h4>
-                <div className="space-y-3">
-                  {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
-                    <div key={milestone} className="flex justify-between">
-                      <span className="text-sm">Level {index + 1}:</span>
-                      <span className="text-sm font-medium">{milestone} wins</span>
+          {/* NFT Benefits */}
+          <Card className="bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 border-none">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Star className="h-5 w-5" />
+                NFT Achievement Benefits
+              </CardTitle>
+              <CardDescription>
+                Why achievements matter in the Quinty ecosystem
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Trophy className="h-4 w-4 text-primary" />
                     </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-600 mt-3">
-                  Earned by winning bounty competitions
-                </p>
-              </div>
-
-              {/* Creator Achievements */}
-              <div className="border border-purple-200 rounded-lg p-6">
-                <h4 className="text-lg font-semibold text-purple-600 mb-4">💡 Creator Badges</h4>
-                <div className="space-y-3">
-                  {ACHIEVEMENT_MILESTONES.map((milestone, index) => (
-                    <div key={milestone} className="flex justify-between">
-                      <span className="text-sm">Level {index + 1}:</span>
-                      <span className="text-sm font-medium">{milestone} bounties</span>
+                    <div>
+                      <h4 className="font-semibold">Soulbound NFTs</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Permanent, non-transferable reputation tokens that stay with you forever
+                      </p>
                     </div>
-                  ))}
-                </div>
-                <p className="text-xs text-gray-600 mt-3">
-                  Earned by creating bounties for the community
-                </p>
-              </div>
-            </div>
+                  </div>
 
-            {/* Additional Info */}
-            <div className="mt-8 p-6 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
-              <h4 className="text-lg font-semibold text-gray-800 mb-3">
-                🎨 NFT Achievement Benefits
-              </h4>
-              <ul className="space-y-2 text-sm text-gray-700">
-                <li>• <strong>Soulbound NFTs:</strong> Permanent, non-transferable reputation tokens</li>
-                <li>• <strong>Custom Artwork:</strong> Each achievement has unique IPFS-hosted images</li>
-                <li>• <strong>Wallet Integration:</strong> Visible in MetaMask and other NFT-compatible wallets</li>
-                <li>• <strong>Milestone-Based:</strong> Clear progression system with set targets</li>
-                <li>• <strong>Season Tracking:</strong> Monthly leaderboards and special seasonal achievements</li>
-              </ul>
-            </div>
-          </div>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Star className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Custom Artwork</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Each achievement features unique IPFS-hosted images and metadata
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Target className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Milestone-Based</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Clear progression system with set targets to work towards
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Wallet Integration</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Visible in MetaMask and other NFT-compatible wallets
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Season Tracking</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Monthly leaderboards and special seasonal achievements
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Medal className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold">Community Recognition</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Showcase your contributions and build your reputation
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

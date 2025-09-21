@@ -24,6 +24,44 @@ import {
 import { uploadToIpfs, formatIpfsUrl, IpfsImage } from "../utils/ipfs";
 import { ensureSomniaNetwork } from "../utils/network";
 import AirdropCard from "./AirdropCard";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { Progress } from "./ui/progress";
+import { Textarea } from "./ui/textarea";
+import { Label } from "./ui/label";
+import { Separator } from "./ui/separator";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter
+} from "./ui/dialog";
+import {
+  Plus,
+  Search,
+  Settings,
+  Gift,
+  Users,
+  Calendar,
+  Coins,
+  Upload,
+  X,
+  Check,
+  Clock,
+  Target,
+  Send,
+  Eye,
+  Star,
+  Trash2,
+  FileText,
+  ExternalLink
+} from "lucide-react";
 
 interface Airdrop {
   id: number;
@@ -716,104 +754,108 @@ export default function AirdropManager() {
 
   if (!isConnected) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-          <div className="text-6xl mb-4">🔗</div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            Wallet Connection Required
-          </h3>
-          <p className="text-gray-700 text-lg">
-            Please connect your wallet to use Airdrop Bounties.
-          </p>
-        </div>
+      <div className="container mx-auto p-6">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+              <Gift className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-center mb-2">Connect Your Wallet</CardTitle>
+            <CardDescription className="text-center">
+              Please connect your wallet to access Airdrop Bounties
+            </CardDescription>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
+  const navigationItems = [
+    { id: "browse", label: "Browse", icon: Search },
+    { id: "create", label: "Create", icon: Plus },
+    { id: "manage", label: "Manage", icon: Settings },
+  ];
+
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8 text-center">
-        <h2 className="text-4xl font-bold text-gray-900 mb-3">
-          Airdrop Bounties
-        </h2>
-        <p className="text-gray-700 text-lg max-w-2xl mx-auto">
-          Create transparent promotion tasks with verifiable social proofs and distribute rewards fairly
-        </p>
+    <div className="container mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Gift className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight">Airdrop Bounties</h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Create transparent promotion tasks with verifiable social proofs and distribute rewards fairly
+          </p>
+        </div>
       </div>
 
       {/* Tab Navigation */}
-      <div className="border-b border-gray-200 mb-8">
-        <nav className="-mb-px flex justify-center space-x-12">
-          {["browse", "create", "manage"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as any)}
-              className={`py-3 px-6 border-b-2 font-semibold text-base transition-colors ${
-                activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-600 hover:text-gray-900 hover:border-gray-300"
-              }`}
+      <div className="flex justify-center">
+        <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1">
+          {navigationItems.map((item) => (
+            <Button
+              key={item.id}
+              variant={activeTab === item.id ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setActiveTab(item.id as any)}
+              className="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium"
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)} Campaigns
-            </button>
+              <item.icon className="h-4 w-4 mr-2" />
+              {item.label}
+            </Button>
           ))}
-        </nav>
+        </div>
       </div>
 
       {/* Create Airdrop Tab */}
       {activeTab === "create" && (
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <div className="text-center mb-8">
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              Create Promotion Campaign
-            </h3>
-            <p className="text-gray-700 text-lg">
-              Launch transparent promotional campaigns with fixed STT rewards for verified social media engagement.
-            </p>
-          </div>
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Create Promotion Campaign</CardTitle>
+            <CardDescription className="text-lg">
+              Launch transparent promotional campaigns with fixed STT rewards for verified social media engagement
+            </CardDescription>
+          </CardHeader>
 
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Campaign Title *
-              </label>
-              <input
-                type="text"
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="title">Campaign Title *</Label>
+              <Input
+                id="title"
                 value={newAirdrop.title}
                 onChange={(e) =>
                   setNewAirdrop({ ...newAirdrop, title: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 placeholder="Enter campaign title..."
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Campaign Description
-              </label>
-              <textarea
+            <div className="space-y-2">
+              <Label htmlFor="description">Campaign Description</Label>
+              <Textarea
+                id="description"
                 value={newAirdrop.description}
                 onChange={(e) =>
                   setNewAirdrop({ ...newAirdrop, description: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 rows={3}
                 placeholder="Describe your promotional campaign..."
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Requirements (What users need to do) *
-              </label>
-              <textarea
+            <div className="space-y-2">
+              <Label htmlFor="requirements">Requirements (What users need to do) *</Label>
+              <Textarea
+                id="requirements"
                 value={newAirdrop.requirements}
                 onChange={(e) =>
                   setNewAirdrop({ ...newAirdrop, requirements: e.target.value })
                 }
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 rows={3}
                 placeholder="e.g., Post on X/Twitter with #QuintyDAO hashtag, get 100+ likes, include wallet address..."
                 required
@@ -821,10 +863,8 @@ export default function AirdropManager() {
             </div>
 
             {/* Image Upload Section */}
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Campaign Image (Optional)
-              </label>
+            <div className="space-y-2">
+              <Label>Campaign Image (Optional)</Label>
               <div className="space-y-3">
                 {imagePreview ? (
                   <div className="relative">
@@ -833,65 +873,46 @@ export default function AirdropManager() {
                       alt="Campaign preview"
                       className="w-full h-48 object-cover rounded-lg border"
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="destructive"
+                      size="sm"
                       onClick={removeImage}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 text-xs hover:bg-red-600"
+                      className="absolute top-2 right-2"
                     >
-                      ✕
-                    </button>
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 ) : (
                   <div
-                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer hover:bg-muted/50 ${
                       isDragOver
-                        ? "border-primary-400 bg-primary-50"
-                        : "border-gray-300 hover:border-gray-400"
+                        ? "border-primary bg-primary/5"
+                        : "border-muted-foreground/25"
                     }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                   >
-                    <div className="space-y-2">
-                      <svg
-                        className={`mx-auto h-12 w-12 ${
-                          isDragOver ? "text-primary-500" : "text-gray-400"
-                        }`}
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
-                      >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <div>
-                        <label
+                    <div className="space-y-4">
+                      <div className="flex justify-center">
+                        <Upload className={`h-10 w-10 ${
+                          isDragOver ? "text-primary" : "text-muted-foreground"
+                        }`} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label
                           htmlFor="image-upload"
-                          className="cursor-pointer"
+                          className="cursor-pointer font-medium"
                         >
-                          <span
-                            className={`hover:text-primary-500 ${
-                              isDragOver
-                                ? "text-primary-600"
-                                : "text-primary-600"
-                            }`}
-                          >
+                          <span className="text-primary hover:text-primary/80">
                             Upload an image
                           </span>
-                          <span
-                            className={`${
-                              isDragOver ? "text-primary-500" : "text-gray-500"
-                            }`}
-                          >
-                            {" "}
-                            or drag and drop
+                          <span className="text-muted-foreground">
+                            {" "}or drag and drop
                           </span>
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                           id="image-upload"
                           type="file"
                           accept="image/*"
@@ -899,11 +920,7 @@ export default function AirdropManager() {
                           className="hidden"
                         />
                       </div>
-                      <p
-                        className={`text-xs ${
-                          isDragOver ? "text-primary-600" : "text-gray-500"
-                        }`}
-                      >
+                      <p className="text-xs text-muted-foreground">
                         {isDragOver
                           ? "Drop your image here"
                           : "PNG, JPG, GIF up to 5MB"}
@@ -914,95 +931,118 @@ export default function AirdropManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Reward Per Qualifier (STT) *
-                </label>
-                <input
-                  type="number"
-                  value={newAirdrop.perQualifier}
-                  onChange={(e) =>
-                    setNewAirdrop({
-                      ...newAirdrop,
-                      perQualifier: e.target.value,
-                    })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="10"
-                  step="0.01"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Max Qualifiers *
-                </label>
-                <input
-                  type="number"
-                  value={newAirdrop.maxQualifiers}
-                  onChange={(e) =>
-                    setNewAirdrop({
-                      ...newAirdrop,
-                      maxQualifiers: parseInt(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="100"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2">
-                Deadline *
-              </label>
-              <input
-                type="datetime-local"
-                value={newAirdrop.deadline}
-                onChange={(e) =>
-                  setNewAirdrop({ ...newAirdrop, deadline: e.target.value })
-                }
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                required
-              />
-            </div>
-
-            {/* Total Cost Display */}
-            {newAirdrop.perQualifier && newAirdrop.maxQualifiers && (
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
-                <h4 className="font-bold text-blue-900 mb-3 text-lg">
-                  Campaign Summary
-                </h4>
-                <div className="grid grid-cols-2 gap-4 text-blue-800">
-                  <div className="bg-white rounded-lg p-3">
-                    <div className="text-sm font-medium">Total Budget</div>
-                    <div className="text-xl font-bold">
-                      {(
-                        parseFloat(newAirdrop.perQualifier) *
-                        newAirdrop.maxQualifiers
-                      ).toFixed(2)} STT
-                    </div>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <div className="text-sm font-medium">Per User</div>
-                    <div className="text-xl font-bold">{newAirdrop.perQualifier} STT</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <div className="text-sm font-medium">Max Participants</div>
-                    <div className="text-xl font-bold">{newAirdrop.maxQualifiers} users</div>
-                  </div>
-                  <div className="bg-white rounded-lg p-3">
-                    <div className="text-sm font-medium">Distribution</div>
-                    <div className="text-sm font-semibold">First-come, first-served</div>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="reward">Reward Per Qualifier (STT) *</Label>
+                <div className="relative">
+                  <Coins className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="reward"
+                    type="number"
+                    value={newAirdrop.perQualifier}
+                    onChange={(e) =>
+                      setNewAirdrop({
+                        ...newAirdrop,
+                        perQualifier: e.target.value,
+                      })
+                    }
+                    className="pl-10"
+                    placeholder="10"
+                    step="0.01"
+                    required
+                  />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="maxQualifiers">Max Qualifiers *</Label>
+                <div className="relative">
+                  <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="maxQualifiers"
+                    type="number"
+                    value={newAirdrop.maxQualifiers}
+                    onChange={(e) =>
+                      setNewAirdrop({
+                        ...newAirdrop,
+                        maxQualifiers: parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="pl-10"
+                    placeholder="100"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="deadline">Deadline *</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="deadline"
+                  type="datetime-local"
+                  value={newAirdrop.deadline}
+                  onChange={(e) =>
+                    setNewAirdrop({ ...newAirdrop, deadline: e.target.value })
+                  }
+                  className="pl-10"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Campaign Summary */}
+            {newAirdrop.perQualifier && newAirdrop.maxQualifiers && (
+              <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                <CardHeader>
+                  <CardTitle className="text-lg text-blue-900">Campaign Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card>
+                      <CardContent className="p-4 text-center">
+                        <div className="text-sm font-medium text-muted-foreground">Total Budget</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {(
+                            parseFloat(newAirdrop.perQualifier) *
+                            newAirdrop.maxQualifiers
+                          ).toFixed(2)} STT
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4 text-center">
+                        <div className="text-sm font-medium text-muted-foreground">Per User</div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {newAirdrop.perQualifier} STT
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4 text-center">
+                        <div className="text-sm font-medium text-muted-foreground">Max Participants</div>
+                        <div className="text-2xl font-bold text-purple-600">
+                          {newAirdrop.maxQualifiers}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardContent className="p-4 text-center">
+                        <div className="text-sm font-medium text-muted-foreground">Distribution</div>
+                        <div className="text-sm font-semibold">First-come, first-served</div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            <button
+            <Button
               onClick={createAirdrop}
               disabled={
                 isUploading ||
@@ -1012,16 +1052,18 @@ export default function AirdropManager() {
                 !newAirdrop.deadline ||
                 !newAirdrop.requirements
               }
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 px-6 rounded-lg font-bold text-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
+              className="w-full"
+              size="lg"
             >
               {isUploading ? (
                 <>
-                  <span className="inline-block animate-spin mr-2">⚙️</span>
+                  <Upload className="w-4 h-4 mr-2 animate-spin" />
                   Uploading Image...
                 </>
               ) : (
                 <>
-                  🚀 Create Campaign
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Campaign
                   {newAirdrop.perQualifier && newAirdrop.maxQualifiers && (
                     <span className="ml-2 opacity-90">
                       ({(
@@ -1032,39 +1074,40 @@ export default function AirdropManager() {
                   )}
                 </>
               )}
-            </button>
-          </div>
-        </div>
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Browse Airdrops Tab */}
       {activeTab === "browse" && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h3 className="text-2xl font-bold text-gray-900">
-              Active Campaigns
-            </h3>
-            <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold">
-              {airdrops.filter((a) => !a.resolved && !a.cancelled).length} campaigns
+            <div>
+              <h2 className="text-2xl font-bold">Active Campaigns</h2>
+              <p className="text-muted-foreground">Discover and participate in promotion campaigns</p>
             </div>
+            <Badge variant="secondary" className="px-4 py-2">
+              {airdrops.filter((a) => !a.resolved && !a.cancelled).length} active
+            </Badge>
           </div>
 
           {airdrops.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🎯</div>
-              <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                No Campaigns Yet
-              </h4>
-              <p className="text-gray-600 mb-6">
-                Be the first to create an airdrop campaign!
-              </p>
-              <button
-                onClick={() => setActiveTab("create")}
-                className="bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors"
-              >
-                Create First Campaign
-              </button>
-            </div>
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-16">
+                <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+                  <Target className="h-10 w-10 text-primary" />
+                </div>
+                <CardTitle className="mb-2">No Campaigns Yet</CardTitle>
+                <CardDescription className="text-center mb-6">
+                  Be the first to create an airdrop campaign!
+                </CardDescription>
+                <Button onClick={() => setActiveTab("create")}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Campaign
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {airdrops
@@ -1082,113 +1125,100 @@ export default function AirdropManager() {
             </div>
           )}
 
-          {/* Submit Entry Modal */}
-          {showSubmitModal && modalAirdropId && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Submit Your Entry
-                  </h3>
-                  <button
-                    onClick={() => {
-                      setShowSubmitModal(false);
-                      setModalAirdropId(null);
-                    }}
-                    className="text-gray-500 hover:text-gray-700 text-xl"
-                  >
-                    ✕
-                  </button>
-                </div>
+          {/* Submit Entry Dialog */}
+          <Dialog open={showSubmitModal} onOpenChange={setShowSubmitModal}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Submit Your Entry</DialogTitle>
+                <DialogDescription>
+                  Provide proof of your social media engagement
+                </DialogDescription>
+              </DialogHeader>
 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      Twitter/X Post URL
-                    </label>
-                    <input
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="twitterUrl">Twitter/X Post URL</Label>
+                  <div className="relative">
+                    <ExternalLink className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="twitterUrl"
                       type="url"
                       placeholder="https://twitter.com/..."
                       value={newEntry.airdropId === modalAirdropId ? newEntry.twitterUrl : ""}
                       onChange={(e) =>
                         setNewEntry({
                           ...newEntry,
-                          airdropId: modalAirdropId,
+                          airdropId: modalAirdropId!,
                           twitterUrl: e.target.value,
                         })
                       }
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="pl-10"
                     />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      IPFS Proof CID *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="QmExample123..."
-                      value={newEntry.airdropId === modalAirdropId ? newEntry.ipfsProofCid : ""}
-                      onChange={(e) =>
-                        setNewEntry({
-                          ...newEntry,
-                          airdropId: modalAirdropId,
-                          ipfsProofCid: e.target.value,
-                        })
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    />
-                    <p className="text-xs text-gray-600 mt-1">
-                      Upload screenshots or proof to IPFS and paste the CID here
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-2">
-                      Additional Notes (Optional)
-                    </label>
-                    <textarea
-                      placeholder="Any additional information..."
-                      value={newEntry.airdropId === modalAirdropId ? newEntry.description : ""}
-                      onChange={(e) =>
-                        setNewEntry({
-                          ...newEntry,
-                          airdropId: modalAirdropId,
-                          description: e.target.value,
-                        })
-                      }
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      onClick={() => {
-                        submitEntry();
-                        setShowSubmitModal(false);
-                        setModalAirdropId(null);
-                      }}
-                      disabled={!newEntry.ipfsProofCid || newEntry.airdropId !== modalAirdropId}
-                      className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Submit Entry
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowSubmitModal(false);
-                        setModalAirdropId(null);
-                      }}
-                      className="px-6 py-3 border border-gray-300 text-gray-800 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
                   </div>
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ipfsProof">IPFS Proof CID *</Label>
+                  <Input
+                    id="ipfsProof"
+                    placeholder="QmExample123..."
+                    value={newEntry.airdropId === modalAirdropId ? newEntry.ipfsProofCid : ""}
+                    onChange={(e) =>
+                      setNewEntry({
+                        ...newEntry,
+                        airdropId: modalAirdropId!,
+                        ipfsProofCid: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Upload screenshots or proof to IPFS and paste the CID here
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="Any additional information..."
+                    value={newEntry.airdropId === modalAirdropId ? newEntry.description : ""}
+                    onChange={(e) =>
+                      setNewEntry({
+                        ...newEntry,
+                        airdropId: modalAirdropId!,
+                        description: e.target.value,
+                      })
+                    }
+                    rows={3}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+
+              <DialogFooter className="gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowSubmitModal(false);
+                    setModalAirdropId(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    submitEntry();
+                    setShowSubmitModal(false);
+                    setModalAirdropId(null);
+                  }}
+                  disabled={!newEntry.ipfsProofCid || newEntry.airdropId !== modalAirdropId}
+                >
+                  <Send className="w-4 h-4 mr-2" />
+                  Submit Entry
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* View Entries Modal */}
           {selectedAirdrop && (

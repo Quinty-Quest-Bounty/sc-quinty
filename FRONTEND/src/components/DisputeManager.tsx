@@ -17,6 +17,43 @@ import {
   wagmiConfig,
   parseSTT,
 } from "../utils/web3";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
+import { Label } from "./ui/label";
+import { Separator } from "./ui/separator";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import {
+  Scale,
+  Vote,
+  Users,
+  Clock,
+  AlertTriangle,
+  ExternalLink,
+  Gavel,
+  Trophy,
+  Target,
+  Eye,
+  Coins,
+  FileText,
+  CheckCircle,
+  Timer,
+  Award,
+} from "lucide-react";
 
 // Interfaces
 interface Dispute {
@@ -151,7 +188,11 @@ export default function DisputeManager() {
             };
             loadedBounties.push(bounty);
           } else {
-            console.log(`❌ DEBUG: Bounty ${i} not eligible - status: ${Number(status)}, selectedWinners: ${selectedWinners?.length}`);
+            console.log(
+              `❌ DEBUG: Bounty ${i} not eligible - status: ${Number(
+                status
+              )}, selectedWinners: ${selectedWinners?.length}`
+            );
           }
         } else {
           console.log(`❌ DEBUG: No data returned for bounty ${i}`);
@@ -160,7 +201,9 @@ export default function DisputeManager() {
         console.error(`Error loading bounty ${i}:`, error);
       }
     }
-    console.log(`🔍 DEBUG: Total eligible bounties found: ${loadedBounties.length}`);
+    console.log(
+      `🔍 DEBUG: Total eligible bounties found: ${loadedBounties.length}`
+    );
     setEligibleBounties(loadedBounties);
   };
 
@@ -333,148 +376,197 @@ export default function DisputeManager() {
 
   if (!isConnected) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="bg-white rounded-lg shadow-lg p-12 text-center">
-          <div className="text-6xl mb-4">⚖️</div>
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            Wallet Connection Required
-          </h3>
-          <p className="text-gray-700 text-lg">
-            Please connect your wallet to participate in dispute resolution.
-          </p>
-        </div>
+      <div className="container mx-auto p-6">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+              <Scale className="h-8 w-8 text-primary" />
+            </div>
+            <CardTitle className="text-center mb-2">
+              Connect Your Wallet
+            </CardTitle>
+            <CardDescription className="text-center">
+              Please connect your wallet to participate in dispute resolution
+            </CardDescription>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="mb-8 text-center">
-        <h2 className="text-4xl font-bold text-gray-900 mb-3">
-          ⚖️ Dispute Resolution (Pengadilan DAO)
-        </h2>
-        <p className="text-gray-700 text-lg max-w-3xl mx-auto">
-          Participate in community voting to resolve bounty disputes and
-          expiries. Help maintain fairness and justice in the ecosystem.
-        </p>
-      </div>
-
-      <div className="bg-white rounded-xl shadow-lg p-8 mb-8">
-        <div className="text-center mb-6">
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">
-            🔍 Initiate Pengadilan Dispute
-          </h3>
-          <p className="text-gray-600 text-lg">
-            As a bounty creator, you can dispute a winner selection if you
-            believe there was an issue.
+    <div className="container mx-auto p-6 space-y-8">
+      {/* Header */}
+      <div className="text-center space-y-4">
+        <div className="flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+            <Scale className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight">
+            Dispute Resolution
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+            Participate in community voting to resolve bounty disputes and
+            expiries. Help maintain fairness and justice in the ecosystem.
           </p>
         </div>
-
-        {eligibleBounties.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-6xl mb-4">📝</div>
-            <h4 className="text-xl font-semibold text-gray-900 mb-2">
-              No Bounties Available for Dispute
-            </h4>
-            <p className="text-gray-600">
-              Only resolved bounties in PENDING_REVEAL state can be disputed.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <h4 className="font-semibold text-gray-900 mb-4">
-              Available Bounties for Dispute ({eligibleBounties.length})
-            </h4>
-            <div className="grid gap-4">
-              {eligibleBounties.map((bounty) => {
-                const requiredStake =
-                  (bounty.amount * BigInt(1000)) / BigInt(10000);
-                const isCreator =
-                  address?.toLowerCase() === bounty.creator.toLowerCase();
-
-                return (
-                  <div
-                    key={bounty.id}
-                    className={`border-2 rounded-lg p-4 ${
-                      isCreator
-                        ? "border-red-300 bg-red-50"
-                        : "border-gray-200 bg-gray-50"
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h5 className="font-semibold text-gray-900">
-                          Bounty #{bounty.id}
-                        </h5>
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                          {bounty.description.split("\\n")[0] ||
-                            "No description available"}
-                        </p>
-                        <div className="flex items-center gap-4 mt-2 text-sm">
-                          <span className="text-green-600 font-semibold">
-                            {formatSTT(bounty.amount)} STT
-                          </span>
-                          <span className="text-gray-500">
-                            Creator: {formatAddress(bounty.creator)}
-                          </span>
-                          <span className="text-blue-600">
-                            {bounty.selectedWinners.length} winner(s) selected
-                          </span>
-                        </div>
-                        {isCreator && (
-                          <div className="mt-2 p-2 bg-yellow-100 rounded text-sm text-yellow-800">
-                            ⚠️ You are the creator of this bounty
-                          </div>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm text-gray-600 mb-2">
-                          Required Stake: {formatSTT(requiredStake)} STT
-                        </div>
-                        <button
-                          onClick={() => initiatePengadilan(bounty)}
-                          disabled={!isCreator}
-                          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                            isCreator
-                              ? "bg-red-600 hover:bg-red-700 text-white"
-                              : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                          }`}
-                        >
-                          {isCreator
-                            ? "⚖️ Dispute This Bounty"
-                            : "Only Creator Can Dispute"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
 
+      {/* Initiate Pengadilan Dispute Section */}
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl flex items-center justify-center gap-2">
+            <Gavel className="h-6 w-6" />
+            Initiate Pengadilan Dispute
+          </CardTitle>
+          <CardDescription className="text-lg">
+            As a bounty creator, you can dispute a winner selection if you
+            believe there was an issue
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent>
+          {eligibleBounties.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-muted mx-auto mb-4">
+                <FileText className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <CardTitle className="mb-2">
+                No Bounties Available for Dispute
+              </CardTitle>
+              <CardDescription>
+                Only resolved bounties in PENDING_REVEAL state can be disputed
+              </CardDescription>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">
+                  Available Bounties for Dispute
+                </h3>
+                <Badge variant="secondary">
+                  {eligibleBounties.length} eligible
+                </Badge>
+              </div>
+
+              <div className="space-y-4">
+                {eligibleBounties.map((bounty) => {
+                  const requiredStake =
+                    (bounty.amount * BigInt(1000)) / BigInt(10000);
+                  const isCreator =
+                    address?.toLowerCase() === bounty.creator.toLowerCase();
+
+                  return (
+                    <Card
+                      key={bounty.id}
+                      className={
+                        isCreator ? "border-orange-200 bg-orange-50" : ""
+                      }
+                    >
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold">
+                                Bounty #{bounty.id}
+                              </h4>
+                              {isCreator && (
+                                <Badge
+                                  variant="outline"
+                                  className="bg-orange-100 text-orange-700"
+                                >
+                                  <AlertTriangle className="h-3 w-3 mr-1" />
+                                  You are the creator
+                                </Badge>
+                              )}
+                            </div>
+
+                            <p className="text-sm text-muted-foreground line-clamp-2">
+                              {bounty.description.split("\\n")[0] ||
+                                "No description available"}
+                            </p>
+
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1">
+                                <Coins className="h-4 w-4 text-green-600" />
+                                <span className="font-semibold text-green-600">
+                                  {formatSTT(bounty.amount)} STT
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <Users className="h-4 w-4 text-muted-foreground" />
+                                <span className="text-muted-foreground">
+                                  {formatAddress(bounty.creator)}
+                                </span>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <Trophy className="h-4 w-4 text-blue-600" />
+                                <span className="text-blue-600">
+                                  {bounty.selectedWinners.length} winner(s)
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right space-y-2">
+                            <div className="text-sm text-muted-foreground">
+                              Required Stake:{" "}
+                              <span className="font-semibold">
+                                {formatSTT(requiredStake)} STT
+                              </span>
+                            </div>
+                            <Button
+                              onClick={() => initiatePengadilan(bounty)}
+                              disabled={!isCreator}
+                              variant={isCreator ? "destructive" : "outline"}
+                              size="sm"
+                            >
+                              <Gavel className="h-4 w-4 mr-2" />
+                              {isCreator
+                                ? "Dispute This Bounty"
+                                : "Only Creator Can Dispute"}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Active Disputes Section */}
       <div className="space-y-6">
-        <div className="text-center">
-          <h3 className="text-2xl font-bold text-gray-900 mb-2">
-            📊 Active Disputes
-          </h3>
-          <div className="bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-semibold inline-block">
+        <div className="text-center space-y-4">
+          <h2 className="text-2xl font-bold flex items-center justify-center gap-2">
+            <Vote className="h-6 w-6" />
+            Active Disputes
+          </h2>
+          <Badge variant="secondary" className="px-4 py-2">
             {disputes.filter((d) => !d.resolved).length} ongoing disputes
-          </div>
+          </Badge>
         </div>
 
         {disputes.filter((d) => !d.resolved).length === 0 ? (
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-            <div className="text-6xl mb-4">⚖️</div>
-            <h4 className="text-xl font-semibold text-gray-900 mb-2">
-              No Active Disputes
-            </h4>
-            <p className="text-gray-600">
-              All disputes have been resolved. The community is working
-              harmoniously!
-            </p>
-          </div>
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+                <CheckCircle className="h-10 w-10 text-primary" />
+              </div>
+              <CardTitle className="mb-2">No Active Disputes</CardTitle>
+              <CardDescription className="text-center">
+                All disputes have been resolved. The community is working
+                harmoniously!
+              </CardDescription>
+            </CardContent>
+          </Card>
         ) : (
           <div className="space-y-6">
             {disputes

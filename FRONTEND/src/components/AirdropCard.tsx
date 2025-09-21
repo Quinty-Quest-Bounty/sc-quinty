@@ -3,12 +3,14 @@
 import React from 'react';
 import { formatSTT, formatTimeLeft, formatAddress } from "../utils/web3";
 import { IpfsImage } from "../utils/ipfs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Calendar, Users, Send, Clock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Progress } from "./ui/progress";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { Separator } from "./ui/separator";
+import { Calendar, Users, Send, Clock, Gift, Coins, User, Target } from "lucide-react";
+import { cn } from "../lib/utils";
 
 interface Airdrop {
   id: number;
@@ -35,88 +37,122 @@ export default function AirdropCard({ airdrop, onShowSubmitModal }: AirdropCardP
   const progress = Math.min((airdrop.qualifiersCount / airdrop.maxQualifiers) * 100, 100);
   const isExpired = Date.now() / 1000 > airdrop.deadline;
 
+  const getStatusColor = () => {
+    if (airdrop.resolved) return "default";
+    if (isExpired) return "destructive";
+    if (airdrop.qualifiersCount >= airdrop.maxQualifiers) return "secondary";
+    return "default";
+  };
+
+  const getStatusText = () => {
+    if (airdrop.resolved) return "Completed";
+    if (isExpired) return "Expired";
+    if (airdrop.qualifiersCount >= airdrop.maxQualifiers) return "Full";
+    return "Active";
+  };
+
   return (
-    <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border-0 bg-gradient-to-br from-white to-gray-50/50 backdrop-blur-sm">
+    <Card className="group relative overflow-hidden transition-all duration-200 hover:shadow-lg hover:shadow-primary/5">
+      {/* Status Badge */}
+      <div className="absolute top-4 right-4 z-10">
+        <Badge variant={getStatusColor()}>
+          <Clock className="w-3 h-3 mr-1" />
+          {getStatusText()}
+        </Badge>
+      </div>
+
+      {/* Image Section */}
       {airdrop.imageUrl && (
-        <div className="relative w-full h-40 overflow-hidden">
+        <div className="relative w-full h-48 overflow-hidden bg-muted">
           <IpfsImage
             cid={airdrop.imageUrl.replace('ipfs://', '')}
             alt={airdrop.title}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          <div className="absolute top-4 right-4">
-            <Badge variant={isExpired ? "outline" : "default"} className="backdrop-blur-sm bg-white/90">
-              <Clock className="w-3 h-3 mr-1" />
-              {isExpired ? 'Expired' : airdrop.resolved ? 'Ended' : 'Active'}
-            </Badge>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent" />
         </div>
       )}
 
-      <CardHeader className="pb-4">
+      <CardHeader className="space-y-4">
+        {/* Title and Description */}
         <div className="space-y-2">
-          <CardTitle className="text-lg font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent line-clamp-1">
-            {airdrop.title}
-          </CardTitle>
-          <p className="text-sm text-muted-foreground line-clamp-2 h-[40px] leading-relaxed">
-            {airdrop.description?.replace(/\n\nImage:.*$/, '') || "Social media promotion task."}
-          </p>
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 flex-shrink-0">
+              <Gift className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-lg leading-tight line-clamp-2">
+                {airdrop.title}
+              </CardTitle>
+              <CardDescription className="mt-1 line-clamp-2">
+                {airdrop.description?.replace(/\n\nImage:.*$/, '') || "Social media promotion task"}
+              </CardDescription>
+            </div>
+          </div>
         </div>
 
-        {/* Progress Section */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Users className="w-3 h-3" />
-              Progress
-            </span>
-            <span className="font-medium">{airdrop.qualifiersCount} / {airdrop.maxQualifiers}</span>
-          </div>
-          <Progress value={progress} className="h-2" />
+        {/* Creator Info */}
+        <div className="flex items-center gap-2">
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="text-xs">
+              {airdrop.creator.slice(2, 4).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-sm text-muted-foreground">
+            by {formatAddress(airdrop.creator)}
+          </span>
         </div>
 
-        {/* Details Grid */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
+        <Separator />
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <span className="text-muted-foreground">Creator:</span>
-            <div className="font-medium text-foreground truncate">{formatAddress(airdrop.creator)}</div>
+            <div className="flex items-center gap-1 text-muted-foreground text-sm">
+              <Users className="h-3 w-3" />
+              Participants
+            </div>
+            <div className="font-semibold">
+              {airdrop.qualifiersCount} / {airdrop.maxQualifiers}
+            </div>
+            <Progress value={progress} className="h-1.5" />
           </div>
+
           <div className="space-y-1">
-            <span className="text-muted-foreground flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              Deadline:
-            </span>
-            <div className="font-medium text-foreground">{formatTimeLeft(BigInt(airdrop.deadline))}</div>
+            <div className="flex items-center gap-1 text-muted-foreground text-sm">
+              <Calendar className="h-3 w-3" />
+              Deadline
+            </div>
+            <div className="font-semibold text-sm">
+              {formatTimeLeft(BigInt(airdrop.deadline))}
+            </div>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
-        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg border border-emerald-100">
-          <div className="text-left">
-            <div className="text-xl font-bold text-emerald-600">{formatSTT(airdrop.perQualifier)} STT</div>
+      <CardContent>
+        {/* Reward Section */}
+        <div className="flex items-center justify-between p-4 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200">
+          <div>
+            <div className="flex items-center gap-2">
+              <Coins className="h-4 w-4 text-green-600" />
+              <span className="text-2xl font-bold text-green-600">
+                {formatSTT(airdrop.perQualifier)}
+              </span>
+              <span className="text-sm font-medium text-green-600">STT</span>
+            </div>
             <div className="text-xs text-muted-foreground">per qualifier</div>
           </div>
+
+          {/* Action Button */}
           {!isExpired && !airdrop.resolved && airdrop.qualifiersCount < airdrop.maxQualifiers ? (
-            <Button
-              onClick={onShowSubmitModal}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
-            >
+            <Button onClick={onShowSubmitModal} size="sm">
               <Send className="w-4 h-4 mr-2" />
               Submit Entry
             </Button>
           ) : (
-            <Badge
-              variant="outline"
-              className={cn(
-                "px-4 py-2 text-sm font-semibold",
-                airdrop.resolved && "bg-gray-100 text-gray-500",
-                isExpired && "bg-red-50 text-red-600",
-                airdrop.qualifiersCount >= airdrop.maxQualifiers && "bg-blue-50 text-blue-600"
-              )}
-            >
-              {airdrop.resolved ? 'Ended' : isExpired ? 'Expired' : 'Full'}
+            <Badge variant="outline" className="px-3 py-1">
+              {getStatusText()}
             </Badge>
           )}
         </div>
