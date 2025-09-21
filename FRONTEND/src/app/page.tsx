@@ -122,12 +122,9 @@ export default function Home() {
                     Welcome to Quinty
                   </h1>
                   <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                    A decentralized bounty platform with governance, reputation
-                    NFTs, and transparent dispute resolution on Somnia Testnet.
+                    Decentralized bounty platform with governance, reputation
+                    NFTs, and transparent dispute resolution.
                   </p>
-                </div>
-                <div className="pt-4">
-                  <ConnectButton />
                 </div>
               </div>
 
@@ -144,19 +141,25 @@ export default function Home() {
                   </CardHeader>
                   <CardContent>
                     <CardDescription>
-                      Post tasks with 100% STT escrow and blinded submissions
-                      for secure, transparent project completion.
+                      Post tasks with 100% STT escrow and transparent project
+                      completion.
                     </CardDescription>
                   </CardContent>
                 </Card>
 
                 <Card className="text-left">
                   <CardHeader>
-                    <div className="flex items-center space-x-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                        <Scale className="h-5 w-5 text-green-600" />
+                    <div className="flex items-center justify-between">
+                      {/* Kiri */}
+                      <div className="flex items-center space-x-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+                          <Scale className="h-5 w-5 text-green-600" />
+                        </div>
+                        <CardTitle>Disputes</CardTitle>
                       </div>
-                      <CardTitle> Disputes</CardTitle>
+
+                      {/* Kanan */}
+                      <Badge variant="secondary">Soon</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -226,8 +229,8 @@ export default function Home() {
                 <h3 className="text-lg font-semibold">Quinty </h3>
               </div>
               <p className="text-sm text-muted-foreground">
-                Decentralized bounty system with transparent governance and
-                reputation-based rewards on Somnia Testnet.
+                Decentralized bounty platform with governance, reputation NFTs,
+                and transparent dispute resolution.
               </p>
             </div>
 
@@ -240,7 +243,7 @@ export default function Home() {
                 </li>
                 <li className="flex items-center space-x-2">
                   <Code className="h-3 w-3" />
-                  <span>Blinded IPFS Submissions</span>
+                  <span>Transparent System</span>
                 </li>
                 <li className="flex items-center space-x-2">
                   <Users className="h-3 w-3" />
@@ -317,7 +320,7 @@ export default function Home() {
 
           <div className="flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
             <p className="text-sm text-muted-foreground">
-              Built with ❤️ for the Somnia Testnet ecosystem
+              Built with ❤️ for the Somnia ecosystem
             </p>
             <div className="flex items-center space-x-4 text-sm text-muted-foreground">
               <span>Open Source</span>
