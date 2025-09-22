@@ -45,7 +45,7 @@ contract DisputeResolver is Ownable, ReentrancyGuard {
         disputeCounter++;
         Dispute storage d = disputes[disputeCounter];
         d.bountyId = _bountyId;
-        (address creator,,,,,,) = quintyContract.bounties(_bountyId);
+        (address creator,,,,,,,,) = quintyContract.getBountyData(_bountyId);
         d.initiatedBy = creator;
         d.isExpiryVote = true;
         d.amount = _slashAmount;
