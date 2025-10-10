@@ -12,8 +12,8 @@ contract AirdropBounty is Ownable, ReentrancyGuard {
         address creator;
         string title;
         string description;
-        uint256 totalAmount; // STT escrowed
-        uint256 perQualifier; // e.g., 10 STT per person
+        uint256 totalAmount; // ETH escrowed
+        uint256 perQualifier; // e.g., 10 ETH per person
         uint256 maxQualifiers; // e.g., 100 people max
         uint256 qualifiersCount;
         uint256 deadline;

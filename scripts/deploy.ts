@@ -2,10 +2,12 @@ import { ethers } from "hardhat";
 import fs from "fs";
 
 async function main() {
-  console.log("🚀 Starting Quinty V2 deployment to Somnia Testnet...");
+  const network = await ethers.provider.getNetwork();
+  const networkName = network.chainId === 8453n ? "Base Mainnet" : network.chainId === 84532n ? "Base Sepolia" : "Local Network";
+  console.log(`🚀 Starting Quinty V2 deployment to ${networkName}...`);
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
-  console.log("Account balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "STT");
+  console.log("Account balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH");
 
   // 1. Deploy QuintyReputation with a base URI for metadata
   console.log("\n📋 Deploying QuintyReputation contract...");
@@ -53,8 +55,8 @@ async function main() {
 
   console.log("\n✨ Deployment completed successfully!");
   const deploymentInfo = {
-    chainId: 50312,
-    network: "somniaTestnet",
+    chainId: Number(network.chainId),
+    network: networkName,
     timestamp: new Date().toISOString(),
     contracts: {
       Quinty: quintyAddress,
