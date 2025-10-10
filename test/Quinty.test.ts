@@ -15,26 +15,26 @@ describe("Quinty Contract System", function () {
   let voter2: any;
   let addrs: any[];
 
-  const BOUNCE_AMOUNT = ethers.parseEther("1.0"); // 1 STT
+  const BOUNCE_AMOUNT = ethers.parseEther("1.0"); // 1 ETH
   const SLASH_PERCENT = 3000; // 30%
   const SUBMISSION_DEPOSIT = ethers.parseEther("0.1"); // 10% of bounty
-  const VOTING_STAKE = ethers.parseEther("0.0001"); // 0.0001 STT
+  const VOTING_STAKE = ethers.parseEther("0.0001"); // 0.0001 ETH
 
   beforeEach(async function () {
     [owner, creator, solver1, solver2, voter1, voter2, ...addrs] = await ethers.getSigners();
 
     // Deploy contracts
     const QuintyReputation = await ethers.getContractFactory("QuintyReputation");
-    reputation = await QuintyReputation.deploy();
+    reputation = await QuintyReputation.deploy("ipfs://QmExampleCid/");
     await reputation.waitForDeployment();
-
-    const DisputeResolver = await ethers.getContractFactory("DisputeResolver");
-    dispute = await DisputeResolver.deploy();
-    await dispute.waitForDeployment();
 
     const Quinty = await ethers.getContractFactory("Quinty");
     quinty = await Quinty.deploy();
     await quinty.waitForDeployment();
+
+    const DisputeResolver = await ethers.getContractFactory("DisputeResolver");
+    dispute = await DisputeResolver.deploy(await quinty.getAddress());
+    await dispute.waitForDeployment();
 
     const AirdropBounty = await ethers.getContractFactory("AirdropBounty");
     airdrop = await AirdropBounty.deploy();
@@ -42,7 +42,6 @@ describe("Quinty Contract System", function () {
 
     // Set up connections
     await quinty.setAddresses(await reputation.getAddress(), await dispute.getAddress());
-    await dispute.setQuintyAddress(await quinty.getAddress());
     await reputation.transferOwnership(await quinty.getAddress());
   });
 

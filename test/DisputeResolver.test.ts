@@ -27,20 +27,19 @@ describe("DisputeResolver Contract", function () {
 
     // Deploy contracts
     const QuintyReputation = await ethers.getContractFactory("QuintyReputation");
-    reputation = await QuintyReputation.deploy();
+    reputation = await QuintyReputation.deploy("ipfs://QmExampleCid/");
     await reputation.waitForDeployment();
-
-    const DisputeResolver = await ethers.getContractFactory("DisputeResolver");
-    dispute = await DisputeResolver.deploy();
-    await dispute.waitForDeployment();
 
     const Quinty = await ethers.getContractFactory("Quinty");
     quinty = await Quinty.deploy();
     await quinty.waitForDeployment();
 
+    const DisputeResolver = await ethers.getContractFactory("DisputeResolver");
+    dispute = await DisputeResolver.deploy(await quinty.getAddress());
+    await dispute.waitForDeployment();
+
     // Set up connections
     await quinty.setAddresses(await reputation.getAddress(), await dispute.getAddress());
-    await dispute.setQuintyAddress(await quinty.getAddress());
     await reputation.transferOwnership(await quinty.getAddress());
   });
 
