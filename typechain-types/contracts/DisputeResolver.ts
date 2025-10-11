@@ -333,7 +333,7 @@ export interface DisputeResolver extends BaseContract {
   initiateExpiryVote: TypedContractMethod<
     [_bountyId: BigNumberish, _slashAmount: BigNumberish],
     [void],
-    "nonpayable"
+    "payable"
   >;
 
   initiatePengadilanDispute: TypedContractMethod<
@@ -433,7 +433,7 @@ export interface DisputeResolver extends BaseContract {
   ): TypedContractMethod<
     [_bountyId: BigNumberish, _slashAmount: BigNumberish],
     [void],
-    "nonpayable"
+    "payable"
   >;
   getFunction(
     nameOrSignature: "initiatePengadilanDispute"

@@ -40,7 +40,7 @@ contract DisputeResolver is Ownable, ReentrancyGuard {
         quintyContract = Quinty(_quintyAddress);
     }
 
-    function initiateExpiryVote(uint256 _bountyId, uint256 _slashAmount) external {
+    function initiateExpiryVote(uint256 _bountyId, uint256 _slashAmount) external payable {
         require(msg.sender == address(quintyContract), "Only Quinty contract can initiate expiry vote");
         disputeCounter++;
         Dispute storage d = disputes[disputeCounter];
@@ -156,4 +156,6 @@ contract DisputeResolver is Ownable, ReentrancyGuard {
         }
         return false;
     }
+
+    receive() external payable {}
 }
