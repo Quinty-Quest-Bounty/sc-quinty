@@ -62,12 +62,13 @@ describe("Quinty Contract System", function () {
           )
       )
         .to.emit(quinty, "BountyCreated")
-        .withArgs(1, creator.address, BOUNCE_AMOUNT, deadline, false); // hasOprec = false
+        .withArgs(1, creator.address, BOUNCE_AMOUNT, deadline);
 
-      const bounty = await quinty.getBountyData(1);
+      const bounty = await quinty.getBounty(1);
       expect(bounty.creator).to.equal(creator.address);
       expect(bounty.amount).to.equal(BOUNCE_AMOUNT);
-      expect(bounty.status).to.equal(1); // OPEN
+      expect(bounty.resolved).to.be.false;
+      expect(bounty.slashed).to.be.false;
     });
 
     it("Should reject bounty creation with invalid parameters", async function () {
@@ -89,8 +90,8 @@ describe("Quinty Contract System", function () {
       await expect(
         quinty
           .connect(creator)
-          .createBounty("Test", deadline, false, [], 6000, false, 0, { value: BOUNCE_AMOUNT })
-      ).to.be.revertedWith("Slash must be 25-50%");
+          .createBounty("Test", deadline, false, [], 6000, { value: BOUNCE_AMOUNT })
+      ).to.be.revertedWith("Slash 25-50%");
     });
 
     it("Should handle multiple winner bounties", async function () {
@@ -99,11 +100,11 @@ describe("Quinty Contract System", function () {
 
       await quinty
         .connect(creator)
-        .createBounty("Multi-winner bounty", deadline, true, winnerShares, SLASH_PERCENT, false, 0, {
+        .createBounty("Multi-winner bounty", deadline, true, winnerShares, SLASH_PERCENT, {
           value: BOUNCE_AMOUNT,
         });
 
-      const bounty = await quinty.getBountyData(1);
+      const bounty = await quinty.getBounty(1);
       expect(bounty.allowMultipleWinners).to.be.true;
       expect(bounty.winnerShares).to.deep.equal(winnerShares);
     });
@@ -121,10 +122,10 @@ describe("Quinty Contract System", function () {
       const ipfsCid = "QmTestCid123";
 
       await expect(
-        quinty.connect(solver1).submitSolution(1, ipfsCid, [], { value: SUBMISSION_DEPOSIT })
+        quinty.connect(solver1).submitSolution(1, ipfsCid, { value: SUBMISSION_DEPOSIT })
       )
         .to.emit(quinty, "SubmissionCreated")
-        .withArgs(1, 0, solver1.address, ipfsCid, false); // isTeam = false
+        .withArgs(1, 0, solver1.address, ipfsCid);
 
       const submission = await quinty.getSubmission(1, 0);
       expect(submission.solver).to.equal(solver1.address);
@@ -136,7 +137,7 @@ describe("Quinty Contract System", function () {
       const ipfsCid = "QmTestCid123";
 
       await expect(
-        quinty.connect(solver1).submitSolution(1, ipfsCid, [], { value: ethers.parseEther("0.05") })
+        quinty.connect(solver1).submitSolution(1, ipfsCid, { value: ethers.parseEther("0.05") })
       ).to.be.revertedWith("10% deposit required");
     });
 
@@ -147,8 +148,8 @@ describe("Quinty Contract System", function () {
       await time.increase(86401);
 
       await expect(
-        quinty.connect(solver1).submitSolution(1, ipfsCid, [], { value: SUBMISSION_DEPOSIT })
-      ).to.be.revertedWith("Deadline has passed");
+        quinty.connect(solver1).submitSolution(1, ipfsCid, { value: SUBMISSION_DEPOSIT })
+      ).to.be.revertedWith("Expired");
     });
   });
 
@@ -160,19 +161,20 @@ describe("Quinty Contract System", function () {
         .createBounty("Test bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
       // Add a submission
-      await quinty.connect(solver1).submitSolution(1, "QmTestCid1", [], { value: SUBMISSION_DEPOSIT });
-      await quinty.connect(solver2).submitSolution(1, "QmTestCid2", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(1, "QmTestCid1", { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver2).submitSolution(1, "QmTestCid2", { value: SUBMISSION_DEPOSIT });
     });
 
     it("Should allow creator to select winner", async function () {
       const solver1BalanceBefore = await ethers.provider.getBalance(solver1.address);
 
       await expect(quinty.connect(creator).selectWinners(1, [solver1.address], [0]))
-        .to.emit(quinty, "WinnersSelected");
+        .to.emit(quinty, "BountyResolved")
+        .and.to.emit(quinty, "WinnerSelected");
 
-      const bounty = await quinty.getBountyData(1);
-      expect(bounty.status).to.equal(2); // PENDING_REVEAL
-      expect(bounty.selectedWinners).to.deep.equal([solver1.address]);
+      const bounty = await quinty.getBounty(1);
+      expect(bounty.resolved).to.be.true;
+      expect(bounty.winners).to.deep.equal([solver1.address]);
 
       // Check winner received payment
       const solver1BalanceAfter = await ethers.provider.getBalance(solver1.address);
@@ -188,16 +190,12 @@ describe("Quinty Contract System", function () {
       ).to.be.revertedWith("Not creator");
     });
 
-    it("Should allow winner selection even after deadline", async function () {
+    it("Should prevent winner selection after deadline", async function () {
       await time.increase(86401);
 
-      // Creator can still select winners after deadline
       await expect(
         quinty.connect(creator).selectWinners(1, [solver1.address], [0])
-      ).to.emit(quinty, "WinnersSelected");
-
-      const bounty = await quinty.getBountyData(1);
-      expect(bounty.status).to.equal(2); // PENDING_REVEAL
+      ).to.be.revertedWith("Expired");
     });
   });
 
@@ -208,7 +206,7 @@ describe("Quinty Contract System", function () {
         .connect(creator)
         .createBounty("Test bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-      await quinty.connect(solver1).submitSolution(1, "QmTestCid1", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(1, "QmTestCid1", { value: SUBMISSION_DEPOSIT });
     });
 
     it("Should trigger slash after deadline", async function () {
@@ -221,8 +219,9 @@ describe("Quinty Contract System", function () {
         .to.emit(quinty, "BountySlashed")
         .and.to.emit(dispute, "DisputeInitiated");
 
-      const bounty = await quinty.getBountyData(1);
-      expect(bounty.status).to.equal(5); // EXPIRED
+      const bounty = await quinty.getBounty(1);
+      expect(bounty.resolved).to.be.true;
+      expect(bounty.slashed).to.be.true;
 
       // Check slash amount went to dispute contract
       const expectedSlash = (BOUNCE_AMOUNT * BigInt(SLASH_PERCENT)) / BigInt(10000);
@@ -257,7 +256,7 @@ describe("Quinty Contract System", function () {
         .connect(creator)
         .createBounty("Test bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-      await quinty.connect(solver1).submitSolution(1, "QmTestCid1", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(1, "QmTestCid1", { value: SUBMISSION_DEPOSIT });
 
       const rep = await reputation.getUserReputation(solver1.address);
       expect(rep.solvesAttempted).to.equal(1);
@@ -272,7 +271,7 @@ describe("Quinty Contract System", function () {
           .connect(creator)
           .createBounty(`Bounty ${i}`, deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-        await quinty.connect(solver1).submitSolution(i + 1, `QmTestCid${i}`, [], { value: SUBMISSION_DEPOSIT });
+        await quinty.connect(solver1).submitSolution(i + 1, `QmTestCid${i}`, { value: SUBMISSION_DEPOSIT });
         await quinty.connect(creator).selectWinners(i + 1, [solver1.address], [0]);
       }
 
@@ -290,7 +289,7 @@ describe("Quinty Contract System", function () {
         .connect(creator)
         .createBounty("Test bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-      await quinty.connect(solver1).submitSolution(1, "QmTestCid1", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(1, "QmTestCid1", { value: SUBMISSION_DEPOSIT });
     });
 
     it("Should allow replies between creator and solver", async function () {
@@ -307,7 +306,7 @@ describe("Quinty Contract System", function () {
     it("Should prevent unauthorized replies", async function () {
       await expect(
         quinty.connect(solver2).addReply(1, 0, "I shouldn't be able to reply")
-      ).to.be.revertedWith("Not authorized to reply");
+      ).to.be.revertedWith("Unauthorized");
     });
   });
 
@@ -318,7 +317,7 @@ describe("Quinty Contract System", function () {
         .connect(creator)
         .createBounty("Test bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-      await quinty.connect(solver1).submitSolution(1, "QmBlindedCid", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(1, "QmBlindedCid", { value: SUBMISSION_DEPOSIT });
       await quinty.connect(creator).selectWinners(1, [solver1.address], [0]);
     });
 
@@ -339,11 +338,11 @@ describe("Quinty Contract System", function () {
         .connect(creator)
         .createBounty("Unresolved bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-      await quinty.connect(solver1).submitSolution(2, "QmBlindedCid2", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(2, "QmBlindedCid2", { value: SUBMISSION_DEPOSIT });
 
       await expect(
         quinty.connect(solver1).revealSolution(2, 0, "QmRevealCid")
-      ).to.be.revertedWith("Bounty not pending reveal");
+      ).to.be.revertedWith("Not resolved");
     });
   });
 
@@ -376,12 +375,12 @@ describe("Quinty Contract System", function () {
         .connect(creator)
         .createBounty("Large bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: largeBounty });
 
-      const bounty = await quinty.getBountyData(1);
+      const bounty = await quinty.getBounty(1);
       expect(bounty.amount).to.equal(largeBounty);
 
       // Test submission with correct 10% deposit
       const largeDeposit = largeBounty / BigInt(10);
-      await quinty.connect(solver1).submitSolution(1, "QmLargeCid", [], { value: largeDeposit });
+      await quinty.connect(solver1).submitSolution(1, "QmLargeCid", { value: largeDeposit });
 
       const submission = await quinty.getSubmission(1, 0);
       expect(submission.deposit).to.equal(largeDeposit);

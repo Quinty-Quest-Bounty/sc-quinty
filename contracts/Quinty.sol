@@ -15,9 +15,30 @@ interface IDisputeResolver {
     function initiateExpiryVote(uint256 _bountyId, uint256 _slashAmount) external;
 }
 
+interface IQuintyNFT {
+    function mintBadge(address recipient, uint8 badgeType, string memory metadataURI) external returns (uint256);
+    function batchMintBadges(address[] memory recipients, uint8 badgeType, string memory metadataURI) external;
+}
+
 contract Quinty is Ownable, ReentrancyGuard {
 
-    enum BountyStatus { OPEN, PENDING_REVEAL, RESOLVED, DISPUTED, EXPIRED }
+    enum BountyStatus { OPREC, OPEN, PENDING_REVEAL, RESOLVED, DISPUTED, EXPIRED }
+
+    struct Team {
+        address leader;
+        address[] members;
+        uint256 createdAt;
+    }
+
+    struct OprecApplication {
+        address applicant;
+        address[] teamMembers; // Empty if solo, filled if team
+        string workExamples; // IPFS CID with portfolio/examples
+        string skillDescription;
+        uint256 appliedAt;
+        bool approved;
+        bool rejected;
+    }
 
     struct Reply {
         address replier;
@@ -27,11 +48,13 @@ contract Quinty is Ownable, ReentrancyGuard {
 
     struct Submission {
         address solver;
+        address[] teamMembers; // Empty if solo, filled if team submission
         string blindedIpfsCid;
         string revealIpfsCid;
         uint256 deposit;
         Reply[] replies;
         bool revealed;
+        bool isTeam;
     }
 
     struct Bounty {
@@ -46,18 +69,27 @@ contract Quinty is Ownable, ReentrancyGuard {
         Submission[] submissions;
         address[] selectedWinners;
         uint256[] selectedSubmissionIds;
+        bool hasOprec; // Whether this bounty has oprec phase
+        uint256 oprecDeadline; // Deadline for oprec applications
+        OprecApplication[] oprecApplications;
     }
 
     mapping(uint256 => Bounty) public bounties;
+    mapping(uint256 => mapping(address => bool)) public approvedParticipants; // bountyId => participant => approved
     uint256 public bountyCounter;
 
     address public reputationAddress;
     address public disputeAddress;
+    address public nftAddress;
 
     constructor() Ownable(msg.sender) {}
 
-    event BountyCreated(uint256 indexed id, address indexed creator, uint256 amount, uint256 deadline);
-    event SubmissionCreated(uint256 indexed bountyId, uint256 subId, address solver, string ipfsCid);
+    event BountyCreated(uint256 indexed id, address indexed creator, uint256 amount, uint256 deadline, bool hasOprec);
+    event OprecApplicationSubmitted(uint256 indexed bountyId, uint256 applicationId, address indexed applicant, bool isTeam);
+    event OprecApplicationApproved(uint256 indexed bountyId, uint256 applicationId, address indexed applicant);
+    event OprecApplicationRejected(uint256 indexed bountyId, uint256 applicationId, address indexed applicant);
+    event OprecPhaseEnded(uint256 indexed bountyId);
+    event SubmissionCreated(uint256 indexed bountyId, uint256 subId, address solver, string ipfsCid, bool isTeam);
     event WinnersSelected(uint256 indexed bountyId, address[] winners, uint256[] submissionIds);
     event SolutionRevealed(uint256 indexed bountyId, uint256 subId, address solver, string revealIpfsCid);
     event BountyResolved(uint256 indexed bountyId);
@@ -74,9 +106,17 @@ contract Quinty is Ownable, ReentrancyGuard {
         _;
     }
 
-    function setAddresses(address _repAddress, address _disputeAddress) external onlyOwner {
+    modifier oprecIsActive(uint256 _bountyId) {
+        Bounty storage bounty = bounties[_bountyId];
+        require(bounty.status == BountyStatus.OPREC, "Oprec not active");
+        require(block.timestamp <= bounty.oprecDeadline, "Oprec deadline passed");
+        _;
+    }
+
+    function setAddresses(address _repAddress, address _disputeAddress, address _nftAddress) external onlyOwner {
         reputationAddress = _repAddress;
         disputeAddress = _disputeAddress;
+        nftAddress = _nftAddress;
     }
 
     function createBounty(
@@ -84,11 +124,17 @@ contract Quinty is Ownable, ReentrancyGuard {
         uint256 _deadline,
         bool _allowMultipleWinners,
         uint256[] memory _winnerShares,
-        uint256 _slashPercent
+        uint256 _slashPercent,
+        bool _hasOprec,
+        uint256 _oprecDeadline
     ) external payable nonReentrant {
         require(msg.value > 0, "Escrow required");
         require(_deadline > block.timestamp, "Invalid deadline");
         require(_slashPercent >= 2500 && _slashPercent <= 5000, "Slash must be 25-50%");
+
+        if (_hasOprec) {
+            require(_oprecDeadline > block.timestamp && _oprecDeadline < _deadline, "Invalid oprec deadline");
+        }
 
         if (_allowMultipleWinners) {
             require(_winnerShares.length > 1, "Multi-winner requires multiple shares");
@@ -109,35 +155,147 @@ contract Quinty is Ownable, ReentrancyGuard {
         bounty.deadline = _deadline;
         bounty.allowMultipleWinners = _allowMultipleWinners;
         bounty.winnerShares = _winnerShares;
-        bounty.status = BountyStatus.OPEN;
+        bounty.status = _hasOprec ? BountyStatus.OPREC : BountyStatus.OPEN;
         bounty.slashPercent = _slashPercent;
+        bounty.hasOprec = _hasOprec;
+        bounty.oprecDeadline = _oprecDeadline;
 
-        emit BountyCreated(bountyCounter, msg.sender, msg.value, _deadline);
+        emit BountyCreated(bountyCounter, msg.sender, msg.value, _deadline, _hasOprec);
         IQuintyReputation(reputationAddress).recordBountyCreation(msg.sender);
     }
 
-    function submitSolution(uint256 _bountyId, string memory _blindedIpfsCid) external payable bountyIsOpen(_bountyId) nonReentrant {
+    // ========== OPREC FUNCTIONS ==========
+
+    function applyToOprec(
+        uint256 _bountyId,
+        address[] memory _teamMembers,
+        string memory _workExamples,
+        string memory _skillDescription
+    ) external oprecIsActive(_bountyId) nonReentrant {
+        Bounty storage bounty = bounties[_bountyId];
+        require(bytes(_workExamples).length > 0, "Work examples required");
+        require(bytes(_skillDescription).length > 0, "Skill description required");
+        require(_teamMembers.length <= 10, "Max 10 team members");
+
+        // Validate team members
+        for (uint i = 0; i < _teamMembers.length; i++) {
+            require(_teamMembers[i] != address(0), "Invalid team member");
+            require(_teamMembers[i] != msg.sender, "Cannot include self in team members");
+        }
+
+        bounty.oprecApplications.push(OprecApplication({
+            applicant: msg.sender,
+            teamMembers: _teamMembers,
+            workExamples: _workExamples,
+            skillDescription: _skillDescription,
+            appliedAt: block.timestamp,
+            approved: false,
+            rejected: false
+        }));
+
+        emit OprecApplicationSubmitted(
+            _bountyId,
+            bounty.oprecApplications.length - 1,
+            msg.sender,
+            _teamMembers.length > 0
+        );
+    }
+
+    function approveOprecApplications(
+        uint256 _bountyId,
+        uint256[] memory _applicationIds
+    ) external onlyCreator(_bountyId) nonReentrant {
+        Bounty storage bounty = bounties[_bountyId];
+        require(bounty.status == BountyStatus.OPREC, "Oprec not active");
+
+        for (uint i = 0; i < _applicationIds.length; i++) {
+            uint256 appId = _applicationIds[i];
+            require(appId < bounty.oprecApplications.length, "Invalid application ID");
+
+            OprecApplication storage app = bounty.oprecApplications[appId];
+            require(!app.approved && !app.rejected, "Application already processed");
+
+            app.approved = true;
+            approvedParticipants[_bountyId][app.applicant] = true;
+
+            emit OprecApplicationApproved(_bountyId, appId, app.applicant);
+        }
+    }
+
+    function rejectOprecApplications(
+        uint256 _bountyId,
+        uint256[] memory _applicationIds
+    ) external onlyCreator(_bountyId) nonReentrant {
+        Bounty storage bounty = bounties[_bountyId];
+        require(bounty.status == BountyStatus.OPREC, "Oprec not active");
+
+        for (uint i = 0; i < _applicationIds.length; i++) {
+            uint256 appId = _applicationIds[i];
+            require(appId < bounty.oprecApplications.length, "Invalid application ID");
+
+            OprecApplication storage app = bounty.oprecApplications[appId];
+            require(!app.approved && !app.rejected, "Application already processed");
+
+            app.rejected = true;
+
+            emit OprecApplicationRejected(_bountyId, appId, app.applicant);
+        }
+    }
+
+    function endOprecPhase(uint256 _bountyId) external onlyCreator(_bountyId) nonReentrant {
+        Bounty storage bounty = bounties[_bountyId];
+        require(bounty.status == BountyStatus.OPREC, "Oprec not active");
+        require(block.timestamp >= bounty.oprecDeadline, "Oprec deadline not reached");
+
+        bounty.status = BountyStatus.OPEN;
+        emit OprecPhaseEnded(_bountyId);
+    }
+
+    // ========== SUBMISSION FUNCTIONS ==========
+
+    function submitSolution(
+        uint256 _bountyId,
+        string memory _blindedIpfsCid,
+        address[] memory _teamMembers
+    ) external payable bountyIsOpen(_bountyId) nonReentrant {
         Bounty storage bounty = bounties[_bountyId];
         require(block.timestamp <= bounty.deadline, "Deadline has passed");
+
+        // If oprec was active, check if participant is approved
+        if (bounty.hasOprec) {
+            require(approvedParticipants[_bountyId][msg.sender], "Not approved participant");
+        }
+
         uint256 depositAmount = bounty.amount / 10;
         require(msg.value == depositAmount, "10% deposit required");
+        require(_teamMembers.length <= 10, "Max 10 team members");
+
+        // Validate team members
+        for (uint i = 0; i < _teamMembers.length; i++) {
+            require(_teamMembers[i] != address(0), "Invalid team member");
+            require(_teamMembers[i] != msg.sender, "Cannot include self in team members");
+        }
+
+        bool isTeam = _teamMembers.length > 0;
 
         bounty.submissions.push(Submission({
             solver: msg.sender,
+            teamMembers: _teamMembers,
             blindedIpfsCid: _blindedIpfsCid,
             revealIpfsCid: "",
             deposit: depositAmount,
             replies: new Reply[](0),
-            revealed: false
+            revealed: false,
+            isTeam: isTeam
         }));
 
-        emit SubmissionCreated(_bountyId, bounty.submissions.length - 1, msg.sender, _blindedIpfsCid);
+        emit SubmissionCreated(_bountyId, bounty.submissions.length - 1, msg.sender, _blindedIpfsCid, isTeam);
         IQuintyReputation(reputationAddress).recordSubmission(msg.sender);
     }
 
     function selectWinners(uint256 _bountyId, address[] memory _winners, uint256[] memory _submissionIds) external onlyCreator(_bountyId) bountyIsOpen(_bountyId) nonReentrant {
         Bounty storage bounty = bounties[_bountyId];
-        require(block.timestamp <= bounty.deadline, "Cannot select winners after deadline");
+        // Creator can select winners anytime, even after deadline
         require(_winners.length == _submissionIds.length, "Winners and submission IDs length mismatch");
         
         if (bounty.allowMultipleWinners) {
@@ -193,17 +351,51 @@ contract Quinty is Ownable, ReentrancyGuard {
         sub.revealIpfsCid = _revealIpfsCid;
         sub.revealed = true;
 
-        // Pay the winner and refund their deposit
+        // Calculate total prize amount
         uint256 prizeAmount;
         if (bounty.allowMultipleWinners) {
             prizeAmount = (bounty.amount * bounty.winnerShares[winnerIndex]) / 10000;
         } else {
             prizeAmount = bounty.amount;
         }
-        payable(msg.sender).transfer(prizeAmount + sub.deposit);
-        sub.deposit = 0;
 
-        IQuintyReputation(reputationAddress).recordWin(msg.sender);
+        // Handle team vs solo reward distribution
+        if (sub.isTeam && sub.teamMembers.length > 0) {
+            // Team submission: split reward equally among leader + all team members
+            uint256 totalMembers = sub.teamMembers.length + 1; // +1 for leader
+            uint256 rewardPerMember = prizeAmount / totalMembers;
+            uint256 depositRefundPerMember = sub.deposit / totalMembers;
+
+            // Pay leader
+            payable(msg.sender).transfer(rewardPerMember + depositRefundPerMember);
+
+            // Pay team members
+            for (uint i = 0; i < sub.teamMembers.length; i++) {
+                payable(sub.teamMembers[i]).transfer(rewardPerMember + depositRefundPerMember);
+            }
+
+            // Mint team member NFT badges for all participants
+            if (nftAddress != address(0)) {
+                address[] memory allMembers = new address[](totalMembers);
+                allMembers[0] = msg.sender;
+                for (uint i = 0; i < sub.teamMembers.length; i++) {
+                    allMembers[i + 1] = sub.teamMembers[i];
+                }
+                IQuintyNFT(nftAddress).batchMintBadges(allMembers, 2, "ipfs://team-member-badge/"); // BadgeType.TeamMember = 2
+            }
+
+            // Record win for all team members
+            IQuintyReputation(reputationAddress).recordWin(msg.sender);
+            for (uint i = 0; i < sub.teamMembers.length; i++) {
+                IQuintyReputation(reputationAddress).recordWin(sub.teamMembers[i]);
+            }
+        } else {
+            // Solo submission: pay entire prize to solver
+            payable(msg.sender).transfer(prizeAmount + sub.deposit);
+            IQuintyReputation(reputationAddress).recordWin(msg.sender);
+        }
+
+        sub.deposit = 0;
         emit SolutionRevealed(_bountyId, _subId, msg.sender, _revealIpfsCid);
 
         // Check if all winners have revealed to resolve the bounty
@@ -264,7 +456,9 @@ contract Quinty is Ownable, ReentrancyGuard {
         BountyStatus status,
         uint256 slashPercent,
         address[] memory selectedWinners,
-        uint256[] memory selectedSubmissionIds
+        uint256[] memory selectedSubmissionIds,
+        bool hasOprec,
+        uint256 oprecDeadline
     ) {
         Bounty storage bounty = bounties[_bountyId];
         return (
@@ -277,8 +471,40 @@ contract Quinty is Ownable, ReentrancyGuard {
             bounty.status,
             bounty.slashPercent,
             bounty.selectedWinners,
-            bounty.selectedSubmissionIds
+            bounty.selectedSubmissionIds,
+            bounty.hasOprec,
+            bounty.oprecDeadline
         );
+    }
+
+    function getOprecApplicationCount(uint256 _bountyId) external view returns (uint256) {
+        return bounties[_bountyId].oprecApplications.length;
+    }
+
+    function getOprecApplication(uint256 _bountyId, uint256 _appId) external view returns (
+        address applicant,
+        address[] memory teamMembers,
+        string memory workExamples,
+        string memory skillDescription,
+        uint256 appliedAt,
+        bool approved,
+        bool rejected
+    ) {
+        require(_appId < bounties[_bountyId].oprecApplications.length, "Invalid application ID");
+        OprecApplication storage app = bounties[_bountyId].oprecApplications[_appId];
+        return (
+            app.applicant,
+            app.teamMembers,
+            app.workExamples,
+            app.skillDescription,
+            app.appliedAt,
+            app.approved,
+            app.rejected
+        );
+    }
+
+    function isApprovedParticipant(uint256 _bountyId, address _participant) external view returns (bool) {
+        return approvedParticipants[_bountyId][_participant];
     }
 
     function getSubmission(uint256 _bountyId, uint256 _subId) external view returns (

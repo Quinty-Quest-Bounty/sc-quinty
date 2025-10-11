@@ -2,5 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { IDisputeResolver } from "./IDisputeResolver";
+export type { IQuintyNFT } from "./IQuintyNFT";
 export type { IQuintyReputation } from "./IQuintyReputation";
 export type { Quinty } from "./Quinty";

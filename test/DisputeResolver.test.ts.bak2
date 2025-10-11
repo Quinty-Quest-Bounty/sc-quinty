@@ -50,9 +50,9 @@ describe("DisputeResolver Contract", function () {
       .createBounty("Test bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
     // Add multiple submissions
-    await quinty.connect(solver1).submitSolution(1, "QmSolution1", [], { value: SUBMISSION_DEPOSIT });
-    await quinty.connect(solver2).submitSolution(1, "QmSolution2", [], { value: SUBMISSION_DEPOSIT });
-    await quinty.connect(solver3).submitSolution(1, "QmSolution3", [], { value: SUBMISSION_DEPOSIT });
+    await quinty.connect(solver1).submitSolution(1, "QmSolution1", { value: SUBMISSION_DEPOSIT });
+    await quinty.connect(solver2).submitSolution(1, "QmSolution2", { value: SUBMISSION_DEPOSIT });
+    await quinty.connect(solver3).submitSolution(1, "QmSolution3", { value: SUBMISSION_DEPOSIT });
 
     // Fast forward past deadline and trigger slash
     await time.increase(3601);
@@ -68,7 +68,7 @@ describe("DisputeResolver Contract", function () {
         .connect(creator)
         .createBounty("Test bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-      await quinty.connect(solver1).submitSolution(1, "QmSolution1", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(1, "QmSolution1", { value: SUBMISSION_DEPOSIT });
 
       await time.increase(3601);
 
@@ -214,8 +214,8 @@ describe("DisputeResolver Contract", function () {
         .connect(creator)
         .createBounty("Court test bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-      await quinty.connect(solver1).submitSolution(1, "QmSolution1", [], { value: SUBMISSION_DEPOSIT });
-      await quinty.connect(solver2).submitSolution(1, "QmSolution2", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(1, "QmSolution1", { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver2).submitSolution(1, "QmSolution2", { value: SUBMISSION_DEPOSIT });
 
       // Creator selects solver1 as winner
       await quinty.connect(creator).selectWinners(1, [solver1.address], [0]);
@@ -353,7 +353,7 @@ describe("DisputeResolver Contract", function () {
         .connect(creator)
         .createBounty("Single submission bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: BOUNCE_AMOUNT });
 
-      await quinty.connect(solver1).submitSolution(1, "QmOnlySolution", [], { value: SUBMISSION_DEPOSIT });
+      await quinty.connect(solver1).submitSolution(1, "QmOnlySolution", { value: SUBMISSION_DEPOSIT });
 
       await time.increase(3601);
       await quinty.connect(creator).triggerSlash(1);

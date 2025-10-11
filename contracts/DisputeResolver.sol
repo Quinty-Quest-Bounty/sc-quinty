@@ -45,7 +45,7 @@ contract DisputeResolver is Ownable, ReentrancyGuard {
         disputeCounter++;
         Dispute storage d = disputes[disputeCounter];
         d.bountyId = _bountyId;
-        (address creator,,,,,,,,,) = quintyContract.getBountyData(_bountyId);
+        (address creator,,,,,,,,,,,) = quintyContract.getBountyData(_bountyId);
         d.initiatedBy = creator;
         d.isExpiryVote = true;
         d.amount = _slashAmount;
@@ -55,7 +55,8 @@ contract DisputeResolver is Ownable, ReentrancyGuard {
     }
 
     function initiatePengadilanDispute(uint256 _bountyId) external payable {
-        (address creator,,uint256 amount,,,Quinty.BountyStatus status,) = quintyContract.bounties(_bountyId);
+        (address creator,, uint256 amount,,, uint256[] memory winnerShares, Quinty.BountyStatus status, uint256 slashPercent, address[] memory selectedWinners, uint256[] memory selectedSubmissionIds,,) = quintyContract.getBountyData(_bountyId);
+        winnerShares; slashPercent; selectedWinners; selectedSubmissionIds; // Silence unused variable warnings
         require(status == Quinty.BountyStatus.PENDING_REVEAL, "Dispute only for bounties pending reveal");
         require(msg.sender == creator, "Only bounty creator can initiate pengadilan dispute");
 

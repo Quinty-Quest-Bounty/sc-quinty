@@ -62,12 +62,13 @@ describe("Quinty Contract System", function () {
           )
       )
         .to.emit(quinty, "BountyCreated")
-        .withArgs(1, creator.address, BOUNCE_AMOUNT, deadline, false); // hasOprec = false
+        .withArgs(1, creator.address, BOUNCE_AMOUNT, deadline);
 
-      const bounty = await quinty.getBountyData(1);
+      const bounty = await quinty.getBounty(1);
       expect(bounty.creator).to.equal(creator.address);
       expect(bounty.amount).to.equal(BOUNCE_AMOUNT);
-      expect(bounty.status).to.equal(1); // OPEN
+      expect(bounty.resolved).to.be.false;
+      expect(bounty.slashed).to.be.false;
     });
 
     it("Should reject bounty creation with invalid parameters", async function () {
@@ -188,16 +189,12 @@ describe("Quinty Contract System", function () {
       ).to.be.revertedWith("Not creator");
     });
 
-    it("Should allow winner selection even after deadline", async function () {
+    it("Should prevent winner selection after deadline", async function () {
       await time.increase(86401);
 
-      // Creator can still select winners after deadline
       await expect(
         quinty.connect(creator).selectWinners(1, [solver1.address], [0])
-      ).to.emit(quinty, "WinnersSelected");
-
-      const bounty = await quinty.getBountyData(1);
-      expect(bounty.status).to.equal(2); // PENDING_REVEAL
+      ).to.be.revertedWith("Expired");
     });
   });
 
@@ -221,8 +218,9 @@ describe("Quinty Contract System", function () {
         .to.emit(quinty, "BountySlashed")
         .and.to.emit(dispute, "DisputeInitiated");
 
-      const bounty = await quinty.getBountyData(1);
-      expect(bounty.status).to.equal(5); // EXPIRED
+      const bounty = await quinty.getBounty(1);
+      expect(bounty.resolved).to.be.true;
+      expect(bounty.slashed).to.be.true;
 
       // Check slash amount went to dispute contract
       const expectedSlash = (BOUNCE_AMOUNT * BigInt(SLASH_PERCENT)) / BigInt(10000);
@@ -307,7 +305,7 @@ describe("Quinty Contract System", function () {
     it("Should prevent unauthorized replies", async function () {
       await expect(
         quinty.connect(solver2).addReply(1, 0, "I shouldn't be able to reply")
-      ).to.be.revertedWith("Not authorized to reply");
+      ).to.be.revertedWith("Unauthorized");
     });
   });
 
@@ -343,7 +341,7 @@ describe("Quinty Contract System", function () {
 
       await expect(
         quinty.connect(solver1).revealSolution(2, 0, "QmRevealCid")
-      ).to.be.revertedWith("Bounty not pending reveal");
+      ).to.be.revertedWith("Not resolved");
     });
   });
 
@@ -376,7 +374,7 @@ describe("Quinty Contract System", function () {
         .connect(creator)
         .createBounty("Large bounty", deadline, false, [], SLASH_PERCENT, false, 0, { value: largeBounty });
 
-      const bounty = await quinty.getBountyData(1);
+      const bounty = await quinty.getBounty(1);
       expect(bounty.amount).to.equal(largeBounty);
 
       // Test submission with correct 10% deposit

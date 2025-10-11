@@ -62,7 +62,7 @@ describe("Quinty Contract System", function () {
           )
       )
         .to.emit(quinty, "BountyCreated")
-        .withArgs(1, creator.address, BOUNCE_AMOUNT, deadline, false); // hasOprec = false
+        .withArgs(1, creator.address, BOUNCE_AMOUNT, deadline);
 
       const bounty = await quinty.getBountyData(1);
       expect(bounty.creator).to.equal(creator.address);
@@ -188,16 +188,12 @@ describe("Quinty Contract System", function () {
       ).to.be.revertedWith("Not creator");
     });
 
-    it("Should allow winner selection even after deadline", async function () {
+    it("Should prevent winner selection after deadline", async function () {
       await time.increase(86401);
 
-      // Creator can still select winners after deadline
       await expect(
         quinty.connect(creator).selectWinners(1, [solver1.address], [0])
-      ).to.emit(quinty, "WinnersSelected");
-
-      const bounty = await quinty.getBountyData(1);
-      expect(bounty.status).to.equal(2); // PENDING_REVEAL
+      ).to.be.revertedWith("Cannot select winners after deadline");
     });
   });
 
@@ -307,7 +303,7 @@ describe("Quinty Contract System", function () {
     it("Should prevent unauthorized replies", async function () {
       await expect(
         quinty.connect(solver2).addReply(1, 0, "I shouldn't be able to reply")
-      ).to.be.revertedWith("Not authorized to reply");
+      ).to.be.revertedWith("Unauthorized");
     });
   });
 
@@ -343,7 +339,7 @@ describe("Quinty Contract System", function () {
 
       await expect(
         quinty.connect(solver1).revealSolution(2, 0, "QmRevealCid")
-      ).to.be.revertedWith("Bounty not pending reveal");
+      ).to.be.revertedWith("Not resolved");
     });
   });
 
