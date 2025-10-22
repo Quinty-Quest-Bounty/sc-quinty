@@ -20,3 +20,6 @@
 
 # Hardhat coverage reports
 /coverage
+
+# fe quinty
+/fe-quinty

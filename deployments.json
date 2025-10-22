@@ -1,11 +1,16 @@
 {
-  "chainId": 50312,
-  "network": "somniaTestnet",
-  "timestamp": "2025-09-22T01:24:03.140Z",
+  "chainId": 84532,
+  "network": "Base Sepolia",
+  "timestamp": "2025-10-21T13:40:53.789Z",
   "contracts": {
-    "Quinty": "0x530E104Dc25D641b9b619e5C1CC556961b470f4f",
-    "QuintyReputation": "0x0889De145E2c78f1534f357190e0Fe8406bAc135",
-    "DisputeResolver": "0x3CA26DD1dA114A7A706A9155C2417cA53812750E",
-    "AirdropBounty": "0xfA270eDBe41ba112bd21653B61ce67c07f06F0a8"
+    "Quinty": "0x574bC7953bf4eD7Dd20987F4752C560f606Ebf1D",
+    "QuintyReputation": "0x7EbC0c18CF9B37076d326342Dba20e98A1F20c7e",
+    "DisputeResolver": "0x961659d12E9dE91dC543A75911b3b0D269769E82",
+    "QuintyNFT": "0xD49a54aFb982c0b76554e34f1A76851ed725405F",
+    "AirdropBounty": "0x71C5f5C66e72bBFC7266429cA48ba65c38AFc6A4",
+    "ZKVerification": "0x045Fb080d926f049db7597c99B56aEccc8977F36",
+    "GrantProgram": "0x8b0B50732CCfB6308d5A63C1F9D70166DF63b661",
+    "LookingForGrant": "0xcd01A6d3B8944080B3b1Bb79617415c0Ef895Cc6",
+    "Crowdfunding": "0x0bf8d6EB00b3C4cA6a9F1CFa6Cd40b4cE486F885"
   }
 }
