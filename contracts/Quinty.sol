@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "./interfaces/IQuintyNFT.sol";
 
 // Interfaces
 interface IQuintyReputation {
@@ -13,11 +14,6 @@ interface IQuintyReputation {
 
 interface IDisputeResolver {
     function initiateExpiryVote(uint256 _bountyId, uint256 _slashAmount) external;
-}
-
-interface IQuintyNFT {
-    function mintBadge(address recipient, uint8 badgeType, string memory metadataURI) external returns (uint256);
-    function batchMintBadges(address[] memory recipients, uint8 badgeType, string memory metadataURI) external;
 }
 
 contract Quinty is Ownable, ReentrancyGuard {

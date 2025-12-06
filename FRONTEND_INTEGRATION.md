@@ -1,11 +1,82 @@
 # Quinty V2 - Frontend Integration Guide
 
-## 🚀 Quick Start
+## 🎯 Registry/Factory Pattern (NEW!)
 
-### 1. Contract Addresses (Base Sepolia)
+Quinty now uses a **Registry/Factory pattern** inspired by Aave and Uniswap for seamless upgrades and centralized contract discovery.
+
+### Benefits for Frontend
+✅ **Single Source of Truth**: Query one contract (Registry) for all addresses
+✅ **Auto-Upgrade**: Frontend automatically uses latest contract versions
+✅ **Version Tracking**: Monitor contract upgrades in real-time
+✅ **Future-Proof**: New contracts auto-discovered without code changes
+
+### 1. Using the Registry (Recommended)
+
+**IMPORTANT**: Always query the Registry for current addresses instead of hardcoding them!
 
 ```typescript
+import { ethers } from 'ethers';
+import QuintyRegistryABI from './abis/QuintyRegistry.json';
+
+// Registry address (this is the ONLY address you need to hardcode)
+export const QUINTY_REGISTRY_ADDRESS = "0xYourRegistryAddress"; // Replace after deployment
+
+// Connect to registry
+const provider = new ethers.JsonRpcProvider("https://sepolia.base.org");
+const registry = new ethers.Contract(
+  QUINTY_REGISTRY_ADDRESS,
+  QuintyRegistryABI.abi,
+  provider
+);
+
+// Get all current contract addresses in ONE call
+const addresses = await registry.getAllContracts();
+
 export const QUINTY_CONTRACTS = {
+  Registry: QUINTY_REGISTRY_ADDRESS,
+  Quinty: addresses[0],           // quinty
+  QuintyReputation: addresses[1], // reputation
+  QuintyNFT: addresses[2],        // nft
+  DisputeResolver: addresses[3],  // disputeResolver
+  GrantProgram: addresses[4],     // grantProgram
+  Crowdfunding: addresses[5],     // crowdfunding
+  LookingForGrant: addresses[6],  // lookingForGrant
+  AirdropBounty: addresses[7],    // airdropBounty
+  SocialVerification: addresses[8] // socialVerification
+};
+```
+
+### 2. Monitoring Upgrades (Real-time)
+
+Listen for contract upgrades and automatically refresh:
+
+```typescript
+// Listen for contract upgrades
+registry.on("ContractRegistered", (contractType, newAddress, version, oldAddress) => {
+  console.log(`🚀 Contract upgraded!`);
+  console.log(`Type: ${contractType}`);
+  console.log(`New address: ${newAddress}`);
+  console.log(`Version: ${version}`);
+
+  // Automatically refresh contract instances
+  refreshContracts();
+});
+
+async function refreshContracts() {
+  const addresses = await registry.getAllContracts();
+  // Update your contract instances with new addresses
+  quintyContract = new ethers.Contract(addresses[0], QuintyABI, provider);
+  // ... refresh other contracts
+}
+```
+
+### 3. Fallback: Hardcoded Addresses (Legacy)
+
+**Only use if Registry is not available**:
+
+```typescript
+// ⚠️ LEGACY: Hardcoded addresses (may become outdated after upgrades)
+export const QUINTY_CONTRACTS_LEGACY = {
   Quinty: "0x7169c907F80f95b20232F5B979B1Aac392bD282a",
   QuintyReputation: "0x2dc731f796Df125B282484E844485814B2DCd363",
   DisputeResolver: "0xF04b0Ec52bFe602D0D38bEA4f613ABb7cFA79FB5",
@@ -21,7 +92,9 @@ export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const BASE_SEPOLIA_RPC = "https://sepolia.base.org";
 ```
 
-### 2. Import ABIs
+## 🚀 Quick Start
+
+### 4. Import ABIs
 
 ABIs are located in `artifacts/contracts/[ContractName].sol/[ContractName].json`
 
@@ -32,7 +105,7 @@ import GrantProgramABI from './artifacts/contracts/GrantProgram.sol/GrantProgram
 // ... etc
 ```
 
-### 3. Setup Ethers.js Contract Instances
+### 5. Setup Ethers.js Contract Instances
 
 ```typescript
 import { ethers } from 'ethers';

@@ -2,6 +2,5 @@
 /* tslint:disable */
 /* eslint-disable */
 export { IDisputeResolver__factory } from "./IDisputeResolver__factory";
-export { IQuintyNFT__factory } from "./IQuintyNFT__factory";
 export { IQuintyReputation__factory } from "./IQuintyReputation__factory";
 export { Quinty__factory } from "./Quinty__factory";

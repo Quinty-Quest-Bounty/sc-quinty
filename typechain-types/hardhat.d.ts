@@ -14,6 +14,14 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "AccessControl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.AccessControl__factory>;
+    getContractFactory(
+      name: "IAccessControl",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IAccessControl__factory>;
+    getContractFactory(
       name: "Ownable",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Ownable__factory>;
@@ -66,6 +74,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SafeCast__factory>;
     getContractFactory(
+      name: "Pausable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Pausable__factory>;
+    getContractFactory(
       name: "ReentrancyGuard",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ReentrancyGuard__factory>;
@@ -86,17 +98,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Crowdfunding__factory>;
     getContractFactory(
-      name: "IQuintyNFT",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IQuintyNFT__factory>;
-    getContractFactory(
       name: "DisputeResolver",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.DisputeResolver__factory>;
-    getContractFactory(
-      name: "IQuinty",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IQuinty__factory>;
     getContractFactory(
       name: "GrantProgram",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -106,9 +110,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IQuintyNFT__factory>;
     getContractFactory(
-      name: "IQuintyNFT",
+      name: "IQuintyRegistry",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IQuintyNFT__factory>;
+    ): Promise<Contracts.IQuintyRegistry__factory>;
     getContractFactory(
       name: "LookingForGrant",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -118,10 +122,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IDisputeResolver__factory>;
     getContractFactory(
-      name: "IQuintyNFT",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IQuintyNFT__factory>;
-    getContractFactory(
       name: "IQuintyReputation",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IQuintyReputation__factory>;
@@ -130,9 +130,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Quinty__factory>;
     getContractFactory(
+      name: "QuintyFactory",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.QuintyFactory__factory>;
+    getContractFactory(
       name: "QuintyNFT",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.QuintyNFT__factory>;
+    getContractFactory(
+      name: "QuintyRegistry",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.QuintyRegistry__factory>;
     getContractFactory(
       name: "QuintyReputation",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -143,6 +151,16 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.SocialVerification__factory>;
 
     getContractAt(
+      name: "AccessControl",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.AccessControl>;
+    getContractAt(
+      name: "IAccessControl",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IAccessControl>;
+    getContractAt(
       name: "Ownable",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -208,6 +226,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.SafeCast>;
     getContractAt(
+      name: "Pausable",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Pausable>;
+    getContractAt(
       name: "ReentrancyGuard",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -233,20 +256,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Crowdfunding>;
     getContractAt(
-      name: "IQuintyNFT",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IQuintyNFT>;
-    getContractAt(
       name: "DisputeResolver",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.DisputeResolver>;
-    getContractAt(
-      name: "IQuinty",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IQuinty>;
     getContractAt(
       name: "GrantProgram",
       address: string | ethers.Addressable,
@@ -258,10 +271,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IQuintyNFT>;
     getContractAt(
-      name: "IQuintyNFT",
+      name: "IQuintyRegistry",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.IQuintyNFT>;
+    ): Promise<Contracts.IQuintyRegistry>;
     getContractAt(
       name: "LookingForGrant",
       address: string | ethers.Addressable,
@@ -273,11 +286,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IDisputeResolver>;
     getContractAt(
-      name: "IQuintyNFT",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IQuintyNFT>;
-    getContractAt(
       name: "IQuintyReputation",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -288,10 +296,20 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Quinty>;
     getContractAt(
+      name: "QuintyFactory",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.QuintyFactory>;
+    getContractAt(
       name: "QuintyNFT",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.QuintyNFT>;
+    getContractAt(
+      name: "QuintyRegistry",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.QuintyRegistry>;
     getContractAt(
       name: "QuintyReputation",
       address: string | ethers.Addressable,
@@ -304,6 +322,14 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.SocialVerification>;
 
     deployContract(
+      name: "AccessControl",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.AccessControl>;
+    deployContract(
+      name: "IAccessControl",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IAccessControl>;
+    deployContract(
       name: "Ownable",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Ownable>;
@@ -356,6 +382,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SafeCast>;
     deployContract(
+      name: "Pausable",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Pausable>;
+    deployContract(
       name: "ReentrancyGuard",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ReentrancyGuard>;
@@ -376,17 +406,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Crowdfunding>;
     deployContract(
-      name: "IQuintyNFT",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuintyNFT>;
-    deployContract(
       name: "DisputeResolver",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.DisputeResolver>;
-    deployContract(
-      name: "IQuinty",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuinty>;
     deployContract(
       name: "GrantProgram",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -396,9 +418,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IQuintyNFT>;
     deployContract(
-      name: "IQuintyNFT",
+      name: "IQuintyRegistry",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuintyNFT>;
+    ): Promise<Contracts.IQuintyRegistry>;
     deployContract(
       name: "LookingForGrant",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -408,10 +430,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IDisputeResolver>;
     deployContract(
-      name: "IQuintyNFT",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuintyNFT>;
-    deployContract(
       name: "IQuintyReputation",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IQuintyReputation>;
@@ -420,9 +438,17 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Quinty>;
     deployContract(
+      name: "QuintyFactory",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.QuintyFactory>;
+    deployContract(
       name: "QuintyNFT",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.QuintyNFT>;
+    deployContract(
+      name: "QuintyRegistry",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.QuintyRegistry>;
     deployContract(
       name: "QuintyReputation",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -433,6 +459,16 @@ declare module "hardhat/types/runtime" {
     ): Promise<Contracts.SocialVerification>;
 
     deployContract(
+      name: "AccessControl",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.AccessControl>;
+    deployContract(
+      name: "IAccessControl",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IAccessControl>;
+    deployContract(
       name: "Ownable",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -498,6 +534,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SafeCast>;
     deployContract(
+      name: "Pausable",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.Pausable>;
+    deployContract(
       name: "ReentrancyGuard",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -523,20 +564,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Crowdfunding>;
     deployContract(
-      name: "IQuintyNFT",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuintyNFT>;
-    deployContract(
       name: "DisputeResolver",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.DisputeResolver>;
-    deployContract(
-      name: "IQuinty",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuinty>;
     deployContract(
       name: "GrantProgram",
       args: any[],
@@ -548,10 +579,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IQuintyNFT>;
     deployContract(
-      name: "IQuintyNFT",
+      name: "IQuintyRegistry",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuintyNFT>;
+    ): Promise<Contracts.IQuintyRegistry>;
     deployContract(
       name: "LookingForGrant",
       args: any[],
@@ -563,11 +594,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.IDisputeResolver>;
     deployContract(
-      name: "IQuintyNFT",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuintyNFT>;
-    deployContract(
       name: "IQuintyReputation",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -578,10 +604,20 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Quinty>;
     deployContract(
+      name: "QuintyFactory",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.QuintyFactory>;
+    deployContract(
       name: "QuintyNFT",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.QuintyNFT>;
+    deployContract(
+      name: "QuintyRegistry",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.QuintyRegistry>;
     deployContract(
       name: "QuintyReputation",
       args: any[],

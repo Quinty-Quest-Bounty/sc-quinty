@@ -32,7 +32,131 @@ This file provides comprehensive guidance to Claude Code (claude.ai/code) when w
 
 ## Architecture Overview
 
-Quinty V2 is a comprehensive decentralized work and funding platform built on the Base network with nine interconnected smart contracts.
+Quinty V2 is a comprehensive decentralized work and funding platform built on the Base network with a **Registry/Factory pattern infrastructure** managing nine core smart contracts.
+
+## 🎯 Registry/Factory Pattern (NEW!)
+
+Quinty implements a production-ready Registry/Factory pattern inspired by Aave's AddressProvider, Synthetix's AddressResolver, and Uniswap's Factory.
+
+### Infrastructure Contracts (4 Files)
+
+#### **QuintyRegistry.sol** - Central Contract Registry
+**Purpose**: Single source of truth for all protocol contract addresses with versioning
+
+**Features**:
+- **Contract Versioning**: Tracks all versions of each contract type
+- **Auto-Deprecation**: Automatically deprecates old versions when new ones registered
+- **Emergency Pause**: Protocol-wide pause functionality (Pausable)
+- **Role-Based Access**: DEFAULT_ADMIN_ROLE, UPGRADER_ROLE, PAUSER_ROLE
+- **Batch Operations**: Register multiple contracts in one transaction
+- **Event Tracking**: All registrations and deprecations emit events
+
+**Contract Types Supported** (9 types):
+```solidity
+bytes32 public constant QUINTY = keccak256("QUINTY");
+bytes32 public constant QUINTY_REPUTATION = keccak256("QUINTY_REPUTATION");
+bytes32 public constant QUINTY_NFT = keccak256("QUINTY_NFT");
+bytes32 public constant DISPUTE_RESOLVER = keccak256("DISPUTE_RESOLVER");
+bytes32 public constant GRANT_PROGRAM = keccak256("GRANT_PROGRAM");
+bytes32 public constant CROWDFUNDING = keccak256("CROWDFUNDING");
+bytes32 public constant LOOKING_FOR_GRANT = keccak256("LOOKING_FOR_GRANT");
+bytes32 public constant AIRDROP_BOUNTY = keccak256("AIRDROP_BOUNTY");
+bytes32 public constant SOCIAL_VERIFICATION = keccak256("SOCIAL_VERIFICATION");
+```
+
+**Key Functions**:
+- `getContract(contractType)` - Get latest active contract address
+- `getAllContracts()` - Get all 9 contract addresses in one call
+- `registerContract(type, address)` - Register new version (auto-deprecates old)
+- `batchRegisterContracts(types[], addresses[])` - Batch registration
+- `deprecateContract(type, version)` - Manually deprecate a version
+- `setPaused(bool)` - Emergency pause/unpause
+
+**Lines of Code**: 365 lines
+
+#### **QuintyFactory.sol** - Automated Deployment Factory
+**Purpose**: Deploy and auto-register all protocol contracts
+
+**Features**:
+- **Individual Deployment Functions**: deployQuinty(), deployGrantProgram(), etc.
+- **Full Ecosystem Deployment**: deployFullEcosystem() - deploy all 9 contracts in one transaction
+- **Auto-Registration**: All deployments automatically registered in QuintyRegistry
+- **Setup Helpers**: setupCoreConnections(), setupFundingConnections()
+- **Event Emission**: ContractDeployed, EcosystemDeployed events
+
+**Key Functions**:
+- `deployQuinty()` - Deploy and register Quinty contract
+- `deployFullEcosystem(reputationURI, nftURI)` - Deploy entire ecosystem
+- `setupCoreConnections()` - Configure Quinty, Reputation, DisputeResolver, NFT
+- `setupFundingConnections()` - Configure GrantProgram, Crowdfunding, LookingForGrant
+
+**Lines of Code**: 384 lines
+
+#### **IQuintyRegistry.sol** - Registry Interface
+**Purpose**: Interface definition for QuintyRegistry
+
+**Defines**:
+- ContractInfo struct (address, version, isActive, deployedAt, deprecatedAt)
+- All registry function signatures
+- Events: ContractRegistered, ContractDeprecated, ProtocolPaused
+
+**Lines of Code**: 143 lines
+
+#### **IQuintyNFT.sol** - Shared NFT Interface
+**Purpose**: Common interface used by multiple contracts to mint badges
+
+**Functions**:
+- `mintBadge(recipient, badgeType, metadataURI)` - Mint single badge
+- `batchMintBadges(recipients[], badgeType, metadataURI)` - Batch mint
+
+**Used By**: Quinty, GrantProgram, Crowdfunding, LookingForGrant
+
+**Lines of Code**: 27 lines
+
+### Benefits of Registry/Factory Pattern
+
+✅ **Frontend Simplification**:
+```javascript
+// Before: Hardcode 9 addresses
+const quinty = new Contract("0x123...", abi);
+
+// After: Query registry for all addresses
+const addresses = await registry.getAllContracts();
+const quinty = new Contract(addresses[0], abi); // Always latest version
+```
+
+✅ **Seamless Upgrades**:
+```solidity
+// Deploy new version
+await factory.deployQuinty(); // Auto-registers as v2, deprecates v1
+
+// Frontend automatically uses v2 (no code changes needed!)
+```
+
+✅ **Version Tracking**:
+```solidity
+// Get specific version
+address quintyV1 = await registry.getContractByVersion(QUINTY, 1);
+address quintyV2 = await registry.getContract(QUINTY); // Latest
+
+// Get version info
+ContractInfo memory info = await registry.getContractInfo(QUINTY);
+// info.version = 2, info.isActive = true, info.deployedAt = timestamp
+```
+
+✅ **Emergency Controls**:
+```solidity
+// Pause entire protocol
+await registry.setPaused(true);
+
+// Check if paused
+bool paused = await registry.isPaused();
+```
+
+### Documentation
+
+- **UPGRADE_GUIDE.md** - Complete upgrade procedures (400+ lines)
+- **REGISTRY_FACTORY_IMPLEMENTATION.md** - Implementation summary (complete analysis)
 
 ### Core Contract System (9 Contracts)
 
@@ -186,27 +310,66 @@ Quinty V2 is a comprehensive decentralized work and funding platform built on th
 
 **Future Integration**: Ready for Reclaim Protocol or other ZK verification systems
 
-### Contract Dependency Graph
+### Contract Dependency Graph (with Registry/Factory)
 
 ```
+QuintyRegistry (Central Source of Truth)
+├── Tracks all contract versions
+├── Provides getAllContracts()
+└── Emergency pause control
+
+QuintyFactory
+├── → QuintyRegistry (Registers all deployments)
+├── Deploys all 9 core contracts
+└── Configures all connections
+
 Quinty (Core)
 ├── → QuintyReputation (Ownership transferred)
 ├── → DisputeResolver (Receives slash funds)
-└── → QuintyNFT (Mints badges for winners)
+├── → QuintyNFT (Mints badges for winners)
+└── ← QuintyRegistry (Registered in registry)
 
 QuintyNFT (Soulbound Badges)
 ├── ← Quinty (Authorized minter)
 ├── ← GrantProgram (Authorized minter)
 ├── ← LookingForGrant (Authorized minter)
-└── ← Crowdfunding (Authorized minter)
+├── ← Crowdfunding (Authorized minter)
+└── ← QuintyRegistry (Registered in registry)
 
 GrantProgram, LookingForGrant, Crowdfunding (Independent contracts with NFT integration)
-└── → QuintyNFT (Mints badges)
+├── → QuintyNFT (Mints badges)
+└── ← QuintyRegistry (Registered in registry)
 
 AirdropBounty, SocialVerification (Standalone contracts)
+└── ← QuintyRegistry (Registered in registry)
 ```
 
-### Deployment Order
+### Deployment Order (NEW Registry/Factory Pattern)
+
+**Recommended: Use Factory for Automated Deployment**
+
+**Step 1: Infrastructure**
+1. **QuintyRegistry** - Deploy first (no constructor args)
+2. **QuintyFactory** - Deploy second (requires registry address)
+3. Grant factory UPGRADER_ROLE in registry
+
+**Step 2: Deploy via Factory**
+4. Call `factory.deployFullEcosystem(reputationURI, nftURI)`
+   - Deploys all 9 contracts in one transaction
+   - Auto-registers all in QuintyRegistry
+   - Auto-deprecates old versions if re-deploying
+
+**Step 3: Setup via Factory**
+5. Call `factory.setupCoreConnections()`
+   - Configures Quinty, Reputation, DisputeResolver, NFT
+6. Call `factory.setupFundingConnections()`
+   - Configures GrantProgram, Crowdfunding, LookingForGrant
+
+**Result**: All contracts deployed, registered, and configured in ~3 transactions!
+
+---
+
+**Alternative: Manual Deployment (Legacy)**
 
 1. **QuintyReputation** - Deploy first (requires baseTokenURI)
 2. **Quinty** - Deploy second (no constructor args)

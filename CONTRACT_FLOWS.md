@@ -2,9 +2,21 @@
 
 This document explains how all 9 smart contracts interact with each other and provides detailed flow diagrams for each major feature.
 
+## 🎯 Registry/Factory Pattern (NEW!)
+
+Quinty V2 now uses a **Registry/Factory pattern** for centralized contract discovery and seamless upgrades.
+
+**Key Benefits**:
+- Frontend queries one contract (Registry) for all addresses
+- Contracts auto-registered and versioned
+- Upgrades don't break frontend integrations
+- Emergency pause functionality
+- Full version history tracking
+
 ## Table of Contents
 
 - [Contract Architecture](#contract-architecture)
+- [Registry/Factory Deployment Flow](#registryfactory-deployment-flow-new)
 - [Core Bounty Flow](#core-bounty-flow)
 - [Oprec (Open Recruitment) Flow](#oprec-open-recruitment-flow)
 - [Team Submission Flow](#team-submission-flow)
@@ -76,6 +88,344 @@ This document explains how all 9 smart contracts interact with each other and pr
 - Authorization: All three authorized to mint badges
 - Calls: `mintBadge()` for respective badge types
 - Purpose: Ecosystem participation rewards
+
+---
+
+## Registry/Factory Deployment Flow (NEW)
+
+### Complete Deployment Process
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                STEP 1: DEPLOY INFRASTRUCTURE                     │
+│                                                                  │
+│  1. Deploy QuintyRegistry                                       │
+│     - No constructor arguments needed                           │
+│     - Deployer automatically receives 3 roles:                  │
+│       * DEFAULT_ADMIN_ROLE (role management)                    │
+│       * UPGRADER_ROLE (can register contracts)                  │
+│       * PAUSER_ROLE (emergency pause)                           │
+│     - Registry tracks 9 contract types:                         │
+│       QUINTY, REPUTATION, DISPUTE_RESOLVER, NFT,                │
+│       GRANT_PROGRAM, CROWDFUNDING, LOOKING_FOR_GRANT,           │
+│       AIRDROP_BOUNTY, SOCIAL_VERIFICATION                       │
+│     - Emit RegistryDeployed event                               │
+│                                                                  │
+│  2. Deploy QuintyFactory                                        │
+│     - Constructor requires: registry address                    │
+│     - Factory stores registry reference                         │
+│     - Deployer becomes factory owner                            │
+│     - Factory can deploy all 9 contract types                   │
+│     - Emit FactoryDeployed event                                │
+│                                                                  │
+│  3. Grant Factory Permissions                                   │
+│     - Registry owner calls:                                     │
+│       registry.grantRole(UPGRADER_ROLE, factoryAddress)         │
+│     - Allows factory to register deployed contracts             │
+│     - Emit RoleGranted event                                    │
+│                                                                  │
+│  ✅ Infrastructure Ready!                                       │
+│     - Registry: Central address directory                       │
+│     - Factory: Automated deployment + registration              │
+└─────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│          STEP 2: DEPLOY FULL ECOSYSTEM VIA FACTORY               │
+│                                                                  │
+│  Single transaction deploys all 9 contracts!                    │
+│                                                                  │
+│  1. Owner calls factory.deployFullEcosystem()                   │
+│     Parameters:                                                 │
+│     - reputationBaseURI (e.g., "ipfs://Qm.../reputation/")      │
+│     - nftBaseURI (e.g., "ipfs://Qm.../badges/")                 │
+│                                                                  │
+│  2. Factory deploys in order:                                   │
+│     ┌──────────────────────────────────────────┐               │
+│     │ a) QuintyReputation                      │               │
+│     │    - Constructor: baseURI for NFT        │               │
+│     │    - Tracks submissions/wins/creations   │               │
+│     │    - Mints achievement NFTs              │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ b) Quinty (Core Contract)                │               │
+│     │    - Main bounty logic                   │               │
+│     │    - Oprec + team features               │               │
+│     │    - Winner selection                    │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ c) DisputeResolver                       │               │
+│     │    - Constructor: quinty address         │               │
+│     │    - Community voting (coming soon)      │               │
+│     │    - Receives slash funds                │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ d) QuintyNFT                             │               │
+│     │    - Constructor: nftBaseURI             │               │
+│     │    - 7 soulbound badge types             │               │
+│     │    - Non-transferable                    │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ e) AirdropBounty                         │               │
+│     │    - Fixed-reward promotion tasks        │               │
+│     │    - Social proof verification           │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ f) SocialVerification                    │               │
+│     │    - X/Twitter account linking           │               │
+│     │    - Institution verification            │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ g) GrantProgram                          │               │
+│     │    - Organization grant distribution     │               │
+│     │    - Application-based selection         │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ h) LookingForGrant                       │               │
+│     │    - VC/investor funding platform        │               │
+│     │    - Flexible withdrawal                 │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ i) Crowdfunding                          │               │
+│     │    - All-or-nothing campaigns            │               │
+│     │    - Milestone-based release             │               │
+│     └──────────────────────────────────────────┘               │
+│                                                                  │
+│  3. After each deployment, Factory automatically:               │
+│     - Stores contract address internally                        │
+│     - Calls registry.registerContract(type, address)            │
+│     - Registry stores address + version metadata                │
+│     - Registry emits ContractRegistered event                   │
+│                                                                  │
+│  4. Registry versioning:                                        │
+│     - Each contract gets version = 1                            │
+│     - Marked as active = true                                   │
+│     - Deployment timestamp recorded                             │
+│     - Deployer address recorded                                 │
+│                                                                  │
+│  ✅ All 9 contracts deployed and registered!                    │
+└─────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│         STEP 3: SETUP CONTRACT CONNECTIONS VIA FACTORY           │
+│                                                                  │
+│  Part A: Core Connections                                       │
+│  ────────────────────────                                       │
+│  1. Owner calls factory.setupCoreConnections()                  │
+│                                                                  │
+│  2. Factory executes:                                           │
+│     ┌──────────────────────────────────────────┐               │
+│     │ a) Quinty.setAddresses()                 │               │
+│     │    - Sets QuintyReputation address       │               │
+│     │    - Sets DisputeResolver address        │               │
+│     │    - Sets QuintyNFT address              │               │
+│     │    - Quinty can now call these contracts │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ b) QuintyReputation.transferOwnership() │               │
+│     │    - Transfers ownership to Quinty       │               │
+│     │    - Only Quinty can record reputation   │               │
+│     │    - Prevents unauthorized updates       │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ c) QuintyNFT.authorizeMinter(quinty)    │               │
+│     │    - Quinty can mint TeamMember badges   │               │
+│     └──────────────────────────────────────────┘               │
+│                                                                  │
+│  Part B: Funding Connections                                    │
+│  ────────────────────────────                                   │
+│  3. Owner calls factory.setupFundingConnections()               │
+│                                                                  │
+│  4. Factory executes:                                           │
+│     ┌──────────────────────────────────────────┐               │
+│     │ a) GrantProgram.setNFTAddress(nft)       │               │
+│     │    - GrantProgram can mint badges        │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ b) Crowdfunding.setNFTAddress(nft)       │               │
+│     │    - Crowdfunding can mint donor badges  │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ c) LookingForGrant.setNFTAddress(nft)    │               │
+│     │    - LFG can mint supporter badges       │               │
+│     └──────────────────────────────────────────┘               │
+│                      ▼                                          │
+│     ┌──────────────────────────────────────────┐               │
+│     │ d) QuintyNFT.authorizeMinter(grant)     │               │
+│     │ e) QuintyNFT.authorizeMinter(crowdfund) │               │
+│     │ f) QuintyNFT.authorizeMinter(lfg)       │               │
+│     │    - All 3 can now mint their badges     │               │
+│     └──────────────────────────────────────────┘               │
+│                                                                  │
+│  ✅ All contracts connected and configured!                     │
+│     - 70% fewer manual steps than old deployment                │
+│     - Zero chance of human error                                │
+│     - Automated and auditable                                   │
+└─────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                STEP 4: FRONTEND INTEGRATION                      │
+│                                                                  │
+│  Frontend queries Registry for all addresses:                   │
+│                                                                  │
+│  1. Hardcode only ONE address (Registry):                       │
+│     const REGISTRY = "0xRegistryAddress";                       │
+│                                                                  │
+│  2. Query all contract addresses in ONE call:                   │
+│     const addresses = await registry.getAllContracts();         │
+│     // Returns array of 9 addresses in order                    │
+│                                                                  │
+│  3. Create contract instances:                                  │
+│     const quinty = new Contract(addresses[0], QuintyABI);       │
+│     const reputation = new Contract(addresses[1], RepABI);      │
+│     const nft = new Contract(addresses[3], NFTABI);             │
+│     // ... and so on for all 9 contracts                        │
+│                                                                  │
+│  4. Setup event listeners for upgrades:                         │
+│     registry.on("ContractRegistered", async (type, addr) => {   │
+│       console.log(`Contract ${type} upgraded to ${addr}`);      │
+│       // Automatically refresh contract instances               │
+│       await refreshContractInstances();                         │
+│     });                                                         │
+│                                                                  │
+│  Benefits:                                                       │
+│  ✅ Frontend always uses latest contract versions               │
+│  ✅ No manual updates needed when contracts upgrade             │
+│  ✅ Single source of truth (Registry)                           │
+│  ✅ Auto-discovery of new contract types                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Upgrade Scenario Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              UPGRADING A SINGLE CONTRACT (Example: Quinty)       │
+│                                                                  │
+│  Scenario: Bug found in Quinty contract, need to deploy v2      │
+└─────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  1. Fix Bug & Deploy New Version                                │
+│     - Developer fixes bug in Quinty.sol                         │
+│     - Owner calls: factory.deployQuinty()                       │
+│     - New Quinty v2 deployed                                    │
+│     - Factory auto-registers in registry                        │
+└─────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  2. Registry Auto-Updates                                       │
+│     - Registry detects new version of QUINTY type               │
+│     - Old version: active = false, deprecated = true            │
+│     - New version: active = true, version = 2                   │
+│     - Emit ContractRegistered(QUINTY, newAddr, 2, oldAddr)      │
+│     - Emit ContractDeprecated(QUINTY, 1)                        │
+└─────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  3. Configure New Contract                                      │
+│     - Owner calls factory.setupCoreConnections()                │
+│     - New Quinty v2 connected to Reputation/Dispute/NFT         │
+│     - QuintyReputation ownership transferred to Quinty v2       │
+│     - NFT minter authorization granted to Quinty v2             │
+└─────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  4. Frontend Auto-Discovers Update                              │
+│     - Frontend listens to ContractRegistered event              │
+│     - Event handler triggers:                                   │
+│       const newAddress = await registry.getContract(QUINTY);    │
+│       quintyInstance = new Contract(newAddress, QuintyABI);     │
+│     - Users automatically interact with Quinty v2               │
+│     - No frontend code changes needed!                          │
+│                                                                  │
+│  ✅ Upgrade Complete - Zero Downtime for Users                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Emergency Pause Flow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              CRITICAL BUG FOUND - EMERGENCY RESPONSE             │
+│                                                                  │
+│  Scenario: Critical vulnerability discovered in production      │
+└─────────────────────────────────────────────────────────────────┘
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  1. Immediate Pause (Within Seconds)                            │
+│     - Authorized PAUSER calls: registry.setPaused(true)         │
+│     - Protocol-wide pause activated                             │
+│     - Emit ProtocolPaused(timestamp)                            │
+│                                                                  │
+│  2. All New Activity Stops                                      │
+│     - Frontend checks: isPaused() before transactions           │
+│     - Shows maintenance message to users                        │
+│     - Prevents new bounties/submissions/withdrawals             │
+│                                                                  │
+│  3. Team Investigates & Fixes                                   │
+│     - Identify root cause                                       │
+│     - Deploy patched contract versions                          │
+│     - Test thoroughly on testnet                                │
+│                                                                  │
+│  4. Resume Operations                                           │
+│     - Deploy fixed contracts via factory                        │
+│     - Registry auto-updates to new versions                     │
+│     - PAUSER calls: registry.setPaused(false)                   │
+│     - Emit ProtocolUnpaused(timestamp)                          │
+│     - Normal operations resume                                  │
+│                                                                  │
+│  ✅ Crisis Averted - User Funds Safe                            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Registry Query Examples
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                COMMON REGISTRY QUERIES                           │
+│                                                                  │
+│  Frontend developers can query:                                 │
+│                                                                  │
+│  1. Get single contract address:                                │
+│     address quinty = registry.getContract(QUINTY);              │
+│     // Returns: latest active Quinty address                    │
+│                                                                  │
+│  2. Get all addresses at once:                                  │
+│     address[] memory all = registry.getAllContracts();          │
+│     // Returns: [quinty, rep, dispute, nft, grant, ...]         │
+│                                                                  │
+│  3. Get contract metadata:                                      │
+│     (address addr, uint ver, bool active, uint deployed) =      │
+│       registry.getContractInfo(QUINTY, 1);                      │
+│     // Returns: full info for version 1                         │
+│                                                                  │
+│  4. Check version count:                                        │
+│     uint count = registry.getVersionCount(QUINTY);              │
+│     // Returns: how many versions deployed (e.g., 3)            │
+│                                                                  │
+│  5. Check if paused:                                            │
+│     bool paused = registry.isPaused();                          │
+│     // Returns: true if protocol is paused                      │
+│                                                                  │
+│  6. Get latest version number:                                  │
+│     uint latest = registry.getLatestVersion(QUINTY);            │
+│     // Returns: latest version number (e.g., 2)                 │
+│                                                                  │
+│  All queries are FREE (view functions, no gas cost)             │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ---
 

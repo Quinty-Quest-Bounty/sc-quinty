@@ -4,87 +4,10 @@ import fs from "fs";
 async function main() {
   const network = await ethers.provider.getNetwork();
   const networkName = network.chainId === 8453n ? "Base Mainnet" : network.chainId === 84532n ? "Base Sepolia" : "Local Network";
-  console.log(`🚀 Starting Quinty V2 deployment to ${networkName}...`);
+  console.log(`🚀 Starting Quinty V2 deployment to ${networkName} with Registry/Factory pattern...`);
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
   console.log("Account balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH");
-
-  // 1. Deploy QuintyReputation with a base URI for metadata
-  console.log("\n📋 Deploying QuintyReputation contract...");
-  const reputationBaseURI = "ipfs://YOUR_METADATA_FOLDER_CID/"; // TODO: Replace with actual CID
-  const QuintyReputation = await ethers.getContractFactory("QuintyReputation");
-  const reputation = await QuintyReputation.deploy(reputationBaseURI);
-  await reputation.waitForDeployment();
-  const reputationAddress = await reputation.getAddress();
-  console.log("✅ QuintyReputation deployed to:", reputationAddress);
-
-  // 2. Deploy Quinty contract (it needs no constructor args)
-  console.log("\n🎯 Deploying Quinty core contract...");
-  const Quinty = await ethers.getContractFactory("Quinty");
-  const quinty = await Quinty.deploy();
-  await quinty.waitForDeployment();
-  const quintyAddress = await quinty.getAddress();
-  console.log("✅ Quinty deployed to:", quintyAddress);
-
-  // 3. Deploy DisputeResolver (it needs the Quinty address)
-  console.log("\n⚖️ Deploying DisputeResolver contract...");
-  const DisputeResolver = await ethers.getContractFactory("DisputeResolver");
-  const dispute = await DisputeResolver.deploy(quintyAddress);
-  await dispute.waitForDeployment();
-  const disputeAddress = await dispute.getAddress();
-  console.log("✅ DisputeResolver deployed to:", disputeAddress);
-  
-  // 4. Deploy QuintyNFT
-  console.log("\n🎨 Deploying QuintyNFT contract...");
-  const nftBaseURI = "ipfs://QmQuintyNFT/"; // TODO: Replace with actual CID
-  const QuintyNFT = await ethers.getContractFactory("QuintyNFT");
-  const nft = await QuintyNFT.deploy(nftBaseURI);
-  await nft.waitForDeployment();
-  const nftAddress = await nft.getAddress();
-  console.log("✅ QuintyNFT deployed to:", nftAddress);
-
-  // 5. Deploy AirdropBounty contract
-  console.log("\n🎁 Deploying AirdropBounty contract...");
-  const AirdropBounty = await ethers.getContractFactory("AirdropBounty");
-  const airdrop = await AirdropBounty.deploy();
-  await airdrop.waitForDeployment();
-  const airdropAddress = await airdrop.getAddress();
-  console.log("✅ AirdropBounty deployed to:", airdropAddress);
-
-  // 6. Deploy SocialVerification
-  console.log("\n🔐 Deploying SocialVerification contract...");
-  const SocialVerification = await ethers.getContractFactory("SocialVerification");
-  const socialVerification = await SocialVerification.deploy();
-  await socialVerification.waitForDeployment();
-  const socialVerificationAddress = await socialVerification.getAddress();
-  console.log("✅ SocialVerification deployed to:", socialVerificationAddress);
-
-  // 7. Deploy GrantProgram
-  console.log("\n💰 Deploying GrantProgram contract...");
-  const GrantProgram = await ethers.getContractFactory("GrantProgram");
-  const grantProgram = await GrantProgram.deploy();
-  await grantProgram.waitForDeployment();
-  const grantProgramAddress = await grantProgram.getAddress();
-  console.log("✅ GrantProgram deployed to:", grantProgramAddress);
-
-  // 8. Deploy LookingForGrant
-  console.log("\n🔍 Deploying LookingForGrant contract...");
-  const LookingForGrant = await ethers.getContractFactory("LookingForGrant");
-  const lookingForGrant = await LookingForGrant.deploy();
-  await lookingForGrant.waitForDeployment();
-  const lookingForGrantAddress = await lookingForGrant.getAddress();
-  console.log("✅ LookingForGrant deployed to:", lookingForGrantAddress);
-
-  // 9. Deploy Crowdfunding
-  console.log("\n🎯 Deploying Crowdfunding contract...");
-  const Crowdfunding = await ethers.getContractFactory("Crowdfunding");
-  const crowdfunding = await Crowdfunding.deploy();
-  await crowdfunding.waitForDeployment();
-  const crowdfundingAddress = await crowdfunding.getAddress();
-  console.log("✅ Crowdfunding deployed to:", crowdfundingAddress);
-
-  // --- Setup Contract Connections ---
-  console.log("\n🔗 Setting up contract connections...");
 
   // Helper function to wait for transaction and add delay
   const waitForTx = async (txPromise: any, description: string) => {
@@ -95,66 +18,141 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second delay
   };
 
-  // Set addresses in Quinty contract
+  // ==================== STEP 1: Deploy Registry ====================
+  console.log("\n📚 Deploying QuintyRegistry (central contract registry)...");
+  const QuintyRegistry = await ethers.getContractFactory("QuintyRegistry");
+  const registry = await QuintyRegistry.deploy();
+  await registry.waitForDeployment();
+  const registryAddress = await registry.getAddress();
+  console.log("✅ QuintyRegistry deployed to:", registryAddress);
+  console.log("   - Deployer has DEFAULT_ADMIN_ROLE, UPGRADER_ROLE, PAUSER_ROLE");
+  console.log("   - Supports versioning and upgradeability");
+
+  // ==================== STEP 2: Deploy Factory ====================
+  console.log("\n🏭 Deploying QuintyFactory (contract deployment factory)...");
+  const QuintyFactory = await ethers.getContractFactory("QuintyFactory");
+  const factory = await QuintyFactory.deploy(registryAddress);
+  await factory.waitForDeployment();
+  const factoryAddress = await factory.getAddress();
+  console.log("✅ QuintyFactory deployed to:", factoryAddress);
+  console.log("   - Connected to registry at:", registryAddress);
+
+  // ==================== STEP 3: Grant Factory UPGRADER_ROLE ====================
+  console.log("\n🔑 Granting factory UPGRADER_ROLE in registry...");
+  const UPGRADER_ROLE = await registry.UPGRADER_ROLE();
   await waitForTx(
-    quinty.setAddresses(reputationAddress, disputeAddress, nftAddress),
-    "Setting addresses in Quinty"
+    registry.grantRole(UPGRADER_ROLE, factoryAddress),
+    "Granting UPGRADER_ROLE to factory"
   );
 
-  // Transfer QuintyReputation ownership to Quinty contract
-  await waitForTx(
-    reputation.transferOwnership(quintyAddress),
-    "Transferring QuintyReputation ownership to Quinty"
-  );
+  // ==================== STEP 4: Deploy Full Ecosystem via Factory ====================
+  console.log("\n🌐 Deploying full Quinty ecosystem via factory...");
+  console.log("   This will deploy all 9 contracts in one transaction:");
+  console.log("   - Quinty (core bounty contract)");
+  console.log("   - QuintyReputation (soulbound NFT reputation)");
+  console.log("   - QuintyNFT (achievement badges)");
+  console.log("   - DisputeResolver (voting and disputes)");
+  console.log("   - GrantProgram (grant funding)");
+  console.log("   - Crowdfunding (crowdfunding campaigns)");
+  console.log("   - LookingForGrant (grant seekers)");
+  console.log("   - AirdropBounty (promotional tasks)");
+  console.log("   - SocialVerification (social proof verification)");
 
-  // Set NFT addresses in new contracts
-  await waitForTx(
-    grantProgram.setNFTAddress(nftAddress),
-    "Setting NFT address in GrantProgram"
-  );
-  await waitForTx(
-    lookingForGrant.setNFTAddress(nftAddress),
-    "Setting NFT address in LookingForGrant"
-  );
-  await waitForTx(
-    crowdfunding.setNFTAddress(nftAddress),
-    "Setting NFT address in Crowdfunding"
-  );
+  const reputationBaseURI = "ipfs://YOUR_REPUTATION_METADATA_CID/"; // TODO: Replace with actual CID
+  const nftBaseURI = "ipfs://YOUR_NFT_METADATA_CID/"; // TODO: Replace with actual CID
 
-  // Authorize contracts to mint NFT badges
-  await waitForTx(
-    nft.authorizeMinter(quintyAddress),
-    "Authorizing Quinty to mint badges"
-  );
-  await waitForTx(
-    nft.authorizeMinter(grantProgramAddress),
-    "Authorizing GrantProgram to mint badges"
-  );
-  await waitForTx(
-    nft.authorizeMinter(lookingForGrantAddress),
-    "Authorizing LookingForGrant to mint badges"
-  );
-  await waitForTx(
-    nft.authorizeMinter(crowdfundingAddress),
-    "Authorizing Crowdfunding to mint badges"
-  );
+  console.log("\n🚀 Calling deployFullEcosystem() - this may take a moment...");
+  const deployTx = await factory.deployFullEcosystem(reputationBaseURI, nftBaseURI);
+  console.log("   Transaction submitted, waiting for confirmation...");
+  const deployReceipt = await deployTx.wait();
+  console.log(`✅ Full ecosystem deployed in block ${deployReceipt?.blockNumber}`);
+  console.log(`   Gas used: ${deployReceipt?.gasUsed.toString()}`);
 
+  // ==================== STEP 5: Retrieve Deployed Addresses from Registry ====================
+  console.log("\n📋 Retrieving deployed contract addresses from registry...");
+
+  const allContracts = await registry.getAllContracts();
+  const quintyAddress = allContracts[0];
+  const reputationAddress = allContracts[1];
+  const nftAddress = allContracts[2];
+  const disputeAddress = allContracts[3];
+  const grantProgramAddress = allContracts[4];
+  const crowdfundingAddress = allContracts[5];
+  const lookingForGrantAddress = allContracts[6];
+  const airdropAddress = allContracts[7];
+  const socialVerificationAddress = allContracts[8];
+
+  console.log("   📍 Quinty:", quintyAddress);
+  console.log("   📍 QuintyReputation:", reputationAddress);
+  console.log("   📍 QuintyNFT:", nftAddress);
+  console.log("   📍 DisputeResolver:", disputeAddress);
+  console.log("   📍 GrantProgram:", grantProgramAddress);
+  console.log("   📍 Crowdfunding:", crowdfundingAddress);
+  console.log("   📍 LookingForGrant:", lookingForGrantAddress);
+  console.log("   📍 AirdropBounty:", airdropAddress);
+  console.log("   📍 SocialVerification:", socialVerificationAddress);
+
+  // ==================== STEP 6: Setup Contract Connections ====================
+  console.log("\n🔗 Setting up contract connections via factory...");
+
+  // Setup core contract connections (Quinty, Reputation, DisputeResolver, NFT)
+  await waitForTx(
+    factory.setupCoreConnections(),
+    "Setting up core contract connections"
+  );
+  console.log("   ✓ Quinty.setAddresses() called");
+  console.log("   ✓ QuintyReputation ownership transferred to Quinty");
+  console.log("   ✓ QuintyNFT authorized Quinty as minter");
+
+  // Setup funding contract connections (GrantProgram, Crowdfunding, LookingForGrant)
+  await waitForTx(
+    factory.setupFundingConnections(),
+    "Setting up funding contract connections"
+  );
+  console.log("   ✓ GrantProgram.setNFTAddress() called");
+  console.log("   ✓ Crowdfunding.setNFTAddress() called");
+  console.log("   ✓ LookingForGrant.setNFTAddress() called");
+  console.log("   ✓ QuintyNFT authorized all funding contracts as minters");
+
+  // ==================== STEP 7: Verify Registry State ====================
+  console.log("\n🔍 Verifying registry state...");
+
+  const QUINTY = await registry.QUINTY();
+  const quintyInfo = await registry.getContractInfo(QUINTY);
+  console.log("   Quinty contract info:");
+  console.log(`   - Version: ${quintyInfo.version}`);
+  console.log(`   - Active: ${quintyInfo.isActive}`);
+  console.log(`   - Deployed at: ${new Date(Number(quintyInfo.deployedAt) * 1000).toISOString()}`);
+
+  // ==================== STEP 8: Save Deployment Info ====================
   console.log("\n✨ Deployment completed successfully!");
+
   const deploymentInfo = {
     chainId: Number(network.chainId),
     network: networkName,
     timestamp: new Date().toISOString(),
+    pattern: "Registry/Factory",
+    infrastructure: {
+      QuintyRegistry: registryAddress,
+      QuintyFactory: factoryAddress,
+    },
     contracts: {
       Quinty: quintyAddress,
       QuintyReputation: reputationAddress,
-      DisputeResolver: disputeAddress,
       QuintyNFT: nftAddress,
+      DisputeResolver: disputeAddress,
+      GrantProgram: grantProgramAddress,
+      Crowdfunding: crowdfundingAddress,
+      LookingForGrant: lookingForGrantAddress,
       AirdropBounty: airdropAddress,
       SocialVerification: socialVerificationAddress,
-      GrantProgram: grantProgramAddress,
-      LookingForGrant: lookingForGrantAddress,
-      Crowdfunding: crowdfundingAddress,
     },
+    versions: {
+      Quinty: Number(quintyInfo.version),
+      // All contracts start at version 1
+    },
+    gasUsed: deployReceipt?.gasUsed.toString(),
+    blockNumber: deployReceipt?.blockNumber,
   };
 
   fs.writeFileSync(
@@ -162,6 +160,19 @@ async function main() {
     JSON.stringify(deploymentInfo, null, 2)
   );
   console.log("\n💾 Deployment info saved to deployments.json");
+
+  console.log("\n📖 Registry/Factory Benefits:");
+  console.log("   ✓ Frontend can query registry.getAllContracts() for all addresses");
+  console.log("   ✓ Easy upgrades: deploy new version, factory registers it automatically");
+  console.log("   ✓ Versioning: registry tracks all contract versions");
+  console.log("   ✓ Emergency pause: registry can pause entire protocol");
+  console.log("   ✓ Future-proof: add new contracts without breaking existing integrations");
+
+  console.log("\n🎯 Next Steps:");
+  console.log("   1. Update frontend to use registry.getAllContracts()");
+  console.log("   2. To upgrade a contract: use factory.deployXXX() - it auto-registers");
+  console.log("   3. To pause protocol: registry.setPaused(true)");
+  console.log("   4. Monitor contract versions: registry.getContractInfo(contractType)");
 }
 
 main()
