@@ -1,6 +1,7 @@
 # Node modules
 /node_modules
 .env
+.DS_Store
 
 # Compilation output
 /dist
@@ -20,5 +21,7 @@
 # Hardhat coverage reports
 /coverage
 
+# fe quinty
+/fe-quinty
 # Ignore .DS_Store files
 **/.DS_Store

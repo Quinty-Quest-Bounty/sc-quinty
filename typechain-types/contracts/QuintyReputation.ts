@@ -23,80 +23,88 @@ import type {
   TypedContractMethod,
 } from "../common";
 
+export declare namespace QuintyReputation {
+  export type UserStatsStruct = {
+    totalSubmissions: BigNumberish;
+    totalWins: BigNumberish;
+    totalBountiesCreated: BigNumberish;
+    firstActivity: BigNumberish;
+    lastActivity: BigNumberish;
+  };
+
+  export type UserStatsStructOutput = [
+    totalSubmissions: bigint,
+    totalWins: bigint,
+    totalBountiesCreated: bigint,
+    firstActivity: bigint,
+    lastActivity: bigint
+  ] & {
+    totalSubmissions: bigint;
+    totalWins: bigint;
+    totalBountiesCreated: bigint;
+    firstActivity: bigint;
+    lastActivity: bigint;
+  };
+}
+
 export interface QuintyReputationInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "BRONZE_ACTIONS"
-      | "BRONZE_RATE"
-      | "GOLD_ACTIONS"
-      | "GOLD_RATE"
-      | "SILVER_ACTIONS"
-      | "SILVER_RATE"
+      | "MONTH_DURATION"
+      | "achievementTokenIds"
       | "approve"
       | "balanceOf"
-      | "baseIpfsUri"
+      | "creatorMilestones"
+      | "currentSeasonId"
       | "getApproved"
-      | "getBadgeLevel"
-      | "getCreatorActiveSince"
-      | "getCreatorStats"
-      | "getSolverSolvedCount"
-      | "getSolverStats"
-      | "getTokenIdForUser"
-      | "getTotalSupply"
-      | "getUserReputation"
-      | "hasBadge"
+      | "getCurrentSeasonLeaderboard"
+      | "getUserAchievements"
+      | "getUserStats"
+      | "hasAchievement"
       | "isApprovedForAll"
-      | "isHighRepCreator"
       | "name"
       | "owner"
       | "ownerOf"
+      | "recordBountyCreation"
+      | "recordSubmission"
+      | "recordWin"
       | "renounceOwnership"
-      | "reputations"
       | "safeTransferFrom(address,address,uint256)"
       | "safeTransferFrom(address,address,uint256,bytes)"
+      | "seasonStats"
+      | "seasons"
       | "setApprovalForAll"
-      | "setBaseIpfsUri"
+      | "setBaseTokenURI"
+      | "solverMilestones"
       | "supportsInterface"
       | "symbol"
       | "tokenURI"
       | "transferFrom"
       | "transferOwnership"
-      | "updateCreatorRep"
-      | "updateSolverRep"
+      | "userStats"
+      | "winnerMilestones"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
+      | "AchievementUnlocked"
       | "Approval"
       | "ApprovalForAll"
-      | "BadgeMintedOrUpgraded"
       | "BatchMetadataUpdate"
       | "MetadataUpdate"
       | "OwnershipTransferred"
-      | "ReputationUpdated"
+      | "SeasonEnded"
+      | "SeasonStarted"
       | "Transfer"
   ): EventFragment;
 
   encodeFunctionData(
-    functionFragment: "BRONZE_ACTIONS",
+    functionFragment: "MONTH_DURATION",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "BRONZE_RATE",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "GOLD_ACTIONS",
-    values?: undefined
-  ): string;
-  encodeFunctionData(functionFragment: "GOLD_RATE", values?: undefined): string;
-  encodeFunctionData(
-    functionFragment: "SILVER_ACTIONS",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "SILVER_RATE",
-    values?: undefined
+    functionFragment: "achievementTokenIds",
+    values: [AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "approve",
@@ -107,7 +115,11 @@ export interface QuintyReputationInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "baseIpfsUri",
+    functionFragment: "creatorMilestones",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "currentSeasonId",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -115,48 +127,24 @@ export interface QuintyReputationInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getBadgeLevel",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getCreatorActiveSince",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getCreatorStats",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getSolverSolvedCount",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getSolverStats",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getTokenIdForUser",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getTotalSupply",
+    functionFragment: "getCurrentSeasonLeaderboard",
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "getUserReputation",
+    functionFragment: "getUserAchievements",
     values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "hasBadge",
+    functionFragment: "getUserStats",
     values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "hasAchievement",
+    values: [AddressLike, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "isApprovedForAll",
     values: [AddressLike, AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "isHighRepCreator",
-    values: [AddressLike]
   ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
@@ -165,12 +153,20 @@ export interface QuintyReputationInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "renounceOwnership",
-    values?: undefined
+    functionFragment: "recordBountyCreation",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "reputations",
+    functionFragment: "recordSubmission",
     values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "recordWin",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "renounceOwnership",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "safeTransferFrom(address,address,uint256)",
@@ -181,12 +177,24 @@ export interface QuintyReputationInterface extends Interface {
     values: [AddressLike, AddressLike, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "seasonStats",
+    values: [BigNumberish, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "seasons",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setApprovalForAll",
     values: [AddressLike, boolean]
   ): string;
   encodeFunctionData(
-    functionFragment: "setBaseIpfsUri",
+    functionFragment: "setBaseTokenURI",
     values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "solverMilestones",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "supportsInterface",
@@ -206,39 +214,30 @@ export interface QuintyReputationInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "updateCreatorRep",
-    values: [AddressLike, boolean]
+    functionFragment: "userStats",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "updateSolverRep",
-    values: [AddressLike, boolean]
+    functionFragment: "winnerMilestones",
+    values: [BigNumberish]
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "BRONZE_ACTIONS",
+    functionFragment: "MONTH_DURATION",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "BRONZE_RATE",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "GOLD_ACTIONS",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "GOLD_RATE", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "SILVER_ACTIONS",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "SILVER_RATE",
+    functionFragment: "achievementTokenIds",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "baseIpfsUri",
+    functionFragment: "creatorMilestones",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "currentSeasonId",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -246,55 +245,39 @@ export interface QuintyReputationInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getBadgeLevel",
+    functionFragment: "getCurrentSeasonLeaderboard",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getCreatorActiveSince",
+    functionFragment: "getUserAchievements",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getCreatorStats",
+    functionFragment: "getUserStats",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getSolverSolvedCount",
+    functionFragment: "hasAchievement",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "getSolverStats",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getTokenIdForUser",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getTotalSupply",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getUserReputation",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "hasBadge", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "isApprovedForAll",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "isHighRepCreator",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "renounceOwnership",
+    functionFragment: "recordBountyCreation",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "reputations",
+    functionFragment: "recordSubmission",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "recordWin", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -306,11 +289,20 @@ export interface QuintyReputationInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "seasonStats",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "seasons", data: BytesLike): Result;
+  decodeFunctionResult(
     functionFragment: "setApprovalForAll",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setBaseIpfsUri",
+    functionFragment: "setBaseTokenURI",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "solverMilestones",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -327,14 +319,33 @@ export interface QuintyReputationInterface extends Interface {
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "userStats", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "updateCreatorRep",
+    functionFragment: "winnerMilestones",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "updateSolverRep",
-    data: BytesLike
-  ): Result;
+}
+
+export namespace AchievementUnlockedEvent {
+  export type InputTuple = [
+    user: AddressLike,
+    achievement: BigNumberish,
+    tokenId: BigNumberish
+  ];
+  export type OutputTuple = [
+    user: string,
+    achievement: bigint,
+    tokenId: bigint
+  ];
+  export interface OutputObject {
+    user: string;
+    achievement: bigint;
+    tokenId: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace ApprovalEvent {
@@ -370,31 +381,6 @@ export namespace ApprovalForAllEvent {
     owner: string;
     operator: string;
     approved: boolean;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace BadgeMintedOrUpgradedEvent {
-  export type InputTuple = [
-    user: AddressLike,
-    tokenId: BigNumberish,
-    level: string,
-    tokenURI: string
-  ];
-  export type OutputTuple = [
-    user: string,
-    tokenId: bigint,
-    level: string,
-    tokenURI: string
-  ];
-  export interface OutputObject {
-    user: string;
-    tokenId: bigint;
-    level: string;
-    tokenURI: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -443,21 +429,34 @@ export namespace OwnershipTransferredEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace ReputationUpdatedEvent {
+export namespace SeasonEndedEvent {
   export type InputTuple = [
-    user: AddressLike,
-    isCreator: boolean,
-    success: boolean
+    seasonId: BigNumberish,
+    topSolver: AddressLike,
+    topCreator: AddressLike
   ];
   export type OutputTuple = [
-    user: string,
-    isCreator: boolean,
-    success: boolean
+    seasonId: bigint,
+    topSolver: string,
+    topCreator: string
   ];
   export interface OutputObject {
-    user: string;
-    isCreator: boolean;
-    success: boolean;
+    seasonId: bigint;
+    topSolver: string;
+    topCreator: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace SeasonStartedEvent {
+  export type InputTuple = [seasonId: BigNumberish, startTime: BigNumberish];
+  export type OutputTuple = [seasonId: bigint, startTime: bigint];
+  export interface OutputObject {
+    seasonId: bigint;
+    startTime: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -526,17 +525,13 @@ export interface QuintyReputation extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  BRONZE_ACTIONS: TypedContractMethod<[], [bigint], "view">;
+  MONTH_DURATION: TypedContractMethod<[], [bigint], "view">;
 
-  BRONZE_RATE: TypedContractMethod<[], [bigint], "view">;
-
-  GOLD_ACTIONS: TypedContractMethod<[], [bigint], "view">;
-
-  GOLD_RATE: TypedContractMethod<[], [bigint], "view">;
-
-  SILVER_ACTIONS: TypedContractMethod<[], [bigint], "view">;
-
-  SILVER_RATE: TypedContractMethod<[], [bigint], "view">;
+  achievementTokenIds: TypedContractMethod<
+    [arg0: AddressLike, arg1: BigNumberish],
+    [bigint],
+    "view"
+  >;
 
   approve: TypedContractMethod<
     [to: AddressLike, tokenId: BigNumberish],
@@ -546,102 +541,50 @@ export interface QuintyReputation extends BaseContract {
 
   balanceOf: TypedContractMethod<[owner: AddressLike], [bigint], "view">;
 
-  baseIpfsUri: TypedContractMethod<[], [string], "view">;
+  creatorMilestones: TypedContractMethod<
+    [arg0: BigNumberish],
+    [bigint],
+    "view"
+  >;
+
+  currentSeasonId: TypedContractMethod<[], [bigint], "view">;
 
   getApproved: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
 
-  getBadgeLevel: TypedContractMethod<[_user: AddressLike], [string], "view">;
-
-  getCreatorActiveSince: TypedContractMethod<
-    [_user: AddressLike],
-    [bigint],
-    "view"
-  >;
-
-  getCreatorStats: TypedContractMethod<
-    [_user: AddressLike],
+  getCurrentSeasonLeaderboard: TypedContractMethod<
+    [],
     [
-      [bigint, bigint, bigint, bigint] & {
-        created: bigint;
-        successful: bigint;
-        rate: bigint;
-        activeSince: bigint;
+      [string, bigint, string, bigint, bigint] & {
+        topSolver: string;
+        topSolverWins: bigint;
+        topCreator: string;
+        topCreatorBounties: bigint;
+        seasonEndTime: bigint;
       }
     ],
     "view"
   >;
 
-  getSolverSolvedCount: TypedContractMethod<
+  getUserAchievements: TypedContractMethod<
     [_user: AddressLike],
-    [bigint],
+    [[bigint[], bigint[]] & { achievements: bigint[]; tokenIds: bigint[] }],
     "view"
   >;
 
-  getSolverStats: TypedContractMethod<
+  getUserStats: TypedContractMethod<
     [_user: AddressLike],
-    [
-      [bigint, bigint, bigint, bigint] & {
-        attempted: bigint;
-        successful: bigint;
-        rate: bigint;
-        totalSolved: bigint;
-      }
-    ],
+    [QuintyReputation.UserStatsStructOutput],
     "view"
   >;
 
-  getTokenIdForUser: TypedContractMethod<
-    [_user: AddressLike],
-    [bigint],
-    "view"
-  >;
-
-  getTotalSupply: TypedContractMethod<[], [bigint], "view">;
-
-  getUserReputation: TypedContractMethod<
-    [_user: AddressLike],
-    [
-      [
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        string,
-        boolean,
-        boolean
-      ] & {
-        bountiesCreated: bigint;
-        successfulBounties: bigint;
-        creationSuccessRate: bigint;
-        firstBountyTimestamp: bigint;
-        solvesAttempted: bigint;
-        successfulSolves: bigint;
-        solveSuccessRate: bigint;
-        totalSolvedCount: bigint;
-        tokenId: bigint;
-        level: string;
-        hasCreatorBadge: boolean;
-        hasSolverBadge: boolean;
-      }
-    ],
-    "view"
-  >;
-
-  hasBadge: TypedContractMethod<[_user: AddressLike], [boolean], "view">;
-
-  isApprovedForAll: TypedContractMethod<
-    [owner: AddressLike, operator: AddressLike],
+  hasAchievement: TypedContractMethod<
+    [arg0: AddressLike, arg1: BigNumberish],
     [boolean],
     "view"
   >;
 
-  isHighRepCreator: TypedContractMethod<
-    [_user: AddressLike],
+  isApprovedForAll: TypedContractMethod<
+    [owner: AddressLike, operator: AddressLike],
     [boolean],
     "view"
   >;
@@ -652,43 +595,21 @@ export interface QuintyReputation extends BaseContract {
 
   ownerOf: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
 
-  renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
-
-  reputations: TypedContractMethod<
-    [arg0: AddressLike],
-    [
-      [
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        string,
-        boolean,
-        boolean,
-        bigint
-      ] & {
-        bountiesCreated: bigint;
-        successfulBounties: bigint;
-        creationSuccessRate: bigint;
-        firstBountyTimestamp: bigint;
-        solvesAttempted: bigint;
-        successfulSolves: bigint;
-        solveSuccessRate: bigint;
-        totalSolvedCount: bigint;
-        tokenId: bigint;
-        level: string;
-        hasCreatorBadge: boolean;
-        hasSolverBadge: boolean;
-        lastUpdated: bigint;
-      }
-    ],
-    "view"
+  recordBountyCreation: TypedContractMethod<
+    [_user: AddressLike],
+    [void],
+    "nonpayable"
   >;
+
+  recordSubmission: TypedContractMethod<
+    [_user: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  recordWin: TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
+
+  renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
   "safeTransferFrom(address,address,uint256)": TypedContractMethod<
     [from: AddressLike, to: AddressLike, tokenId: BigNumberish],
@@ -707,17 +628,48 @@ export interface QuintyReputation extends BaseContract {
     "nonpayable"
   >;
 
+  seasonStats: TypedContractMethod<
+    [arg0: BigNumberish, arg1: AddressLike],
+    [
+      [bigint, bigint, bigint] & {
+        submissions: bigint;
+        wins: bigint;
+        bountiesCreated: bigint;
+      }
+    ],
+    "view"
+  >;
+
+  seasons: TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, boolean, string, string, bigint, bigint] & {
+        seasonId: bigint;
+        startTime: bigint;
+        endTime: bigint;
+        ended: boolean;
+        topSolver: string;
+        topCreator: string;
+        topSolverWins: bigint;
+        topCreatorBounties: bigint;
+      }
+    ],
+    "view"
+  >;
+
   setApprovalForAll: TypedContractMethod<
     [operator: AddressLike, approved: boolean],
     [void],
     "nonpayable"
   >;
 
-  setBaseIpfsUri: TypedContractMethod<
-    [_newBaseUri: string],
+  setBaseTokenURI: TypedContractMethod<
+    [baseTokenURI: string],
     [void],
     "nonpayable"
   >;
+
+  solverMilestones: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   supportsInterface: TypedContractMethod<
     [interfaceId: BytesLike],
@@ -741,40 +693,36 @@ export interface QuintyReputation extends BaseContract {
     "nonpayable"
   >;
 
-  updateCreatorRep: TypedContractMethod<
-    [_user: AddressLike, _success: boolean],
-    [void],
-    "nonpayable"
+  userStats: TypedContractMethod<
+    [arg0: AddressLike],
+    [
+      [bigint, bigint, bigint, bigint, bigint] & {
+        totalSubmissions: bigint;
+        totalWins: bigint;
+        totalBountiesCreated: bigint;
+        firstActivity: bigint;
+        lastActivity: bigint;
+      }
+    ],
+    "view"
   >;
 
-  updateSolverRep: TypedContractMethod<
-    [_user: AddressLike, _success: boolean],
-    [void],
-    "nonpayable"
-  >;
+  winnerMilestones: TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
   getFunction(
-    nameOrSignature: "BRONZE_ACTIONS"
+    nameOrSignature: "MONTH_DURATION"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
-    nameOrSignature: "BRONZE_RATE"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "GOLD_ACTIONS"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "GOLD_RATE"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "SILVER_ACTIONS"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "SILVER_RATE"
-  ): TypedContractMethod<[], [bigint], "view">;
+    nameOrSignature: "achievementTokenIds"
+  ): TypedContractMethod<
+    [arg0: AddressLike, arg1: BigNumberish],
+    [bigint],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "approve"
   ): TypedContractMethod<
@@ -786,92 +734,50 @@ export interface QuintyReputation extends BaseContract {
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<[owner: AddressLike], [bigint], "view">;
   getFunction(
-    nameOrSignature: "baseIpfsUri"
-  ): TypedContractMethod<[], [string], "view">;
+    nameOrSignature: "creatorMilestones"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "currentSeasonId"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "getApproved"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
   getFunction(
-    nameOrSignature: "getBadgeLevel"
-  ): TypedContractMethod<[_user: AddressLike], [string], "view">;
-  getFunction(
-    nameOrSignature: "getCreatorActiveSince"
-  ): TypedContractMethod<[_user: AddressLike], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getCreatorStats"
+    nameOrSignature: "getCurrentSeasonLeaderboard"
   ): TypedContractMethod<
-    [_user: AddressLike],
+    [],
     [
-      [bigint, bigint, bigint, bigint] & {
-        created: bigint;
-        successful: bigint;
-        rate: bigint;
-        activeSince: bigint;
+      [string, bigint, string, bigint, bigint] & {
+        topSolver: string;
+        topSolverWins: bigint;
+        topCreator: string;
+        topCreatorBounties: bigint;
+        seasonEndTime: bigint;
       }
     ],
     "view"
   >;
   getFunction(
-    nameOrSignature: "getSolverSolvedCount"
-  ): TypedContractMethod<[_user: AddressLike], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getSolverStats"
+    nameOrSignature: "getUserAchievements"
   ): TypedContractMethod<
     [_user: AddressLike],
-    [
-      [bigint, bigint, bigint, bigint] & {
-        attempted: bigint;
-        successful: bigint;
-        rate: bigint;
-        totalSolved: bigint;
-      }
-    ],
+    [[bigint[], bigint[]] & { achievements: bigint[]; tokenIds: bigint[] }],
     "view"
   >;
   getFunction(
-    nameOrSignature: "getTokenIdForUser"
-  ): TypedContractMethod<[_user: AddressLike], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getTotalSupply"
-  ): TypedContractMethod<[], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getUserReputation"
+    nameOrSignature: "getUserStats"
   ): TypedContractMethod<
     [_user: AddressLike],
-    [
-      [
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        string,
-        boolean,
-        boolean
-      ] & {
-        bountiesCreated: bigint;
-        successfulBounties: bigint;
-        creationSuccessRate: bigint;
-        firstBountyTimestamp: bigint;
-        solvesAttempted: bigint;
-        successfulSolves: bigint;
-        solveSuccessRate: bigint;
-        totalSolvedCount: bigint;
-        tokenId: bigint;
-        level: string;
-        hasCreatorBadge: boolean;
-        hasSolverBadge: boolean;
-      }
-    ],
+    [QuintyReputation.UserStatsStructOutput],
     "view"
   >;
   getFunction(
-    nameOrSignature: "hasBadge"
-  ): TypedContractMethod<[_user: AddressLike], [boolean], "view">;
+    nameOrSignature: "hasAchievement"
+  ): TypedContractMethod<
+    [arg0: AddressLike, arg1: BigNumberish],
+    [boolean],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "isApprovedForAll"
   ): TypedContractMethod<
@@ -879,9 +785,6 @@ export interface QuintyReputation extends BaseContract {
     [boolean],
     "view"
   >;
-  getFunction(
-    nameOrSignature: "isHighRepCreator"
-  ): TypedContractMethod<[_user: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "name"
   ): TypedContractMethod<[], [string], "view">;
@@ -892,45 +795,17 @@ export interface QuintyReputation extends BaseContract {
     nameOrSignature: "ownerOf"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
   getFunction(
+    nameOrSignature: "recordBountyCreation"
+  ): TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "recordSubmission"
+  ): TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "recordWin"
+  ): TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "reputations"
-  ): TypedContractMethod<
-    [arg0: AddressLike],
-    [
-      [
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        bigint,
-        string,
-        boolean,
-        boolean,
-        bigint
-      ] & {
-        bountiesCreated: bigint;
-        successfulBounties: bigint;
-        creationSuccessRate: bigint;
-        firstBountyTimestamp: bigint;
-        solvesAttempted: bigint;
-        successfulSolves: bigint;
-        solveSuccessRate: bigint;
-        totalSolvedCount: bigint;
-        tokenId: bigint;
-        level: string;
-        hasCreatorBadge: boolean;
-        hasSolverBadge: boolean;
-        lastUpdated: bigint;
-      }
-    ],
-    "view"
-  >;
   getFunction(
     nameOrSignature: "safeTransferFrom(address,address,uint256)"
   ): TypedContractMethod<
@@ -951,6 +826,37 @@ export interface QuintyReputation extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "seasonStats"
+  ): TypedContractMethod<
+    [arg0: BigNumberish, arg1: AddressLike],
+    [
+      [bigint, bigint, bigint] & {
+        submissions: bigint;
+        wins: bigint;
+        bountiesCreated: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "seasons"
+  ): TypedContractMethod<
+    [arg0: BigNumberish],
+    [
+      [bigint, bigint, bigint, boolean, string, string, bigint, bigint] & {
+        seasonId: bigint;
+        startTime: bigint;
+        endTime: bigint;
+        ended: boolean;
+        topSolver: string;
+        topCreator: string;
+        topSolverWins: bigint;
+        topCreatorBounties: bigint;
+      }
+    ],
+    "view"
+  >;
+  getFunction(
     nameOrSignature: "setApprovalForAll"
   ): TypedContractMethod<
     [operator: AddressLike, approved: boolean],
@@ -958,8 +864,11 @@ export interface QuintyReputation extends BaseContract {
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "setBaseIpfsUri"
-  ): TypedContractMethod<[_newBaseUri: string], [void], "nonpayable">;
+    nameOrSignature: "setBaseTokenURI"
+  ): TypedContractMethod<[baseTokenURI: string], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "solverMilestones"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
   getFunction(
     nameOrSignature: "supportsInterface"
   ): TypedContractMethod<[interfaceId: BytesLike], [boolean], "view">;
@@ -980,20 +889,31 @@ export interface QuintyReputation extends BaseContract {
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "updateCreatorRep"
+    nameOrSignature: "userStats"
   ): TypedContractMethod<
-    [_user: AddressLike, _success: boolean],
-    [void],
-    "nonpayable"
+    [arg0: AddressLike],
+    [
+      [bigint, bigint, bigint, bigint, bigint] & {
+        totalSubmissions: bigint;
+        totalWins: bigint;
+        totalBountiesCreated: bigint;
+        firstActivity: bigint;
+        lastActivity: bigint;
+      }
+    ],
+    "view"
   >;
   getFunction(
-    nameOrSignature: "updateSolverRep"
-  ): TypedContractMethod<
-    [_user: AddressLike, _success: boolean],
-    [void],
-    "nonpayable"
-  >;
+    nameOrSignature: "winnerMilestones"
+  ): TypedContractMethod<[arg0: BigNumberish], [bigint], "view">;
 
+  getEvent(
+    key: "AchievementUnlocked"
+  ): TypedContractEvent<
+    AchievementUnlockedEvent.InputTuple,
+    AchievementUnlockedEvent.OutputTuple,
+    AchievementUnlockedEvent.OutputObject
+  >;
   getEvent(
     key: "Approval"
   ): TypedContractEvent<
@@ -1007,13 +927,6 @@ export interface QuintyReputation extends BaseContract {
     ApprovalForAllEvent.InputTuple,
     ApprovalForAllEvent.OutputTuple,
     ApprovalForAllEvent.OutputObject
-  >;
-  getEvent(
-    key: "BadgeMintedOrUpgraded"
-  ): TypedContractEvent<
-    BadgeMintedOrUpgradedEvent.InputTuple,
-    BadgeMintedOrUpgradedEvent.OutputTuple,
-    BadgeMintedOrUpgradedEvent.OutputObject
   >;
   getEvent(
     key: "BatchMetadataUpdate"
@@ -1037,11 +950,18 @@ export interface QuintyReputation extends BaseContract {
     OwnershipTransferredEvent.OutputObject
   >;
   getEvent(
-    key: "ReputationUpdated"
+    key: "SeasonEnded"
   ): TypedContractEvent<
-    ReputationUpdatedEvent.InputTuple,
-    ReputationUpdatedEvent.OutputTuple,
-    ReputationUpdatedEvent.OutputObject
+    SeasonEndedEvent.InputTuple,
+    SeasonEndedEvent.OutputTuple,
+    SeasonEndedEvent.OutputObject
+  >;
+  getEvent(
+    key: "SeasonStarted"
+  ): TypedContractEvent<
+    SeasonStartedEvent.InputTuple,
+    SeasonStartedEvent.OutputTuple,
+    SeasonStartedEvent.OutputObject
   >;
   getEvent(
     key: "Transfer"
@@ -1052,6 +972,17 @@ export interface QuintyReputation extends BaseContract {
   >;
 
   filters: {
+    "AchievementUnlocked(address,uint8,uint256)": TypedContractEvent<
+      AchievementUnlockedEvent.InputTuple,
+      AchievementUnlockedEvent.OutputTuple,
+      AchievementUnlockedEvent.OutputObject
+    >;
+    AchievementUnlocked: TypedContractEvent<
+      AchievementUnlockedEvent.InputTuple,
+      AchievementUnlockedEvent.OutputTuple,
+      AchievementUnlockedEvent.OutputObject
+    >;
+
     "Approval(address,address,uint256)": TypedContractEvent<
       ApprovalEvent.InputTuple,
       ApprovalEvent.OutputTuple,
@@ -1072,17 +1003,6 @@ export interface QuintyReputation extends BaseContract {
       ApprovalForAllEvent.InputTuple,
       ApprovalForAllEvent.OutputTuple,
       ApprovalForAllEvent.OutputObject
-    >;
-
-    "BadgeMintedOrUpgraded(address,uint256,string,string)": TypedContractEvent<
-      BadgeMintedOrUpgradedEvent.InputTuple,
-      BadgeMintedOrUpgradedEvent.OutputTuple,
-      BadgeMintedOrUpgradedEvent.OutputObject
-    >;
-    BadgeMintedOrUpgraded: TypedContractEvent<
-      BadgeMintedOrUpgradedEvent.InputTuple,
-      BadgeMintedOrUpgradedEvent.OutputTuple,
-      BadgeMintedOrUpgradedEvent.OutputObject
     >;
 
     "BatchMetadataUpdate(uint256,uint256)": TypedContractEvent<
@@ -1118,15 +1038,26 @@ export interface QuintyReputation extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "ReputationUpdated(address,bool,bool)": TypedContractEvent<
-      ReputationUpdatedEvent.InputTuple,
-      ReputationUpdatedEvent.OutputTuple,
-      ReputationUpdatedEvent.OutputObject
+    "SeasonEnded(uint256,address,address)": TypedContractEvent<
+      SeasonEndedEvent.InputTuple,
+      SeasonEndedEvent.OutputTuple,
+      SeasonEndedEvent.OutputObject
     >;
-    ReputationUpdated: TypedContractEvent<
-      ReputationUpdatedEvent.InputTuple,
-      ReputationUpdatedEvent.OutputTuple,
-      ReputationUpdatedEvent.OutputObject
+    SeasonEnded: TypedContractEvent<
+      SeasonEndedEvent.InputTuple,
+      SeasonEndedEvent.OutputTuple,
+      SeasonEndedEvent.OutputObject
+    >;
+
+    "SeasonStarted(uint256,uint256)": TypedContractEvent<
+      SeasonStartedEvent.InputTuple,
+      SeasonStartedEvent.OutputTuple,
+      SeasonStartedEvent.OutputObject
+    >;
+    SeasonStarted: TypedContractEvent<
+      SeasonStartedEvent.InputTuple,
+      SeasonStartedEvent.OutputTuple,
+      SeasonStartedEvent.OutputObject
     >;
 
     "Transfer(address,address,uint256)": TypedContractEvent<

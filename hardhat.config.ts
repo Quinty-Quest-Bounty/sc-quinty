@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
+import "dotenv/config";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -14,17 +15,33 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      chainId: 1337
+      chainId: 1337,
     },
-    somniaTestnet: {
-      url: process.env.SOMNIA_TESTNET_RPC || "https://dream-rpc.somnia.network/",
-      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : {
-        mnemonic: "test test test test test test test test test test test junk",
-        path: "m/44'/60'/0'/0",
-        initialIndex: 0,
-        count: 20,
-      },
-      chainId: 50312,
+    baseSepolia: {
+      url: process.env.BASE_SEPOLIA_RPC || "https://sepolia.base.org",
+      accounts: process.env.PRIVATE_KEY
+        ? [process.env.PRIVATE_KEY]
+        : {
+            mnemonic:
+              "test test test test test test test test test test test junk",
+            path: "m/44'/60'/0'/0",
+            initialIndex: 0,
+            count: 20,
+          },
+      chainId: 84532,
+    },
+    baseMainnet: {
+      url: process.env.BASE_MAINNET_RPC || "https://mainnet.base.org",
+      accounts: process.env.PRIVATE_KEY
+        ? [process.env.PRIVATE_KEY]
+        : {
+            mnemonic:
+              "test test test test test test test test test test test junk",
+            path: "m/44'/60'/0'/0",
+            initialIndex: 0,
+            count: 20,
+          },
+      chainId: 8453,
     },
   },
 };

@@ -21,25 +21,15 @@ import type {
 } from "../../common";
 
 export interface IDisputeResolverInterface extends Interface {
-  getFunction(
-    nameOrSignature: "initiateExpiryVote" | "initiatePengadilanDispute"
-  ): FunctionFragment;
+  getFunction(nameOrSignature: "initiateExpiryVote"): FunctionFragment;
 
   encodeFunctionData(
     functionFragment: "initiateExpiryVote",
     values: [BigNumberish, BigNumberish]
   ): string;
-  encodeFunctionData(
-    functionFragment: "initiatePengadilanDispute",
-    values: [BigNumberish]
-  ): string;
 
   decodeFunctionResult(
     functionFragment: "initiateExpiryVote",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "initiatePengadilanDispute",
     data: BytesLike
   ): Result;
 }
@@ -93,12 +83,6 @@ export interface IDisputeResolver extends BaseContract {
     "nonpayable"
   >;
 
-  initiatePengadilanDispute: TypedContractMethod<
-    [_bountyId: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -110,9 +94,6 @@ export interface IDisputeResolver extends BaseContract {
     [void],
     "nonpayable"
   >;
-  getFunction(
-    nameOrSignature: "initiatePengadilanDispute"
-  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
 
   filters: {};
 }

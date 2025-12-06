@@ -27,19 +27,6 @@ const _abi = [
     stateMutability: "nonpayable",
     type: "function",
   },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_bountyId",
-        type: "uint256",
-      },
-    ],
-    name: "initiatePengadilanDispute",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
 ] as const;
 
 export class IDisputeResolver__factory {

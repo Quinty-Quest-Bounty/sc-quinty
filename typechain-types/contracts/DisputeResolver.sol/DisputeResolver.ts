@@ -26,20 +26,16 @@ import type {
 export interface DisputeResolverInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "MIN_STAKE"
+      | "DISPUTE_STAKE_BPS"
+      | "MIN_VOTING_STAKE"
       | "VOTING_DURATION"
       | "disputeCounter"
       | "disputes"
-      | "getDispute"
-      | "getVote"
-      | "hasVoted"
       | "initiateExpiryVote"
       | "initiatePengadilanDispute"
       | "owner"
-      | "quintyAddress"
       | "renounceOwnership"
       | "resolveDispute"
-      | "setQuintyAddress"
       | "transferOwnership"
       | "vote"
   ): FunctionFragment;
@@ -49,11 +45,17 @@ export interface DisputeResolverInterface extends Interface {
       | "DisputeInitiated"
       | "DisputeResolved"
       | "OwnershipTransferred"
-      | "RewardDistributed"
       | "VoteCast"
   ): EventFragment;
 
-  encodeFunctionData(functionFragment: "MIN_STAKE", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "DISPUTE_STAKE_BPS",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "MIN_VOTING_STAKE",
+    values?: undefined
+  ): string;
   encodeFunctionData(
     functionFragment: "VOTING_DURATION",
     values?: undefined
@@ -67,18 +69,6 @@ export interface DisputeResolverInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getDispute",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getVote",
-    values: [BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "hasVoted",
-    values: [BigNumberish, AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "initiateExpiryVote",
     values: [BigNumberish, BigNumberish]
   ): string;
@@ -88,20 +78,12 @@ export interface DisputeResolverInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "quintyAddress",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "resolveDispute",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "setQuintyAddress",
-    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
@@ -112,7 +94,14 @@ export interface DisputeResolverInterface extends Interface {
     values: [BigNumberish, BigNumberish[]]
   ): string;
 
-  decodeFunctionResult(functionFragment: "MIN_STAKE", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "DISPUTE_STAKE_BPS",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "MIN_VOTING_STAKE",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "VOTING_DURATION",
     data: BytesLike
@@ -122,9 +111,6 @@ export interface DisputeResolverInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "disputes", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "getDispute", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "getVote", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "hasVoted", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "initiateExpiryVote",
     data: BytesLike
@@ -135,19 +121,11 @@ export interface DisputeResolverInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "quintyAddress",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "resolveDispute",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "setQuintyAddress",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -161,20 +139,20 @@ export namespace DisputeInitiatedEvent {
   export type InputTuple = [
     disputeId: BigNumberish,
     bountyId: BigNumberish,
-    isExpiry: boolean,
-    amount: BigNumberish
+    initiatedBy: AddressLike,
+    isExpiryVote: boolean
   ];
   export type OutputTuple = [
     disputeId: bigint,
     bountyId: bigint,
-    isExpiry: boolean,
-    amount: bigint
+    initiatedBy: string,
+    isExpiryVote: boolean
   ];
   export interface OutputObject {
     disputeId: bigint;
     bountyId: bigint;
-    isExpiry: boolean;
-    amount: bigint;
+    initiatedBy: string;
+    isExpiryVote: boolean;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -185,18 +163,12 @@ export namespace DisputeInitiatedEvent {
 export namespace DisputeResolvedEvent {
   export type InputTuple = [
     disputeId: BigNumberish,
-    topRanks: BigNumberish[],
-    distributions: BigNumberish[]
+    winningSubmissionIds: BigNumberish[]
   ];
-  export type OutputTuple = [
-    disputeId: bigint,
-    topRanks: bigint[],
-    distributions: bigint[]
-  ];
+  export type OutputTuple = [disputeId: bigint, winningSubmissionIds: bigint[]];
   export interface OutputObject {
     disputeId: bigint;
-    topRanks: bigint[];
-    distributions: bigint[];
+    winningSubmissionIds: bigint[];
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -217,41 +189,16 @@ export namespace OwnershipTransferredEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace RewardDistributedEvent {
-  export type InputTuple = [
-    recipient: AddressLike,
-    amount: BigNumberish,
-    reason: string
-  ];
-  export type OutputTuple = [recipient: string, amount: bigint, reason: string];
-  export interface OutputObject {
-    recipient: string;
-    amount: bigint;
-    reason: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export namespace VoteCastEvent {
   export type InputTuple = [
     disputeId: BigNumberish,
     voter: AddressLike,
-    rankedSubIds: BigNumberish[],
     stake: BigNumberish
   ];
-  export type OutputTuple = [
-    disputeId: bigint,
-    voter: string,
-    rankedSubIds: bigint[],
-    stake: bigint
-  ];
+  export type OutputTuple = [disputeId: bigint, voter: string, stake: bigint];
   export interface OutputObject {
     disputeId: bigint;
     voter: string;
-    rankedSubIds: bigint[];
     stake: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -303,7 +250,9 @@ export interface DisputeResolver extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  MIN_STAKE: TypedContractMethod<[], [bigint], "view">;
+  DISPUTE_STAKE_BPS: TypedContractMethod<[], [bigint], "view">;
+
+  MIN_VOTING_STAKE: TypedContractMethod<[], [bigint], "view">;
 
   VOTING_DURATION: TypedContractMethod<[], [bigint], "view">;
 
@@ -312,48 +261,15 @@ export interface DisputeResolver extends BaseContract {
   disputes: TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, boolean, bigint, bigint, boolean] & {
+      [bigint, string, boolean, bigint, bigint, boolean] & {
         bountyId: bigint;
-        isExpiry: boolean;
+        initiatedBy: string;
+        isExpiryVote: boolean;
         amount: bigint;
         votingEnd: bigint;
         resolved: boolean;
       }
     ],
-    "view"
-  >;
-
-  getDispute: TypedContractMethod<
-    [_disputeId: BigNumberish],
-    [
-      [bigint, boolean, bigint, bigint, boolean, bigint] & {
-        bountyId: bigint;
-        isExpiry: boolean;
-        amount: bigint;
-        votingEnd: bigint;
-        resolved: boolean;
-        voteCount: bigint;
-      }
-    ],
-    "view"
-  >;
-
-  getVote: TypedContractMethod<
-    [_disputeId: BigNumberish, _voteIndex: BigNumberish],
-    [
-      [string, bigint, bigint[], bigint] & {
-        voter: string;
-        stake: bigint;
-        rankedSubIds: bigint[];
-        timestamp: bigint;
-      }
-    ],
-    "view"
-  >;
-
-  hasVoted: TypedContractMethod<
-    [_disputeId: BigNumberish, _voter: AddressLike],
-    [boolean],
     "view"
   >;
 
@@ -366,23 +282,15 @@ export interface DisputeResolver extends BaseContract {
   initiatePengadilanDispute: TypedContractMethod<
     [_bountyId: BigNumberish],
     [void],
-    "nonpayable"
+    "payable"
   >;
 
   owner: TypedContractMethod<[], [string], "view">;
-
-  quintyAddress: TypedContractMethod<[], [string], "view">;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
   resolveDispute: TypedContractMethod<
     [_disputeId: BigNumberish],
-    [void],
-    "nonpayable"
-  >;
-
-  setQuintyAddress: TypedContractMethod<
-    [_quintyAddress: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -404,7 +312,10 @@ export interface DisputeResolver extends BaseContract {
   ): T;
 
   getFunction(
-    nameOrSignature: "MIN_STAKE"
+    nameOrSignature: "DISPUTE_STAKE_BPS"
+  ): TypedContractMethod<[], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "MIN_VOTING_STAKE"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "VOTING_DURATION"
@@ -417,51 +328,15 @@ export interface DisputeResolver extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish],
     [
-      [bigint, boolean, bigint, bigint, boolean] & {
+      [bigint, string, boolean, bigint, bigint, boolean] & {
         bountyId: bigint;
-        isExpiry: boolean;
+        initiatedBy: string;
+        isExpiryVote: boolean;
         amount: bigint;
         votingEnd: bigint;
         resolved: boolean;
       }
     ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getDispute"
-  ): TypedContractMethod<
-    [_disputeId: BigNumberish],
-    [
-      [bigint, boolean, bigint, bigint, boolean, bigint] & {
-        bountyId: bigint;
-        isExpiry: boolean;
-        amount: bigint;
-        votingEnd: bigint;
-        resolved: boolean;
-        voteCount: bigint;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getVote"
-  ): TypedContractMethod<
-    [_disputeId: BigNumberish, _voteIndex: BigNumberish],
-    [
-      [string, bigint, bigint[], bigint] & {
-        voter: string;
-        stake: bigint;
-        rankedSubIds: bigint[];
-        timestamp: bigint;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "hasVoted"
-  ): TypedContractMethod<
-    [_disputeId: BigNumberish, _voter: AddressLike],
-    [boolean],
     "view"
   >;
   getFunction(
@@ -473,12 +348,9 @@ export interface DisputeResolver extends BaseContract {
   >;
   getFunction(
     nameOrSignature: "initiatePengadilanDispute"
-  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
+  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "payable">;
   getFunction(
     nameOrSignature: "owner"
-  ): TypedContractMethod<[], [string], "view">;
-  getFunction(
-    nameOrSignature: "quintyAddress"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "renounceOwnership"
@@ -486,9 +358,6 @@ export interface DisputeResolver extends BaseContract {
   getFunction(
     nameOrSignature: "resolveDispute"
   ): TypedContractMethod<[_disputeId: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "setQuintyAddress"
-  ): TypedContractMethod<[_quintyAddress: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
@@ -522,13 +391,6 @@ export interface DisputeResolver extends BaseContract {
     OwnershipTransferredEvent.OutputObject
   >;
   getEvent(
-    key: "RewardDistributed"
-  ): TypedContractEvent<
-    RewardDistributedEvent.InputTuple,
-    RewardDistributedEvent.OutputTuple,
-    RewardDistributedEvent.OutputObject
-  >;
-  getEvent(
     key: "VoteCast"
   ): TypedContractEvent<
     VoteCastEvent.InputTuple,
@@ -537,7 +399,7 @@ export interface DisputeResolver extends BaseContract {
   >;
 
   filters: {
-    "DisputeInitiated(uint256,uint256,bool,uint256)": TypedContractEvent<
+    "DisputeInitiated(uint256,uint256,address,bool)": TypedContractEvent<
       DisputeInitiatedEvent.InputTuple,
       DisputeInitiatedEvent.OutputTuple,
       DisputeInitiatedEvent.OutputObject
@@ -548,7 +410,7 @@ export interface DisputeResolver extends BaseContract {
       DisputeInitiatedEvent.OutputObject
     >;
 
-    "DisputeResolved(uint256,uint256[],uint256[])": TypedContractEvent<
+    "DisputeResolved(uint256,uint256[])": TypedContractEvent<
       DisputeResolvedEvent.InputTuple,
       DisputeResolvedEvent.OutputTuple,
       DisputeResolvedEvent.OutputObject
@@ -570,18 +432,7 @@ export interface DisputeResolver extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "RewardDistributed(address,uint256,string)": TypedContractEvent<
-      RewardDistributedEvent.InputTuple,
-      RewardDistributedEvent.OutputTuple,
-      RewardDistributedEvent.OutputObject
-    >;
-    RewardDistributed: TypedContractEvent<
-      RewardDistributedEvent.InputTuple,
-      RewardDistributedEvent.OutputTuple,
-      RewardDistributedEvent.OutputObject
-    >;
-
-    "VoteCast(uint256,address,uint256[],uint256)": TypedContractEvent<
+    "VoteCast(uint256,address,uint256)": TypedContractEvent<
       VoteCastEvent.InputTuple,
       VoteCastEvent.OutputTuple,
       VoteCastEvent.OutputObject

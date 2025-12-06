@@ -22,26 +22,31 @@ import type {
 
 export interface IQuintyReputationInterface extends Interface {
   getFunction(
-    nameOrSignature: "updateCreatorRep" | "updateSolverRep"
+    nameOrSignature: "recordBountyCreation" | "recordSubmission" | "recordWin"
   ): FunctionFragment;
 
   encodeFunctionData(
-    functionFragment: "updateCreatorRep",
-    values: [AddressLike, boolean]
+    functionFragment: "recordBountyCreation",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "updateSolverRep",
-    values: [AddressLike, boolean]
+    functionFragment: "recordSubmission",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "recordWin",
+    values: [AddressLike]
   ): string;
 
   decodeFunctionResult(
-    functionFragment: "updateCreatorRep",
+    functionFragment: "recordBountyCreation",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "updateSolverRep",
+    functionFragment: "recordSubmission",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(functionFragment: "recordWin", data: BytesLike): Result;
 }
 
 export interface IQuintyReputation extends BaseContract {
@@ -87,36 +92,33 @@ export interface IQuintyReputation extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  updateCreatorRep: TypedContractMethod<
-    [_user: AddressLike, _success: boolean],
+  recordBountyCreation: TypedContractMethod<
+    [_user: AddressLike],
     [void],
     "nonpayable"
   >;
 
-  updateSolverRep: TypedContractMethod<
-    [_user: AddressLike, _success: boolean],
+  recordSubmission: TypedContractMethod<
+    [_user: AddressLike],
     [void],
     "nonpayable"
   >;
+
+  recordWin: TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
   getFunction(
-    nameOrSignature: "updateCreatorRep"
-  ): TypedContractMethod<
-    [_user: AddressLike, _success: boolean],
-    [void],
-    "nonpayable"
-  >;
+    nameOrSignature: "recordBountyCreation"
+  ): TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "updateSolverRep"
-  ): TypedContractMethod<
-    [_user: AddressLike, _success: boolean],
-    [void],
-    "nonpayable"
-  >;
+    nameOrSignature: "recordSubmission"
+  ): TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "recordWin"
+  ): TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
 
   filters: {};
 }
