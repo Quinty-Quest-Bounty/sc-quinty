@@ -1,180 +1,99 @@
-# Quinty V2 - On-Chain Bounty Platform
+# Quinty: Decentralized Bounty & Airdrop Platform
 
-![Tests](https://img.shields.io/badge/tests-68%2F68%20passing-brightgreen)
-![Network](https://img.shields.io/badge/network-Base%20Sepolia-blue)
-![Solidity](https://img.shields.io/badge/solidity-0.8.28-orange)
+Quinty is a fully on-chain bounty and airdrop platform designed to foster trust and transparency between creators and contributors. It features a robust, soulbound reputation system to reward participation and ensure fairness within the ecosystem.
 
-## 🎉 Deployment Status: COMPLETE ✅
+## Core Features
 
-All 9 smart contracts are **deployed and fully configured** on Base Sepolia testnet!
+-   **Decentralized Bounties**: Creators can fund bounties for specific tasks, and solvers can submit their work for a reward.
+-   **Airdrop Campaigns**: Launch promotional campaigns where rewards are distributed based on verifiable, on-chain proof of engagement.
+-   **On-Chain Reputation**: A soulbound (non-transferable) ERC721 NFT system that represents a user's reputation as both a creator and a solver.
+-   **Dispute Resolution**: A community-driven voting mechanism to fairly resolve disputes that may arise from bounty resolutions.
 
-## 📍 Quick Links
+## Architecture
 
-- **Frontend Quick Start**: [fe-quinty/QUICKSTART.md](../fe-quinty/QUICKSTART.md)
-- **Complete Integration Guide**: [FRONTEND_INTEGRATION.md](./FRONTEND_INTEGRATION.md)
-- **Full Summary**: [FINAL_SUMMARY.md](./FINAL_SUMMARY.md)
-- **Contract Addresses**: [deployments-base-sepolia-complete.json](./deployments-base-sepolia-complete.json)
+The Quinty ecosystem is comprised of a set of smart contracts and a frontend dApp for user interaction.
 
-## 🚀 For Frontend Developers
+### Smart Contracts (`/contracts`)
 
-### Everything You Need is Ready!
+-   `Quinty.sol`: The core contract that manages the entire lifecycle of bounties, from creation and submission to resolution.
+-   `AirdropBounty.sol`: Manages the creation, participation, and reward distribution for promotional airdrop campaigns.
+-   `QuintyReputation.sol`: An ERC721-based contract for minting and updating soulbound reputation tokens (badges) for users.
+-   `DisputeResolver.sol`: Manages the community voting process to handle bounty disputes.
 
-1. **ABIs**: `fe-quinty/contracts/` folder
-2. **Addresses**: `fe-quinty/contracts/constants.ts`
-3. **Documentation**: `fe-quinty/QUICKSTART.md`
+### Frontend (`/FRONTEND`)
 
-### Quick Integration
+A decentralized application (dApp) built with Next.js that provides a user-friendly interface for interacting with all features of the Quinty platform.
 
-```typescript
-import { BASE_SEPOLIA_ADDRESSES } from './contracts/constants';
-import QuintyABI from './contracts/Quinty.json';
-import { ethers } from 'ethers';
+## Tech Stack
 
-const quinty = new ethers.Contract(
-  BASE_SEPOLIA_ADDRESSES.Quinty,
-  QuintyABI,
-  provider
-);
+-   **Blockchain**: Solidity, Hardhat, Ethers.js, OpenZeppelin
+-   **Frontend**: Next.js, React, TypeScript, Wagmi, Viem, Tailwind CSS
 
-// You're ready to go! 🎉
-```
+## Local Development
 
-## 🏗️ Smart Contracts
+Follow these steps to set up and run the project locally.
 
-### Deployed on Base Sepolia (Chain ID: 84532)
+### Prerequisites
 
-| Contract | Address | Purpose |
-|----------|---------|---------|
-| Quinty | `0x7169c907...` | Core bounty system |
-| QuintyNFT | `0x80edb4Ae...` | Soulbound badges |
-| QuintyReputation | `0x2dc731f7...` | Achievement system |
-| GrantProgram | `0xf70fBEba...` | Institutional grants |
-| LookingForGrant | `0x423fb3E1...` | VC funding requests |
-| Crowdfunding | `0x64aC0a7A...` | All-or-nothing campaigns |
-| AirdropBounty | `0x79dAe15C...` | Promotion rewards |
-| SocialVerification | `0xe3cd834a...` | Social account verification |
-| DisputeResolver | `0xF04b0Ec5...` | Community voting |
+-   [Git](https://git-scm.com/)
+-   [Node.js](https://nodejs.org/en/) (v18 or later recommended)
+-   `npm` or `yarn`
 
-**Full addresses**: See [deployments-base-sepolia-complete.json](./deployments-base-sepolia-complete.json)
+### Installation
 
-## ✨ Key Features
+1.  **Clone the repository:**
+    ```shell
+    git clone <your-repository-url>
+    cd sc-quinty
+    ```
 
-- ✅ **Pure ETH Economy** - No token complexity
-- ✅ **Team Collaboration** - Built-in team support
-- ✅ **Soulbound NFTs** - Non-transferable badges
-- ✅ **Multiple Funding Models** - Bounties, Grants, Crowdfunding, VC
-- ✅ **Oprec System** - Pre-bounty recruitment
-- ✅ **Achievement Tracking** - Milestone-based reputation
-- ✅ **100% Test Coverage** - 68/68 tests passing
+2.  **Install root dependencies:**
+    ```shell
+    npm install
+    ```
 
-## 🧪 Testing
+3.  **Install frontend dependencies:**
+    ```shell
+    cd FRONTEND
+    npm install
+    ```
 
-```bash
-# Run all tests
-npx hardhat test
+4.  **Set up environment variables:**
+    Return to the root directory (`cd ..`). This project uses `.env` files for configuration.
+    -   In the root directory, copy `.env.example` to `.env` and add your private key and network RPC URL (e.g., for Somnia Testnet).
+    -   In the `FRONTEND` directory, copy `.env.example` to `.env.local` if you need to override any frontend-specific variables.
 
-# Results: 68/68 passing ✅
-```
+## Usage & Scripts
 
-## 📚 Documentation
+### Smart Contracts
 
-1. **[QUICKSTART.md](../fe-quinty/QUICKSTART.md)** - Frontend integration (5 min)
-2. **[FRONTEND_INTEGRATION.md](./FRONTEND_INTEGRATION.md)** - Complete guide
-3. **[FINAL_SUMMARY.md](./FINAL_SUMMARY.md)** - Full project overview
-4. **[CLAUDE.md](./CLAUDE.md)** - Architecture & commands
+-   **Compile Contracts:**
+    ```shell
+    npx hardhat compile
+    ```
 
-## 🔧 Development
+-   **Run Tests:**
+    ```shell
+    npx hardhat test
+    ```
 
-```bash
-# Compile contracts
-npx hardhat compile
+-   **Run a Local Blockchain Node:**
+    ```shell
+    npx hardhat node
+    ```
 
-# Run tests
-npx hardhat test
+-   **Deploy Contracts:**
+    The `scripts/deploy.ts` script handles the deployment of all contracts and configures their interconnections. Run it with the desired network.
+    ```shell
+    npx hardhat run scripts/deploy.ts --network <your-network-name>
+    ```
+    After a successful deployment, contract addresses will be saved in `deployments.json`.
 
-# Deploy to Base Sepolia
-npx hardhat run scripts/deploy.ts --network baseSepolia
+### Frontend
 
-# Export ABIs
-npx ts-node scripts/export-abis.ts
-```
-
-## 🌐 Network Info
-
-### Base Sepolia (Current Deployment)
-- Chain ID: 84532
-- RPC: https://sepolia.base.org
-- Explorer: https://sepolia-explorer.base.org
-- Faucet: https://www.coinbase.com/faucets/base-ethereum-goerli-faucet
-
-### Base Mainnet (Production Ready)
-- Chain ID: 8453
-- RPC: https://mainnet.base.org
-- Explorer: https://base.blockscout.com
-
-## 📦 Project Structure
-
-```
-sc-quinty/
-├── contracts/               # Smart contracts (9 total)
-│   ├── Quinty.sol
-│   ├── QuintyNFT.sol
-│   ├── QuintyReputation.sol
-│   ├── GrantProgram.sol
-│   ├── LookingForGrant.sol
-│   ├── Crowdfunding.sol
-│   ├── AirdropBounty.sol
-│   ├── SocialVerification.sol
-│   └── DisputeResolver.sol
-├── test/                    # Test suites (68 tests)
-├── scripts/                 # Deployment & utilities
-├── exported-abis/          # ABIs for frontend
-├── fe-quinty/contracts/    # ✅ Frontend integration files
-└── deployments-*.json      # Deployment addresses
-```
-
-## 🎯 Next Steps
-
-### For Smart Contract Developers
-- All contracts deployed and verified ✅
-- Ready for mainnet deployment when needed
-- Optional: Integrate Reclaim Protocol for ZK verification
-
-### For Frontend Developers
-- **Start here**: [fe-quinty/QUICKSTART.md](../fe-quinty/QUICKSTART.md)
-- All ABIs exported to `fe-quinty/contracts/`
-- Complete examples in `FRONTEND_INTEGRATION.md`
-
-### For Product Team
-- All features implemented and tested ✅
-- Base Sepolia deployment ready for testing
-- 100% test coverage achieved
-
-## 🔐 Security
-
-- ✅ ReentrancyGuard on all payable functions
-- ✅ Access controls (Ownable, custom modifiers)
-- ✅ Input validation
-- ✅ Safe ETH transfers
-- ✅ Soulbound tokens (non-transferable)
-
-## 📊 Stats
-
-- **Contracts**: 9 deployed
-- **Tests**: 68 passing (100%)
-- **Test Coverage**: All core functionality
-- **Gas Optimization**: IR compilation enabled
-- **Network**: Base Sepolia (testnet)
-- **Status**: Production Ready ✅
-
-## 🆘 Support
-
-- **Issues**: Check test files for usage examples
-- **Frontend Help**: See [QUICKSTART.md](../fe-quinty/QUICKSTART.md)
-- **Full Docs**: [FRONTEND_INTEGRATION.md](./FRONTEND_INTEGRATION.md)
-
----
-
-**Ready to build! 🚀**
-
-All contracts deployed, tested, and documented. Frontend integration files ready in `fe-quinty/contracts/`.
+-   **Run the development server:**
+    ```shell
+    cd FRONTEND
+    npm run dev
+    ```
+    Open [http://localhost:3000](http://localhost:3000) in your browser to see the application.
