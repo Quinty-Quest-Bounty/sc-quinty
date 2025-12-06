@@ -52,7 +52,7 @@ const quinty = new ethers.Contract(
 | LookingForGrant | `0x423fb3E1...` | VC funding requests |
 | Crowdfunding | `0x64aC0a7A...` | All-or-nothing campaigns |
 | AirdropBounty | `0x79dAe15C...` | Promotion rewards |
-| ZKVerification | `0xe3cd834a...` | Identity verification |
+| SocialVerification | `0xe3cd834a...` | Social account verification |
 | DisputeResolver | `0xF04b0Ec5...` | Community voting |
 
 **Full addresses**: See [deployments-base-sepolia-complete.json](./deployments-base-sepolia-complete.json)
@@ -124,7 +124,7 @@ sc-quinty/
 │   ├── LookingForGrant.sol
 │   ├── Crowdfunding.sol
 │   ├── AirdropBounty.sol
-│   ├── ZKVerification.sol
+│   ├── SocialVerification.sol
 │   └── DisputeResolver.sol
 ├── test/                    # Test suites (68 tests)
 ├── scripts/                 # Deployment & utilities

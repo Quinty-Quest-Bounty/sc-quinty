@@ -14,4 +14,5 @@ export type { Counter } from "./Counter";
 export type { DisputeResolver } from "./DisputeResolver";
 export type { QuintyNFT } from "./QuintyNFT";
 export type { QuintyReputation } from "./QuintyReputation";
+export type { SocialVerification } from "./SocialVerification";
 export type { ZKVerification } from "./ZKVerification";

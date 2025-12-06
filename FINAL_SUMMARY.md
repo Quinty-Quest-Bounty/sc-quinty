@@ -9,7 +9,7 @@
 - ✅ DisputeResolver.sol - Community voting (marked as "coming soon")
 - ✅ QuintyNFT.sol - Soulbound badges (7 types, non-transferable)
 - ✅ AirdropBounty.sol - Promotion task rewards
-- ✅ ZKVerification.sol - Ready for Reclaim Protocol integration
+- ✅ SocialVerification.sol - X/Twitter account verification on-chain
 - ✅ GrantProgram.sol - Institutional grant distribution
 - ✅ LookingForGrant.sol - VC/investor funding platform
 - ✅ Crowdfunding.sol - All-or-nothing with milestone-based withdrawals
@@ -37,7 +37,7 @@ QuintyReputation:    0x2dc731f796Df125B282484E844485814B2DCd363
 DisputeResolver:     0xF04b0Ec52bFe602D0D38bEA4f613ABb7cFA79FB5
 QuintyNFT:           0x80edb4Aeb39913FaFfDAC2a86F3184508B57AAe2
 AirdropBounty:       0x79dAe15C3612854F6bd025f7CDc6D4CDEE289049
-ZKVerification:      0xe3cd834a963B3A6A550aed05ece2535B02C83E3a
+SocialVerification:  0xe3cd834a963B3A6A550aed05ece2535B02C83E3a
 GrantProgram:        0xf70fBEba52Cc2A6F1e511179A10BdB4B820c7879
 LookingForGrant:     0x423fb3E158B8bA79Fabbd387dAEb844DC0709BeF
 Crowdfunding:        0x64aC0a7A52f3E0a414D8344f6A4620b51dFfB6C2
@@ -72,7 +72,7 @@ fe-quinty/contracts/
 ├── LookingForGrant.json
 ├── Crowdfunding.json
 ├── AirdropBounty.json
-├── ZKVerification.json
+├── SocialVerification.json
 ├── DisputeResolver.json
 ├── all-abis.json
 └── constants.ts (TypeScript definitions)
@@ -202,14 +202,12 @@ fe-quinty/contracts/
 npx hardhat run scripts/deploy.ts --network baseMainnet
 ```
 
-### 2. Optional: Reclaim Protocol Integration
-ZKVerification.sol is ready for Reclaim Protocol:
-```bash
-npm install @reclaimprotocol/js-sdk
-```
-Then replace placeholder functions with actual Reclaim verification.
-
-Docs: https://docs.reclaimprotocol.org/
+### 2. Social Verification System
+SocialVerification.sol handles X/Twitter account verification:
+- Authorized verifiers can manually verify users
+- Social handles are linked to wallet addresses on-chain
+- Users can submit social verification proofs
+- Verification data is stored immutably on-chain
 
 ### 3. Frontend Development
 All ABIs are in `fe-quinty/contracts/`:

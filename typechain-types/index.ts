@@ -60,5 +60,7 @@ export type { QuintyNFT } from "./contracts/QuintyNFT";
 export { QuintyNFT__factory } from "./factories/contracts/QuintyNFT__factory";
 export type { QuintyReputation } from "./contracts/QuintyReputation";
 export { QuintyReputation__factory } from "./factories/contracts/QuintyReputation__factory";
+export type { SocialVerification } from "./contracts/SocialVerification";
+export { SocialVerification__factory } from "./factories/contracts/SocialVerification__factory";
 export type { ZKVerification } from "./contracts/ZKVerification";
 export { ZKVerification__factory } from "./factories/contracts/ZKVerification__factory";

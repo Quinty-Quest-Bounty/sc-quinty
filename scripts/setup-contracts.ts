@@ -7,7 +7,7 @@ const ADDRESSES = {
   DisputeResolver: "0xF04b0Ec52bFe602D0D38bEA4f613ABb7cFA79FB5",
   QuintyNFT: "0x80edb4Aeb39913FaFfDAC2a86F3184508B57AAe2",
   AirdropBounty: "0x79dAe15C3612854F6bd025f7CDc6D4CDEE289049",
-  ZKVerification: "0xe3cd834a963B3A6A550aed05ece2535B02C83E3a",
+  SocialVerification: "0xe3cd834a963B3A6A550aed05ece2535B02C83E3a",
   // These need to be deployed still
   GrantProgram: "",
   LookingForGrant: "",

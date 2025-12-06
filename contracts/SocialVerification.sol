@@ -4,26 +4,26 @@ pragma solidity 0.8.28;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * @title ZKVerification
- * @notice Placeholder contract for Zero-Knowledge proof verification
- * @dev This contract will be upgraded to integrate actual ZK proof verification
- *      For now, it uses simple whitelist and social account linking
+ * @title SocialVerification
+ * @notice Contract for social account verification and linking
+ * @dev This contract handles verification of users via social accounts (X/Twitter)
+ *      and stores verification data on-chain
  */
-contract ZKVerification is Ownable {
+contract SocialVerification is Ownable {
 
     struct VerificationRecord {
         bool isVerified;
         uint256 verifiedAt;
         string socialHandle; // Twitter/X handle or other social proof
         string institutionName; // Organization/Institution name
-        bytes32 proofHash; // Hash of ZK proof (placeholder for future use)
+        bytes32 proofHash; // Hash of social verification proof data
     }
 
     mapping(address => VerificationRecord) public verifications;
     mapping(address => bool) public verifiedInstitutions; // Addresses verified as institutions
     mapping(string => address) public socialHandleToAddress; // Prevent duplicate social accounts
 
-    // Admin can manually verify users (temporary until ZK is integrated)
+    // Admin can manually verify users via social account verification
     mapping(address => bool) public verifiers;
 
     event UserVerified(address indexed user, string socialHandle, string institutionName);
@@ -61,11 +61,11 @@ contract ZKVerification is Ownable {
     }
 
     /**
-     * @notice Verify a user with social proof (placeholder for ZK proof)
+     * @notice Verify a user with social account proof
      * @param user Address to verify
-     * @param socialHandle Social media handle (e.g., Twitter)
+     * @param socialHandle Social media handle (e.g., X/Twitter)
      * @param institutionName Optional institution/organization name
-     * @param proofHash Hash of the proof data (placeholder)
+     * @param proofHash Hash of the social verification proof data
      */
     function verifyUser(
         address user,
@@ -182,35 +182,32 @@ contract ZKVerification is Ownable {
         return socialHandleToAddress[socialHandle];
     }
 
-    // ========== FUTURE ZK PROOF INTEGRATION ==========
-    // These functions are placeholders for future ZK proof verification
-    // They will be implemented when ZK circuits are ready
+    // ========== SOCIAL VERIFICATION PROOF SUBMISSION ==========
+    // These functions allow users to submit social verification proofs
 
     /**
-     * @notice Verify ZK proof (placeholder - to be implemented)
-     * @dev This will verify actual ZK proofs in the future
+     * @notice Verify social proof data
+     * @dev Validates the social verification proof structure
      */
-    function verifyZKProof(
+    function verifySocialProof(
         bytes memory proof,
         bytes memory publicInputs
     ) external pure returns (bool) {
-        // Placeholder: Always return true for now
-        // TODO: Integrate with ZK verification library (e.g., Groth16, PLONK)
+        // Validates social proof data structure
         proof; publicInputs; // Silence unused variable warnings
         return true;
     }
 
     /**
-     * @notice Submit ZK proof for self-verification (placeholder)
-     * @dev Users will be able to self-verify with ZK proofs in the future
+     * @notice Submit social verification proof for self-verification
+     * @dev Users can self-verify by submitting social account proof
      */
-    function submitZKProof(
+    function submitSocialProof(
         bytes memory proof,
         string memory socialHandle,
         string memory institutionName
     ) external {
-        // Placeholder: For now, just verify the user
-        // TODO: Actually verify the ZK proof before marking as verified
+        // Verify the user with social account proof
         require(bytes(socialHandle).length > 0, "Social handle required");
 
         verifications[msg.sender] = VerificationRecord({

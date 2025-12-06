@@ -15,7 +15,7 @@
    - DisputeResolver.sol
    - QuintyNFT.sol (soulbound badges)
    - AirdropBounty.sol
-   - ZKVerification.sol (ready for Reclaim Protocol)
+   - SocialVerification.sol (X/Twitter account verification)
    - GrantProgram.sol
    - LookingForGrant.sol
    - Crowdfunding.sol
@@ -38,7 +38,7 @@ Quinty:              0x22B1EAB81f85806ba3b0089c3b420a7005602434
 DisputeResolver:     0x71f7FFAa79e4f8654B735D9344916577e96bD274
 QuintyNFT:           0x1964df0d2Cd0Da04e4d60C6Fa6B2f445B6f7B2eE
 AirdropBounty:       0xff83E7f8B480ad9F928DCB77871402d657beA81A
-ZKVerification:      0x42fA65bF3C74F421d9f15F78C486edbABACd0dD8
+SocialVerification:  0x42fA65bF3C74F421d9f15F78C486edbABACd0dD8
 GrantProgram:        0xC9DD51A1189c4e34b8057D1CE9d306a63E6461b5
 LookingForGrant:     0x223202f510bE512Cf7bfd1B6Ff17D49ce4aC9187
 Crowdfunding:        0x3B86e348c8e7bD0660d35CDEb23d2cb3DE3007Eb
@@ -64,16 +64,16 @@ Or manually complete setup using Hardhat console:
 npx hardhat console --network baseSepolia
 ```
 
-### 2. Integrate Reclaim Protocol
-ZKVerification.sol is ready for Reclaim Protocol integration:
-- Replace placeholder `verifyUser` function
-- Add Reclaim SDK integration
-- Implement proof verification logic
+### 2. Social Verification Enhancement
+SocialVerification.sol handles X/Twitter account verification:
+- Verifiers can manually verify users with social accounts
+- Users can submit social verification proofs
+- Social handles are linked to wallet addresses on-chain
 
-**Reclaim Protocol Resources:**
-- Docs: https://docs.reclaimprotocol.org/
-- SDK: `npm install @reclaimprotocol/js-sdk`
-- Supports: Twitter, GitHub, LinkedIn, and more
+**Future Enhancements:**
+- Automated verification via off-chain oracle
+- Support for additional social platforms
+- Integration with third-party verification services
 
 ### 3. Frontend Integration
 
@@ -91,7 +91,7 @@ typechain-types/GrantProgram.ts
 typechain-types/LookingForGrant.ts
 typechain-types/Crowdfunding.ts
 typechain-types/AirdropBounty.ts
-typechain-types/ZKVerification.ts
+typechain-types/SocialVerification.ts
 ```
 
 #### Frontend Setup Steps:
@@ -159,11 +159,11 @@ const quintyContract = Quinty__factory.connect(address, signer);
 - ✅ Custom IPFS metadata per badge
 - ✅ Query functions for badge ownership
 
-### ZK Verification (Placeholder Ready)
-- ✅ Manual verification system
-- ✅ Social handle linking
+### Social Verification (X/Twitter)
+- ✅ Manual verification system by authorized verifiers
+- ✅ Social handle linking (X/Twitter accounts)
 - ✅ Institution verification
-- ⏳ Ready for Reclaim Protocol integration
+- ✅ On-chain storage of verification data
 
 ### Airdrop Bounties
 - ✅ Fixed-reward promotion tasks

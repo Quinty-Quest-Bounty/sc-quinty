@@ -134,6 +134,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.QuintyReputation__factory>;
     getContractFactory(
+      name: "SocialVerification",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.SocialVerification__factory>;
+    getContractFactory(
       name: "ZKVerification",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ZKVerification__factory>;
@@ -289,6 +293,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.QuintyReputation>;
     getContractAt(
+      name: "SocialVerification",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.SocialVerification>;
+    getContractAt(
       name: "ZKVerification",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -415,6 +424,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.QuintyReputation>;
     deployContract(
+      name: "SocialVerification",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SocialVerification>;
+    deployContract(
       name: "ZKVerification",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.ZKVerification>;
@@ -569,6 +582,11 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.QuintyReputation>;
+    deployContract(
+      name: "SocialVerification",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.SocialVerification>;
     deployContract(
       name: "ZKVerification",
       args: any[],

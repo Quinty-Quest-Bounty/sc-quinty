@@ -51,13 +51,13 @@ async function main() {
   const airdropAddress = await airdrop.getAddress();
   console.log("✅ AirdropBounty deployed to:", airdropAddress);
 
-  // 6. Deploy ZKVerification
-  console.log("\n🔐 Deploying ZKVerification contract...");
-  const ZKVerification = await ethers.getContractFactory("ZKVerification");
-  const zkVerification = await ZKVerification.deploy();
-  await zkVerification.waitForDeployment();
-  const zkVerificationAddress = await zkVerification.getAddress();
-  console.log("✅ ZKVerification deployed to:", zkVerificationAddress);
+  // 6. Deploy SocialVerification
+  console.log("\n🔐 Deploying SocialVerification contract...");
+  const SocialVerification = await ethers.getContractFactory("SocialVerification");
+  const socialVerification = await SocialVerification.deploy();
+  await socialVerification.waitForDeployment();
+  const socialVerificationAddress = await socialVerification.getAddress();
+  console.log("✅ SocialVerification deployed to:", socialVerificationAddress);
 
   // 7. Deploy GrantProgram
   console.log("\n💰 Deploying GrantProgram contract...");
@@ -150,7 +150,7 @@ async function main() {
       DisputeResolver: disputeAddress,
       QuintyNFT: nftAddress,
       AirdropBounty: airdropAddress,
-      ZKVerification: zkVerificationAddress,
+      SocialVerification: socialVerificationAddress,
       GrantProgram: grantProgramAddress,
       LookingForGrant: lookingForGrantAddress,
       Crowdfunding: crowdfundingAddress,

@@ -10,4 +10,5 @@ export { Counter__factory } from "./Counter__factory";
 export { DisputeResolver__factory } from "./DisputeResolver__factory";
 export { QuintyNFT__factory } from "./QuintyNFT__factory";
 export { QuintyReputation__factory } from "./QuintyReputation__factory";
+export { SocialVerification__factory } from "./SocialVerification__factory";
 export { ZKVerification__factory } from "./ZKVerification__factory";

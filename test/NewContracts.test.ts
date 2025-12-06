@@ -7,7 +7,7 @@ describe("New Contracts - Basic Tests", function () {
   let lookingForGrant: any;
   let crowdfunding: any;
   let quintyNFT: any;
-  let zkVerification: any;
+  let socialVerification: any;
   let owner: any;
   let user1: any;
   let user2: any;
@@ -36,9 +36,9 @@ describe("New Contracts - Basic Tests", function () {
     crowdfunding = await Crowdfunding.deploy();
     await crowdfunding.waitForDeployment();
 
-    const ZKVerification = await ethers.getContractFactory("ZKVerification");
-    zkVerification = await ZKVerification.deploy();
-    await zkVerification.waitForDeployment();
+    const SocialVerification = await ethers.getContractFactory("SocialVerification");
+    socialVerification = await SocialVerification.deploy();
+    await socialVerification.waitForDeployment();
 
     // Set NFT addresses
     await grantProgram.setNFTAddress(await quintyNFT.getAddress());
@@ -199,31 +199,31 @@ describe("New Contracts - Basic Tests", function () {
     });
   });
 
-  describe("ZKVerification", function () {
+  describe("SocialVerification", function () {
     it("Should allow owner to add verifiers", async function () {
-      await expect(zkVerification.addVerifier(user1.address))
-        .to.emit(zkVerification, "VerifierAdded");
+      await expect(socialVerification.addVerifier(user1.address))
+        .to.emit(socialVerification, "VerifierAdded");
     });
 
     it("Should allow verifier to verify users", async function () {
-      await zkVerification.addVerifier(user1.address);
+      await socialVerification.addVerifier(user1.address);
 
       await expect(
-        zkVerification.connect(user1).verifyUser(
+        socialVerification.connect(user1).verifyUser(
           user2.address,
           "@user2",
           "Institution Name",
           ethers.keccak256(ethers.toUtf8Bytes("proof"))
         )
-      ).to.emit(zkVerification, "UserVerified");
+      ).to.emit(socialVerification, "UserVerified");
 
-      const verification = await zkVerification.verifications(user2.address);
+      const verification = await socialVerification.verifications(user2.address);
       expect(verification.isVerified).to.be.true;
     });
 
     it("Should prevent non-verifier from verifying", async function () {
       await expect(
-        zkVerification.connect(user1).verifyUser(
+        socialVerification.connect(user1).verifyUser(
           user2.address,
           "@user2",
           "Institution Name",
