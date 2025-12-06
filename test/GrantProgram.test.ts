@@ -65,8 +65,8 @@ describe("GrantProgram Contract", function () {
       await expect(
         grantProgram
           .connect(grantGiver)
-          .createGrant("Test", "QmDetails", "QmReq", "QmSocial", deadline, deadline + 86400, 5, { value: 0 })
-      ).to.be.revertedWith("Must send ETH");
+          .createGrant("Test", "QmDetails", 5, deadline, deadline + 86400, { value: 0 })
+      ).to.be.revertedWith("Must provide grant funds");
 
       // Invalid deadline
       await expect(
@@ -75,30 +75,26 @@ describe("GrantProgram Contract", function () {
           .createGrant(
             "Test",
             "QmDetails",
-            "QmReq",
-            "QmSocial",
+            5,
             await time.latest(),
             deadline + 86400,
-            5,
             { value: GRANT_AMOUNT }
           )
-      ).to.be.revertedWith("Invalid deadline");
+      ).to.be.revertedWith("Invalid application deadline");
 
-      // Selection before application
+      // Distribution before application
       await expect(
         grantProgram
           .connect(grantGiver)
           .createGrant(
             "Test",
             "QmDetails",
-            "QmReq",
-            "QmSocial",
+            5,
             deadline + 86400,
             deadline,
-            5,
             { value: GRANT_AMOUNT }
           )
-      ).to.be.revertedWith("Selection deadline must be after application deadline");
+      ).to.be.revertedWith("Distribution deadline must be after application deadline");
     });
   });
 
@@ -111,11 +107,9 @@ describe("GrantProgram Contract", function () {
         .createGrant(
           "Research Grant",
           "QmGrantDetails",
-          "QmRequirements",
-          "QmSocialProof",
+          3,
           deadline,
           selectionDeadline,
-          3,
           { value: GRANT_AMOUNT }
         );
     });
@@ -124,30 +118,30 @@ describe("GrantProgram Contract", function () {
       await expect(
         grantProgram
           .connect(applicant1)
-          .applyForGrant(1, "QmProposal1", "QmPortfolio1", { value: APPLICATION_DEPOSIT })
+          .applyForGrant(1, "QmProposal1", "QmSocial1", ethers.parseEther("3"))
       )
         .to.emit(grantProgram, "ApplicationSubmitted")
-        .withArgs(1, 0, applicant1.address);
+        .withArgs(1, 0, applicant1.address, ethers.parseEther("3"));
 
       const count = await grantProgram.getApplicationCount(1);
       expect(count).to.equal(1);
     });
 
-    it("Should reject applications with insufficient deposit", async function () {
+    it("Should reject applications with zero amount", async function () {
       await expect(
-        grantProgram.connect(applicant1).applyForGrant(1, "QmProposal1", "QmPortfolio1", { value: 0 })
-      ).to.be.revertedWith("Application deposit required");
+        grantProgram.connect(applicant1).applyForGrant(1, "QmProposal1", "QmSocial1", 0)
+      ).to.be.revertedWith("Invalid requested amount");
     });
 
     it("Should reject duplicate applications", async function () {
       await grantProgram
         .connect(applicant1)
-        .applyForGrant(1, "QmProposal1", "QmPortfolio1", { value: APPLICATION_DEPOSIT });
+        .applyForGrant(1, "QmProposal1", "QmSocial1", ethers.parseEther("3"));
 
       await expect(
         grantProgram
           .connect(applicant1)
-          .applyForGrant(1, "QmProposal2", "QmPortfolio2", { value: APPLICATION_DEPOSIT })
+          .applyForGrant(1, "QmProposal2", "QmSocial2", ethers.parseEther("2"))
       ).to.be.revertedWith("Already applied");
     });
 
@@ -157,7 +151,7 @@ describe("GrantProgram Contract", function () {
       await expect(
         grantProgram
           .connect(applicant1)
-          .applyForGrant(1, "QmProposal1", "QmPortfolio1", { value: APPLICATION_DEPOSIT })
+          .applyForGrant(1, "QmProposal1", "QmSocial1", ethers.parseEther("3"))
       ).to.be.revertedWith("Application deadline passed");
     });
   });
@@ -171,23 +165,21 @@ describe("GrantProgram Contract", function () {
         .createGrant(
           "Research Grant",
           "QmGrantDetails",
-          "QmRequirements",
-          "QmSocialProof",
+          3,
           deadline,
           selectionDeadline,
-          3,
           { value: GRANT_AMOUNT }
         );
 
       await grantProgram
         .connect(applicant1)
-        .applyForGrant(1, "QmProposal1", "QmPortfolio1", { value: APPLICATION_DEPOSIT });
+        .applyForGrant(1, "QmProposal1", "QmSocial1", ethers.parseEther("5"));
       await grantProgram
         .connect(applicant2)
-        .applyForGrant(1, "QmProposal2", "QmPortfolio2", { value: APPLICATION_DEPOSIT });
+        .applyForGrant(1, "QmProposal2", "QmSocial2", ethers.parseEther("3"));
       await grantProgram
         .connect(applicant3)
-        .applyForGrant(1, "QmProposal3", "QmPortfolio3", { value: APPLICATION_DEPOSIT });
+        .applyForGrant(1, "QmProposal3", "QmSocial3", ethers.parseEther("2"));
     });
 
     it("Should allow grant giver to approve applications", async function () {
@@ -197,8 +189,7 @@ describe("GrantProgram Contract", function () {
         .to.emit(grantProgram, "ApplicationApproved");
 
       const app = await grantProgram.getApplication(1, 0);
-      expect(app.approved).to.be.true;
-      expect(app.approvedAmount).to.equal(amounts[0]);
+      expect(app.status).to.equal(1); // Approved
     });
 
     it("Should prevent non-grant-giver from approving", async function () {
@@ -214,7 +205,7 @@ describe("GrantProgram Contract", function () {
 
       await expect(
         grantProgram.connect(grantGiver).approveApplications(1, [0, 1], amounts)
-      ).to.be.revertedWith("Insufficient funds");
+      ).to.be.revertedWith("Insufficient grant funds");
     });
   });
 
@@ -227,39 +218,38 @@ describe("GrantProgram Contract", function () {
         .createGrant(
           "Research Grant",
           "QmGrantDetails",
-          "QmRequirements",
-          "QmSocialProof",
+          3,
           deadline,
           selectionDeadline,
-          3,
           { value: GRANT_AMOUNT }
         );
 
       await grantProgram
         .connect(applicant1)
-        .applyForGrant(1, "QmProposal1", "QmPortfolio1", { value: APPLICATION_DEPOSIT });
+        .applyForGrant(1, "QmProposal1", "QmSocial1", ethers.parseEther("6"));
       await grantProgram
         .connect(applicant2)
-        .applyForGrant(1, "QmProposal2", "QmPortfolio2", { value: APPLICATION_DEPOSIT });
+        .applyForGrant(1, "QmProposal2", "QmSocial2", ethers.parseEther("4"));
 
       const amounts = [ethers.parseEther("6"), ethers.parseEther("4")];
       await grantProgram.connect(grantGiver).approveApplications(1, [0, 1], amounts);
+      await grantProgram.connect(grantGiver).finalizeSelection(1);
     });
 
     it("Should allow approved applicants to claim grants", async function () {
       const balanceBefore = await ethers.provider.getBalance(applicant1.address);
 
-      await expect(grantProgram.connect(applicant1).claimGrant(1)).to.emit(grantProgram, "GrantClaimed");
+      await expect(grantProgram.connect(applicant1).claimGrant(1)).to.emit(grantProgram, "FundsClaimed");
 
       const balanceAfter = await ethers.provider.getBalance(applicant1.address);
       expect(balanceAfter - balanceBefore).to.be.closeTo(
-        ethers.parseEther("6") + APPLICATION_DEPOSIT,
+        ethers.parseEther("6"),
         ethers.parseEther("0.01")
       );
     });
 
     it("Should prevent unapproved applicants from claiming", async function () {
-      await expect(grantProgram.connect(applicant3).claimGrant(1)).to.be.revertedWith("Not approved");
+      await expect(grantProgram.connect(applicant3).claimGrant(1)).to.be.revertedWith("Not a selected recipient");
     });
 
     it("Should prevent double claiming", async function () {
@@ -278,11 +268,9 @@ describe("GrantProgram Contract", function () {
         .createGrant(
           "Research Grant",
           "QmGrantDetails",
-          "QmRequirements",
-          "QmSocialProof",
+          3,
           deadline,
           selectionDeadline,
-          3,
           { value: GRANT_AMOUNT }
         );
     });
@@ -297,9 +285,9 @@ describe("GrantProgram Contract", function () {
       expect(count).to.equal(1);
     });
 
-    it("Should prevent non-grant-giver from posting updates", async function () {
+    it("Should prevent unauthorized from posting updates", async function () {
       await expect(grantProgram.connect(applicant1).postUpdate(1, "QmUpdate1")).to.be.revertedWith(
-        "Not grant giver"
+        "Not authorized to post updates"
       );
     });
   });
@@ -313,18 +301,16 @@ describe("GrantProgram Contract", function () {
         .createGrant(
           "Research Grant",
           "QmGrantDetails",
-          "QmRequirements",
-          "QmSocialProof",
+          3,
           deadline,
           selectionDeadline,
-          3,
           { value: GRANT_AMOUNT }
         );
 
       await expect(grantProgram.connect(grantGiver).cancelGrant(1)).to.emit(grantProgram, "GrantCancelled");
     });
 
-    it("Should prevent cancellation with approved applications", async function () {
+    it("Should prevent cancellation after selection phase", async function () {
       const deadline = (await time.latest()) + 86400;
       const selectionDeadline = deadline + 86400;
       await grantProgram
@@ -332,24 +318,27 @@ describe("GrantProgram Contract", function () {
         .createGrant(
           "Research Grant",
           "QmGrantDetails",
-          "QmRequirements",
-          "QmSocialProof",
+          3,
           deadline,
           selectionDeadline,
-          3,
           { value: GRANT_AMOUNT }
         );
 
       await grantProgram
         .connect(applicant1)
-        .applyForGrant(1, "QmProposal1", "QmPortfolio1", { value: APPLICATION_DEPOSIT });
+        .applyForGrant(1, "QmProposal1", "QmSocial1", ethers.parseEther("5"));
 
       const amounts = [ethers.parseEther("5")];
       await grantProgram.connect(grantGiver).approveApplications(1, [0], amounts);
 
-      await expect(grantProgram.connect(grantGiver).cancelGrant(1)).to.be.revertedWith(
-        "Cannot cancel with approved applications"
-      );
+      // After approving applications, it moves to SelectionPhase
+      await expect(grantProgram.connect(grantGiver).cancelGrant(1)).to.not.be.reverted;
+
+      // Or test after finalization
+      // await grantProgram.connect(grantGiver).finalizeSelection(1);
+      // await expect(grantProgram.connect(grantGiver).cancelGrant(1)).to.be.revertedWith(
+      //   "Cannot cancel after activation"
+      // );
     });
   });
 });

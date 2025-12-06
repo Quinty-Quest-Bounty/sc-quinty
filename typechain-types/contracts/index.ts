@@ -3,6 +3,8 @@
 /* eslint-disable */
 import type * as crowdfundingSol from "./Crowdfunding.sol";
 export type { crowdfundingSol };
+import type * as disputeResolverSol from "./DisputeResolver.sol";
+export type { disputeResolverSol };
 import type * as grantProgramSol from "./GrantProgram.sol";
 export type { grantProgramSol };
 import type * as lookingForGrantSol from "./LookingForGrant.sol";
@@ -11,8 +13,6 @@ import type * as quintySol from "./Quinty.sol";
 export type { quintySol };
 export type { AirdropBounty } from "./AirdropBounty";
 export type { Counter } from "./Counter";
-export type { DisputeResolver } from "./DisputeResolver";
 export type { QuintyNFT } from "./QuintyNFT";
 export type { QuintyReputation } from "./QuintyReputation";
 export type { SocialVerification } from "./SocialVerification";
-export type { ZKVerification } from "./ZKVerification";

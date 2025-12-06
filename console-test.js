@@ -1,5 +1,4 @@
 // Test script to run in hardhat console
-// npx hardhat console --network somniaTestnet
 // Then run: .load console-test.js
 
 const quintyAddr = "0x5110CE4c643923CA05f3c48aDb5a0f7718Ddfd15";

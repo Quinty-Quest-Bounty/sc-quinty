@@ -2,13 +2,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as crowdfundingSol from "./Crowdfunding.sol";
+export * as disputeResolverSol from "./DisputeResolver.sol";
 export * as grantProgramSol from "./GrantProgram.sol";
 export * as lookingForGrantSol from "./LookingForGrant.sol";
 export * as quintySol from "./Quinty.sol";
 export { AirdropBounty__factory } from "./AirdropBounty__factory";
 export { Counter__factory } from "./Counter__factory";
-export { DisputeResolver__factory } from "./DisputeResolver__factory";
 export { QuintyNFT__factory } from "./QuintyNFT__factory";
 export { QuintyReputation__factory } from "./QuintyReputation__factory";
 export { SocialVerification__factory } from "./SocialVerification__factory";
-export { ZKVerification__factory } from "./ZKVerification__factory";

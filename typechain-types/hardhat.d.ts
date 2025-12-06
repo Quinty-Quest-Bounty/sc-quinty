@@ -94,6 +94,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.DisputeResolver__factory>;
     getContractFactory(
+      name: "IQuinty",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IQuinty__factory>;
+    getContractFactory(
       name: "GrantProgram",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.GrantProgram__factory>;
@@ -137,10 +141,6 @@ declare module "hardhat/types/runtime" {
       name: "SocialVerification",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.SocialVerification__factory>;
-    getContractFactory(
-      name: "ZKVerification",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ZKVerification__factory>;
 
     getContractAt(
       name: "Ownable",
@@ -243,6 +243,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.DisputeResolver>;
     getContractAt(
+      name: "IQuinty",
+      address: string | ethers.Addressable,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IQuinty>;
+    getContractAt(
       name: "GrantProgram",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -297,11 +302,6 @@ declare module "hardhat/types/runtime" {
       address: string | ethers.Addressable,
       signer?: ethers.Signer
     ): Promise<Contracts.SocialVerification>;
-    getContractAt(
-      name: "ZKVerification",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ZKVerification>;
 
     deployContract(
       name: "Ownable",
@@ -384,6 +384,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.DisputeResolver>;
     deployContract(
+      name: "IQuinty",
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IQuinty>;
+    deployContract(
       name: "GrantProgram",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.GrantProgram>;
@@ -427,10 +431,6 @@ declare module "hardhat/types/runtime" {
       name: "SocialVerification",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SocialVerification>;
-    deployContract(
-      name: "ZKVerification",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ZKVerification>;
 
     deployContract(
       name: "Ownable",
@@ -533,6 +533,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.DisputeResolver>;
     deployContract(
+      name: "IQuinty",
+      args: any[],
+      signerOrOptions?: ethers.Signer | DeployContractOptions
+    ): Promise<Contracts.IQuinty>;
+    deployContract(
       name: "GrantProgram",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -587,11 +592,6 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.SocialVerification>;
-    deployContract(
-      name: "ZKVerification",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.ZKVerification>;
 
     // default types
     getContractFactory(
