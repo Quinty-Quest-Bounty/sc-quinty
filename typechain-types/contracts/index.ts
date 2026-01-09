@@ -6,7 +6,6 @@ export type { quintySol };
 import type * as interfaces from "./interfaces";
 export type { interfaces };
 export type { AirdropBounty } from "./AirdropBounty";
-export type { Counter } from "./Counter";
 export type { Crowdfunding } from "./Crowdfunding";
 export type { DisputeResolver } from "./DisputeResolver";
 export type { GrantProgram } from "./GrantProgram";

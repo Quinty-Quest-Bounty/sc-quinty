@@ -3,8 +3,15 @@ import fs from "fs";
 
 async function main() {
   const network = await ethers.provider.getNetwork();
-  const networkName = network.chainId === 8453n ? "Base Mainnet" : network.chainId === 84532n ? "Base Sepolia" : "Local Network";
-  console.log(`🚀 Starting Quinty V2 deployment to ${networkName} with Registry/Factory pattern...`);
+  const networkName =
+    network.chainId === 8453n ? "Base Mainnet" :
+      network.chainId === 84532n ? "Base Sepolia" :
+        network.chainId === 5003n ? "Mantle Sepolia" :
+          network.chainId === 5000n ? "Mantle Mainnet" :
+            network.chainId === 421614n ? "Arbitrum Sepolia" :
+              network.chainId === 42161n ? "Arbitrum Mainnet" :
+                "Local Network";
+  console.log(`🚀 Starting Quinty V2 deployment to ${networkName} with Registry / Factory pattern...`);
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
   console.log("Account balance:", ethers.formatEther(await ethers.provider.getBalance(deployer.address)), "ETH");
@@ -65,8 +72,8 @@ async function main() {
   const deployTx = await factory.deployFullEcosystem(reputationBaseURI, nftBaseURI);
   console.log("   Transaction submitted, waiting for confirmation...");
   const deployReceipt = await deployTx.wait();
-  console.log(`✅ Full ecosystem deployed in block ${deployReceipt?.blockNumber}`);
-  console.log(`   Gas used: ${deployReceipt?.gasUsed.toString()}`);
+  console.log(`✅ Full ecosystem deployed in block ${deployReceipt?.blockNumber} `);
+  console.log(`   Gas used: ${deployReceipt?.gasUsed.toString()} `);
 
   // ==================== STEP 5: Retrieve Deployed Addresses from Registry ====================
   console.log("\n📋 Retrieving deployed contract addresses from registry...");
@@ -120,9 +127,9 @@ async function main() {
   const QUINTY = await registry.QUINTY();
   const quintyInfo = await registry.getContractInfo(QUINTY);
   console.log("   Quinty contract info:");
-  console.log(`   - Version: ${quintyInfo.version}`);
-  console.log(`   - Active: ${quintyInfo.isActive}`);
-  console.log(`   - Deployed at: ${new Date(Number(quintyInfo.deployedAt) * 1000).toISOString()}`);
+  console.log(`   - Version: ${quintyInfo.version} `);
+  console.log(`   - Active: ${quintyInfo.isActive} `);
+  console.log(`   - Deployed at: ${new Date(Number(quintyInfo.deployedAt) * 1000).toISOString()} `);
 
   // ==================== STEP 8: Save Deployment Info ====================
   console.log("\n✨ Deployment completed successfully!");

@@ -1,16 +1,16 @@
 {
   "chainId": 84532,
   "network": "Base Sepolia",
-  "timestamp": "2025-10-21T13:40:53.789Z",
+  "timestamp": "2026-01-04T04:21:20.060Z",
   "contracts": {
-    "Quinty": "0x574bC7953bf4eD7Dd20987F4752C560f606Ebf1D",
-    "QuintyReputation": "0x7EbC0c18CF9B37076d326342Dba20e98A1F20c7e",
-    "DisputeResolver": "0x961659d12E9dE91dC543A75911b3b0D269769E82",
-    "QuintyNFT": "0xD49a54aFb982c0b76554e34f1A76851ed725405F",
-    "AirdropBounty": "0x71C5f5C66e72bBFC7266429cA48ba65c38AFc6A4",
-    "SocialVerification": "0x045Fb080d926f049db7597c99B56aEccc8977F36",
-    "GrantProgram": "0x8b0B50732CCfB6308d5A63C1F9D70166DF63b661",
-    "LookingForGrant": "0xcd01A6d3B8944080B3b1Bb79617415c0Ef895Cc6",
-    "Crowdfunding": "0x0bf8d6EB00b3C4cA6a9F1CFa6Cd40b4cE486F885"
+    "Quinty": "0xdB5e489C756D4D2028CCb3515c04DaD134AB03c7",
+    "QuintyReputation": "0xD4c6d0fBe9A1F11e7b6A23E5F857C020B89f0763",
+    "DisputeResolver": "0xA5Ec58e65cC21317da82f2Ad38CCC96470668755",
+    "QuintyNFT": "0xAFbe103C60cE8317a1244d5cb374a065A7550F34",
+    "AirdropBounty": "0x0d6A8aEa1d61B9C3ecd47901257Fa32ba900F12B",
+    "SocialVerification": "0x9B418fEc89f5af4B85Cf92660A75da248A5479cF",
+    "GrantProgram": "0x66993c8720c5Df2d5c0df7cC849D6c150cfDd0e1",
+    "LookingForGrant": "0x70D791fF9D8bd039A91a4E9F8E4D14B3a71605b6",
+    "Crowdfunding": "0x9133cb1c52c426358F9C1153a9aeB0D5D0c1Ef12"
   }
 }

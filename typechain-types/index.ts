@@ -44,8 +44,6 @@ export type { Strings } from "./@openzeppelin/contracts/utils/Strings";
 export { Strings__factory } from "./factories/@openzeppelin/contracts/utils/Strings__factory";
 export type { AirdropBounty } from "./contracts/AirdropBounty";
 export { AirdropBounty__factory } from "./factories/contracts/AirdropBounty__factory";
-export type { Counter } from "./contracts/Counter";
-export { Counter__factory } from "./factories/contracts/Counter__factory";
 export type { Crowdfunding } from "./contracts/Crowdfunding";
 export { Crowdfunding__factory } from "./factories/contracts/Crowdfunding__factory";
 export type { DisputeResolver } from "./contracts/DisputeResolver";

@@ -4,7 +4,6 @@
 export * as quintySol from "./Quinty.sol";
 export * as interfaces from "./interfaces";
 export { AirdropBounty__factory } from "./AirdropBounty__factory";
-export { Counter__factory } from "./Counter__factory";
 export { Crowdfunding__factory } from "./Crowdfunding__factory";
 export { DisputeResolver__factory } from "./DisputeResolver__factory";
 export { GrantProgram__factory } from "./GrantProgram__factory";
