@@ -33,7 +33,7 @@ async function main() {
   await dispute.waitForDeployment();
   const disputeAddress = await dispute.getAddress();
   console.log("✅ DisputeResolver deployed to:", disputeAddress);
-  
+
   // 4. Deploy QuintyNFT
   console.log("\n🎨 Deploying QuintyNFT contract...");
   const nftBaseURI = "ipfs://QmQuintyNFT/"; // TODO: Replace with actual CID
@@ -51,37 +51,7 @@ async function main() {
   const airdropAddress = await airdrop.getAddress();
   console.log("✅ AirdropBounty deployed to:", airdropAddress);
 
-  // 6. Deploy SocialVerification
-  console.log("\n🔐 Deploying SocialVerification contract...");
-  const SocialVerification = await ethers.getContractFactory("SocialVerification");
-  const socialVerification = await SocialVerification.deploy();
-  await socialVerification.waitForDeployment();
-  const socialVerificationAddress = await socialVerification.getAddress();
-  console.log("✅ SocialVerification deployed to:", socialVerificationAddress);
 
-  // 7. Deploy GrantProgram
-  console.log("\n💰 Deploying GrantProgram contract...");
-  const GrantProgram = await ethers.getContractFactory("GrantProgram");
-  const grantProgram = await GrantProgram.deploy();
-  await grantProgram.waitForDeployment();
-  const grantProgramAddress = await grantProgram.getAddress();
-  console.log("✅ GrantProgram deployed to:", grantProgramAddress);
-
-  // 8. Deploy LookingForGrant
-  console.log("\n🔍 Deploying LookingForGrant contract...");
-  const LookingForGrant = await ethers.getContractFactory("LookingForGrant");
-  const lookingForGrant = await LookingForGrant.deploy();
-  await lookingForGrant.waitForDeployment();
-  const lookingForGrantAddress = await lookingForGrant.getAddress();
-  console.log("✅ LookingForGrant deployed to:", lookingForGrantAddress);
-
-  // 9. Deploy Crowdfunding
-  console.log("\n🎯 Deploying Crowdfunding contract...");
-  const Crowdfunding = await ethers.getContractFactory("Crowdfunding");
-  const crowdfunding = await Crowdfunding.deploy();
-  await crowdfunding.waitForDeployment();
-  const crowdfundingAddress = await crowdfunding.getAddress();
-  console.log("✅ Crowdfunding deployed to:", crowdfundingAddress);
 
   // --- Setup Contract Connections ---
   console.log("\n🔗 Setting up contract connections...");
@@ -107,36 +77,10 @@ async function main() {
     "Transferring QuintyReputation ownership to Quinty"
   );
 
-  // Set NFT addresses in new contracts
-  await waitForTx(
-    grantProgram.setNFTAddress(nftAddress),
-    "Setting NFT address in GrantProgram"
-  );
-  await waitForTx(
-    lookingForGrant.setNFTAddress(nftAddress),
-    "Setting NFT address in LookingForGrant"
-  );
-  await waitForTx(
-    crowdfunding.setNFTAddress(nftAddress),
-    "Setting NFT address in Crowdfunding"
-  );
-
   // Authorize contracts to mint NFT badges
   await waitForTx(
     nft.authorizeMinter(quintyAddress),
     "Authorizing Quinty to mint badges"
-  );
-  await waitForTx(
-    nft.authorizeMinter(grantProgramAddress),
-    "Authorizing GrantProgram to mint badges"
-  );
-  await waitForTx(
-    nft.authorizeMinter(lookingForGrantAddress),
-    "Authorizing LookingForGrant to mint badges"
-  );
-  await waitForTx(
-    nft.authorizeMinter(crowdfundingAddress),
-    "Authorizing Crowdfunding to mint badges"
   );
 
   console.log("\n✨ Deployment completed successfully!");
@@ -150,10 +94,6 @@ async function main() {
       DisputeResolver: disputeAddress,
       QuintyNFT: nftAddress,
       AirdropBounty: airdropAddress,
-      SocialVerification: socialVerificationAddress,
-      GrantProgram: grantProgramAddress,
-      LookingForGrant: lookingForGrantAddress,
-      Crowdfunding: crowdfundingAddress,
     },
   };
 

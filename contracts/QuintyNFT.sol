@@ -14,11 +14,7 @@ contract QuintyNFT is ERC721, Ownable {
     enum BadgeType {
         BountyCreator,
         BountySolver,
-        TeamMember,
-        GrantGiver,
-        GrantRecipient,
-        CrowdfundingDonor,
-        LookingForGrantSupporter
+        TeamMember
     }
 
     struct Badge {
