@@ -78,7 +78,6 @@ export interface QuintyInterface extends Interface {
       | "bounties"
       | "bountyCounter"
       | "createBounty"
-      | "disputeAddress"
       | "endOprecPhase"
       | "getBountyData"
       | "getOprecApplication"
@@ -89,6 +88,7 @@ export interface QuintyInterface extends Interface {
       | "isApprovedParticipant"
       | "nftAddress"
       | "owner"
+      | "refundBounty"
       | "rejectOprecApplications"
       | "renounceOwnership"
       | "reputationAddress"
@@ -97,7 +97,6 @@ export interface QuintyInterface extends Interface {
       | "setAddresses"
       | "submitSolution"
       | "transferOwnership"
-      | "triggerSlash"
   ): FunctionFragment;
 
   getEvent(
@@ -153,10 +152,6 @@ export interface QuintyInterface extends Interface {
     ]
   ): string;
   encodeFunctionData(
-    functionFragment: "disputeAddress",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "endOprecPhase",
     values: [BigNumberish]
   ): string;
@@ -194,6 +189,10 @@ export interface QuintyInterface extends Interface {
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
+    functionFragment: "refundBounty",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "rejectOprecApplications",
     values: [BigNumberish, BigNumberish[]]
   ): string;
@@ -215,7 +214,7 @@ export interface QuintyInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "setAddresses",
-    values: [AddressLike, AddressLike, AddressLike]
+    values: [AddressLike, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "submitSolution",
@@ -224,10 +223,6 @@ export interface QuintyInterface extends Interface {
   encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "triggerSlash",
-    values: [BigNumberish]
   ): string;
 
   decodeFunctionResult(functionFragment: "addReply", data: BytesLike): Result;
@@ -250,10 +245,6 @@ export interface QuintyInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "createBounty",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "disputeAddress",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -291,6 +282,10 @@ export interface QuintyInterface extends Interface {
   decodeFunctionResult(functionFragment: "nftAddress", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "refundBounty",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "rejectOprecApplications",
     data: BytesLike
   ): Result;
@@ -320,10 +315,6 @@ export interface QuintyInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "transferOwnership",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "triggerSlash",
     data: BytesLike
   ): Result;
 }
@@ -684,8 +675,6 @@ export interface Quinty extends BaseContract {
     "payable"
   >;
 
-  disputeAddress: TypedContractMethod<[], [string], "view">;
-
   endOprecPhase: TypedContractMethod<
     [_bountyId: BigNumberish],
     [void],
@@ -786,6 +775,12 @@ export interface Quinty extends BaseContract {
 
   owner: TypedContractMethod<[], [string], "view">;
 
+  refundBounty: TypedContractMethod<
+    [_bountyId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   rejectOprecApplications: TypedContractMethod<
     [_bountyId: BigNumberish, _applicationIds: BigNumberish[]],
     [void],
@@ -813,11 +808,7 @@ export interface Quinty extends BaseContract {
   >;
 
   setAddresses: TypedContractMethod<
-    [
-      _repAddress: AddressLike,
-      _disputeAddress: AddressLike,
-      _nftAddress: AddressLike
-    ],
+    [_repAddress: AddressLike, _nftAddress: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -834,12 +825,6 @@ export interface Quinty extends BaseContract {
 
   transferOwnership: TypedContractMethod<
     [newOwner: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-
-  triggerSlash: TypedContractMethod<
-    [_bountyId: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -928,9 +913,6 @@ export interface Quinty extends BaseContract {
     [void],
     "payable"
   >;
-  getFunction(
-    nameOrSignature: "disputeAddress"
-  ): TypedContractMethod<[], [string], "view">;
   getFunction(
     nameOrSignature: "endOprecPhase"
   ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
@@ -1030,6 +1012,9 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
+    nameOrSignature: "refundBounty"
+  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "rejectOprecApplications"
   ): TypedContractMethod<
     [_bountyId: BigNumberish, _applicationIds: BigNumberish[]],
@@ -1063,11 +1048,7 @@ export interface Quinty extends BaseContract {
   getFunction(
     nameOrSignature: "setAddresses"
   ): TypedContractMethod<
-    [
-      _repAddress: AddressLike,
-      _disputeAddress: AddressLike,
-      _nftAddress: AddressLike
-    ],
+    [_repAddress: AddressLike, _nftAddress: AddressLike],
     [void],
     "nonpayable"
   >;
@@ -1085,9 +1066,6 @@ export interface Quinty extends BaseContract {
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "triggerSlash"
-  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
 
   getEvent(
     key: "BountyCreated"

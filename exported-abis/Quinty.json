@@ -540,19 +540,6 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "disputeAddress",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "uint256",
@@ -924,6 +911,19 @@
         "internalType": "uint256",
         "name": "_bountyId",
         "type": "uint256"
+      }
+    ],
+    "name": "refundBounty",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_bountyId",
+        "type": "uint256"
       },
       {
         "internalType": "uint256[]",
@@ -1011,11 +1011,6 @@
       },
       {
         "internalType": "address",
-        "name": "_disputeAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
         "name": "_nftAddress",
         "type": "address"
       }
@@ -1057,19 +1052,6 @@
       }
     ],
     "name": "transferOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      }
-    ],
-    "name": "triggerSlash",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

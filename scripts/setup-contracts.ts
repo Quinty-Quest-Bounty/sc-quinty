@@ -4,7 +4,6 @@ import { ethers } from "hardhat";
 const ADDRESSES = {
   QuintyReputation: "0x2dc731f796Df125B282484E844485814B2DCd363",
   Quinty: "0x7169c907F80f95b20232F5B979B1Aac392bD282a",
-  DisputeResolver: "0xF04b0Ec52bFe602D0D38bEA4f613ABb7cFA79FB5",
   QuintyNFT: "0x80edb4Aeb39913FaFfDAC2a86F3184508B57AAe2",
   AirdropBounty: "0x79dAe15C3612854F6bd025f7CDc6D4CDEE289049",
 };
@@ -37,7 +36,6 @@ async function main() {
   await waitForTx(
     quinty.setAddresses(
       ADDRESSES.QuintyReputation,
-      ADDRESSES.DisputeResolver,
       ADDRESSES.QuintyNFT
     ),
     "Setting addresses in Quinty"

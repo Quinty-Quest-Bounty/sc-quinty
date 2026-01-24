@@ -11,10 +11,6 @@ interface IQuintyReputation {
     function recordWin(address _user) external;
 }
 
-interface IDisputeResolver {
-    function initiateExpiryVote(uint256 _bountyId, uint256 _slashAmount) external;
-}
-
 interface IQuintyNFT {
     function mintBadge(address recipient, uint8 badgeType, string memory metadataURI) external returns (uint256);
     function batchMintBadges(address[] memory recipients, uint8 badgeType, string memory metadataURI) external;
@@ -22,7 +18,7 @@ interface IQuintyNFT {
 
 contract Quinty is Ownable, ReentrancyGuard {
 
-    enum BountyStatus { OPREC, OPEN, PENDING_REVEAL, RESOLVED, DISPUTED, EXPIRED }
+    enum BountyStatus { OPREC, OPEN, PENDING_REVEAL, RESOLVED, EXPIRED }
 
     struct Team {
         address leader;
@@ -79,7 +75,6 @@ contract Quinty is Ownable, ReentrancyGuard {
     uint256 public bountyCounter;
 
     address public reputationAddress;
-    address public disputeAddress;
     address public nftAddress;
 
     constructor() Ownable(msg.sender) {}
@@ -113,9 +108,8 @@ contract Quinty is Ownable, ReentrancyGuard {
         _;
     }
 
-    function setAddresses(address _repAddress, address _disputeAddress, address _nftAddress) external onlyOwner {
+    function setAddresses(address _repAddress, address _nftAddress) external onlyOwner {
         reputationAddress = _repAddress;
-        disputeAddress = _disputeAddress;
         nftAddress = _nftAddress;
     }
 
@@ -424,25 +418,17 @@ contract Quinty is Ownable, ReentrancyGuard {
         emit ReplyAdded(_bountyId, _subId, msg.sender);
     }
 
-    function triggerSlash(uint256 _bountyId) external {
+    function refundBounty(uint256 _bountyId) external nonReentrant {
         Bounty storage bounty = bounties[_bountyId];
+        require(msg.sender == bounty.creator, "Not creator");
         require(bounty.status == BountyStatus.OPEN, "Bounty not open");
         require(block.timestamp > bounty.deadline, "Deadline not passed");
+        require(bounty.submissions.length == 0, "Cannot refund with submissions");
 
         bounty.status = BountyStatus.EXPIRED;
-        uint256 slashAmount = (bounty.amount * bounty.slashPercent) / 10000;
+        payable(bounty.creator).transfer(bounty.amount);
         
-        // Transfer slash amount to dispute contract for distribution
-        (bool success, ) = disputeAddress.call{value: slashAmount}(
-            abi.encodeWithSelector(IDisputeResolver.initiateExpiryVote.selector, _bountyId, slashAmount)
-        );
-        require(success, "Failed to initiate expiry vote");
-
-        // Refund remaining amount to creator
-        payable(bounty.creator).transfer(bounty.amount - slashAmount);
-
-        // Creator failure is not tracked in milestone system
-        emit BountySlashed(_bountyId, slashAmount);
+        emit BountyResolved(_bountyId); // Reuse event or add BountyRefunded
     }
 
     // Getter functions

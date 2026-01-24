@@ -26,13 +26,7 @@ async function main() {
   const quintyAddress = await quinty.getAddress();
   console.log("✅ Quinty deployed to:", quintyAddress);
 
-  // 3. Deploy DisputeResolver (it needs the Quinty address)
-  console.log("\n⚖️ Deploying DisputeResolver contract...");
-  const DisputeResolver = await ethers.getContractFactory("DisputeResolver");
-  const dispute = await DisputeResolver.deploy(quintyAddress);
-  await dispute.waitForDeployment();
-  const disputeAddress = await dispute.getAddress();
-  console.log("✅ DisputeResolver deployed to:", disputeAddress);
+
 
   // 4. Deploy QuintyNFT
   console.log("\n🎨 Deploying QuintyNFT contract...");
@@ -67,7 +61,7 @@ async function main() {
 
   // Set addresses in Quinty contract
   await waitForTx(
-    quinty.setAddresses(reputationAddress, disputeAddress, nftAddress),
+    quinty.setAddresses(reputationAddress, nftAddress),
     "Setting addresses in Quinty"
   );
 
@@ -91,7 +85,6 @@ async function main() {
     contracts: {
       Quinty: quintyAddress,
       QuintyReputation: reputationAddress,
-      DisputeResolver: disputeAddress,
       QuintyNFT: nftAddress,
       AirdropBounty: airdropAddress,
     },
