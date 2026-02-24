@@ -78,9 +78,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.AirdropBounty__factory>;
     getContractFactory(
-      name: "IQuintyNFT",
+      name: "Quest",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IQuintyNFT__factory>;
+    ): Promise<Contracts.Quest__factory>;
     getContractFactory(
       name: "IQuintyReputation",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -179,10 +179,10 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.AirdropBounty>;
     getContractAt(
-      name: "IQuintyNFT",
+      name: "Quest",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
-    ): Promise<Contracts.IQuintyNFT>;
+    ): Promise<Contracts.Quest>;
     getContractAt(
       name: "IQuintyReputation",
       address: string | ethers.Addressable,
@@ -269,9 +269,9 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.AirdropBounty>;
     deployContract(
-      name: "IQuintyNFT",
+      name: "Quest",
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuintyNFT>;
+    ): Promise<Contracts.Quest>;
     deployContract(
       name: "IQuintyReputation",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -370,10 +370,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.AirdropBounty>;
     deployContract(
-      name: "IQuintyNFT",
+      name: "Quest",
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.IQuintyNFT>;
+    ): Promise<Contracts.Quest>;
     deployContract(
       name: "IQuintyReputation",
       args: any[],

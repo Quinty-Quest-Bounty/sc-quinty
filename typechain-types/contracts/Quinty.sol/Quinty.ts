@@ -24,112 +24,74 @@ import type {
 } from "../../common";
 
 export declare namespace Quinty {
-  export type ReplyStruct = {
-    replier: AddressLike;
-    content: string;
+  export type SubmissionStruct = {
+    submitter: AddressLike;
+    ipfsCid: string;
+    socialHandle: string;
+    deposit: BigNumberish;
     timestamp: BigNumberish;
   };
 
-  export type ReplyStructOutput = [
-    replier: string,
-    content: string,
-    timestamp: bigint
-  ] & { replier: string; content: string; timestamp: bigint };
-
-  export type SubmissionStruct = {
-    solver: AddressLike;
-    teamMembers: AddressLike[];
-    blindedIpfsCid: string;
-    revealIpfsCid: string;
-    deposit: BigNumberish;
-    replies: Quinty.ReplyStruct[];
-    revealed: boolean;
-    isTeam: boolean;
-  };
-
   export type SubmissionStructOutput = [
-    solver: string,
-    teamMembers: string[],
-    blindedIpfsCid: string,
-    revealIpfsCid: string,
+    submitter: string,
+    ipfsCid: string,
+    socialHandle: string,
     deposit: bigint,
-    replies: Quinty.ReplyStructOutput[],
-    revealed: boolean,
-    isTeam: boolean
+    timestamp: bigint
   ] & {
-    solver: string;
-    teamMembers: string[];
-    blindedIpfsCid: string;
-    revealIpfsCid: string;
+    submitter: string;
+    ipfsCid: string;
+    socialHandle: string;
     deposit: bigint;
-    replies: Quinty.ReplyStructOutput[];
-    revealed: boolean;
-    isTeam: boolean;
+    timestamp: bigint;
   };
 }
 
 export interface QuintyInterface extends Interface {
   getFunction(
     nameOrSignature:
-      | "addReply"
-      | "applyToOprec"
-      | "approveOprecApplications"
-      | "approvedParticipants"
+      | "DEPOSIT_PERCENT"
       | "bounties"
       | "bountyCounter"
       | "createBounty"
-      | "endOprecPhase"
-      | "getBountyData"
-      | "getOprecApplication"
-      | "getOprecApplicationCount"
+      | "getAllSubmissions"
+      | "getBounty"
+      | "getCurrentPhase"
+      | "getRequiredDeposit"
+      | "getSocialAccount"
       | "getSubmission"
       | "getSubmissionCount"
-      | "getSubmissionStruct"
-      | "isApprovedParticipant"
-      | "nftAddress"
+      | "hasSubmitted"
+      | "hasUserSubmitted"
+      | "linkSocialAccount"
+      | "moveToJudging"
       | "owner"
-      | "refundBounty"
-      | "rejectOprecApplications"
+      | "refundNoSubmissions"
       | "renounceOwnership"
       | "reputationAddress"
-      | "revealSolution"
-      | "selectWinners"
-      | "setAddresses"
-      | "submitSolution"
+      | "selectWinner"
+      | "setReputationAddress"
+      | "socialAccounts"
+      | "submitToBounty"
       | "transferOwnership"
+      | "triggerSlash"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
       | "BountyCreated"
-      | "BountyResolved"
+      | "BountyMovedToJudging"
       | "BountySlashed"
-      | "OprecApplicationApproved"
-      | "OprecApplicationRejected"
-      | "OprecApplicationSubmitted"
-      | "OprecPhaseEnded"
+      | "DepositsRefunded"
       | "OwnershipTransferred"
-      | "ReplyAdded"
-      | "SolutionRevealed"
+      | "SocialAccountLinked"
       | "SubmissionCreated"
-      | "WinnersSelected"
+      | "WinnerSelected"
   ): EventFragment;
 
   encodeFunctionData(
-    functionFragment: "addReply",
-    values: [BigNumberish, BigNumberish, string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "applyToOprec",
-    values: [BigNumberish, AddressLike[], string, string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "approveOprecApplications",
-    values: [BigNumberish, BigNumberish[]]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "approvedParticipants",
-    values: [BigNumberish, AddressLike]
+    functionFragment: "DEPOSIT_PERCENT",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "bounties",
@@ -141,31 +103,27 @@ export interface QuintyInterface extends Interface {
   ): string;
   encodeFunctionData(
     functionFragment: "createBounty",
-    values: [
-      string,
-      BigNumberish,
-      boolean,
-      BigNumberish[],
-      BigNumberish,
-      boolean,
-      BigNumberish
-    ]
+    values: [string, string, BigNumberish, BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "endOprecPhase",
+    functionFragment: "getAllSubmissions",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getBountyData",
+    functionFragment: "getBounty",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getOprecApplication",
-    values: [BigNumberish, BigNumberish]
+    functionFragment: "getCurrentPhase",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getOprecApplicationCount",
+    functionFragment: "getRequiredDeposit",
     values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "getSocialAccount",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getSubmission",
@@ -176,25 +134,25 @@ export interface QuintyInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getSubmissionStruct",
-    values: [BigNumberish, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "isApprovedParticipant",
+    functionFragment: "hasSubmitted",
     values: [BigNumberish, AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "nftAddress",
-    values?: undefined
+    functionFragment: "hasUserSubmitted",
+    values: [BigNumberish, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "linkSocialAccount",
+    values: [string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "moveToJudging",
+    values: [BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "refundBounty",
+    functionFragment: "refundNoSubmissions",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "rejectOprecApplications",
-    values: [BigNumberish, BigNumberish[]]
   ): string;
   encodeFunctionData(
     functionFragment: "renounceOwnership",
@@ -205,37 +163,32 @@ export interface QuintyInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "revealSolution",
-    values: [BigNumberish, BigNumberish, string]
+    functionFragment: "selectWinner",
+    values: [BigNumberish, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "selectWinners",
-    values: [BigNumberish, AddressLike[], BigNumberish[]]
+    functionFragment: "setReputationAddress",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "setAddresses",
-    values: [AddressLike, AddressLike]
+    functionFragment: "socialAccounts",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "submitSolution",
-    values: [BigNumberish, string, AddressLike[]]
+    functionFragment: "submitToBounty",
+    values: [BigNumberish, string, string]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "triggerSlash",
+    values: [BigNumberish]
+  ): string;
 
-  decodeFunctionResult(functionFragment: "addReply", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "applyToOprec",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "approveOprecApplications",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "approvedParticipants",
+    functionFragment: "DEPOSIT_PERCENT",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "bounties", data: BytesLike): Result;
@@ -248,19 +201,20 @@ export interface QuintyInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "endOprecPhase",
+    functionFragment: "getAllSubmissions",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "getBounty", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "getCurrentPhase",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getBountyData",
+    functionFragment: "getRequiredDeposit",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getOprecApplication",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getOprecApplicationCount",
+    functionFragment: "getSocialAccount",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -272,21 +226,24 @@ export interface QuintyInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getSubmissionStruct",
+    functionFragment: "hasSubmitted",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "isApprovedParticipant",
+    functionFragment: "hasUserSubmitted",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(functionFragment: "nftAddress", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "linkSocialAccount",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "moveToJudging",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "refundBounty",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "rejectOprecApplications",
+    functionFragment: "refundNoSubmissions",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -298,23 +255,27 @@ export interface QuintyInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "revealSolution",
+    functionFragment: "selectWinner",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "selectWinners",
+    functionFragment: "setReputationAddress",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "setAddresses",
+    functionFragment: "socialAccounts",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "submitSolution",
+    functionFragment: "submitToBounty",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "transferOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "triggerSlash",
     data: BytesLike
   ): Result;
 }
@@ -323,23 +284,29 @@ export namespace BountyCreatedEvent {
   export type InputTuple = [
     id: BigNumberish,
     creator: AddressLike,
+    title: string,
     amount: BigNumberish,
-    deadline: BigNumberish,
-    hasOprec: boolean
+    openDeadline: BigNumberish,
+    judgingDeadline: BigNumberish,
+    slashPercent: BigNumberish
   ];
   export type OutputTuple = [
     id: bigint,
     creator: string,
+    title: string,
     amount: bigint,
-    deadline: bigint,
-    hasOprec: boolean
+    openDeadline: bigint,
+    judgingDeadline: bigint,
+    slashPercent: bigint
   ];
   export interface OutputObject {
     id: bigint;
     creator: string;
+    title: string;
     amount: bigint;
-    deadline: bigint;
-    hasOprec: boolean;
+    openDeadline: bigint;
+    judgingDeadline: bigint;
+    slashPercent: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -347,7 +314,7 @@ export namespace BountyCreatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace BountyResolvedEvent {
+export namespace BountyMovedToJudgingEvent {
   export type InputTuple = [bountyId: BigNumberish];
   export type OutputTuple = [bountyId: bigint];
   export interface OutputObject {
@@ -360,11 +327,20 @@ export namespace BountyResolvedEvent {
 }
 
 export namespace BountySlashedEvent {
-  export type InputTuple = [bountyId: BigNumberish, slashAmount: BigNumberish];
-  export type OutputTuple = [bountyId: bigint, slashAmount: bigint];
+  export type InputTuple = [
+    bountyId: BigNumberish,
+    slashAmount: BigNumberish,
+    refundToCreator: BigNumberish
+  ];
+  export type OutputTuple = [
+    bountyId: bigint,
+    slashAmount: bigint,
+    refundToCreator: bigint
+  ];
   export interface OutputObject {
     bountyId: bigint;
     slashAmount: bigint;
+    refundToCreator: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -372,80 +348,15 @@ export namespace BountySlashedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace OprecApplicationApprovedEvent {
+export namespace DepositsRefundedEvent {
   export type InputTuple = [
     bountyId: BigNumberish,
-    applicationId: BigNumberish,
-    applicant: AddressLike
+    totalRefunded: BigNumberish
   ];
-  export type OutputTuple = [
-    bountyId: bigint,
-    applicationId: bigint,
-    applicant: string
-  ];
+  export type OutputTuple = [bountyId: bigint, totalRefunded: bigint];
   export interface OutputObject {
     bountyId: bigint;
-    applicationId: bigint;
-    applicant: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace OprecApplicationRejectedEvent {
-  export type InputTuple = [
-    bountyId: BigNumberish,
-    applicationId: BigNumberish,
-    applicant: AddressLike
-  ];
-  export type OutputTuple = [
-    bountyId: bigint,
-    applicationId: bigint,
-    applicant: string
-  ];
-  export interface OutputObject {
-    bountyId: bigint;
-    applicationId: bigint;
-    applicant: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace OprecApplicationSubmittedEvent {
-  export type InputTuple = [
-    bountyId: BigNumberish,
-    applicationId: BigNumberish,
-    applicant: AddressLike,
-    isTeam: boolean
-  ];
-  export type OutputTuple = [
-    bountyId: bigint,
-    applicationId: bigint,
-    applicant: string,
-    isTeam: boolean
-  ];
-  export interface OutputObject {
-    bountyId: bigint;
-    applicationId: bigint;
-    applicant: string;
-    isTeam: boolean;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace OprecPhaseEndedEvent {
-  export type InputTuple = [bountyId: BigNumberish];
-  export type OutputTuple = [bountyId: bigint];
-  export interface OutputObject {
-    bountyId: bigint;
+    totalRefunded: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -466,42 +377,17 @@ export namespace OwnershipTransferredEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace ReplyAddedEvent {
+export namespace SocialAccountLinkedEvent {
   export type InputTuple = [
-    bountyId: BigNumberish,
-    subId: BigNumberish,
-    replier: AddressLike
+    wallet: AddressLike,
+    xHandle: string,
+    email: string
   ];
-  export type OutputTuple = [bountyId: bigint, subId: bigint, replier: string];
+  export type OutputTuple = [wallet: string, xHandle: string, email: string];
   export interface OutputObject {
-    bountyId: bigint;
-    subId: bigint;
-    replier: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
-export namespace SolutionRevealedEvent {
-  export type InputTuple = [
-    bountyId: BigNumberish,
-    subId: BigNumberish,
-    solver: AddressLike,
-    revealIpfsCid: string
-  ];
-  export type OutputTuple = [
-    bountyId: bigint,
-    subId: bigint,
-    solver: string,
-    revealIpfsCid: string
-  ];
-  export interface OutputObject {
-    bountyId: bigint;
-    subId: bigint;
-    solver: string;
-    revealIpfsCid: string;
+    wallet: string;
+    xHandle: string;
+    email: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -512,24 +398,27 @@ export namespace SolutionRevealedEvent {
 export namespace SubmissionCreatedEvent {
   export type InputTuple = [
     bountyId: BigNumberish,
-    subId: BigNumberish,
-    solver: AddressLike,
+    submissionId: BigNumberish,
+    submitter: AddressLike,
     ipfsCid: string,
-    isTeam: boolean
+    socialHandle: string,
+    deposit: BigNumberish
   ];
   export type OutputTuple = [
     bountyId: bigint,
-    subId: bigint,
-    solver: string,
+    submissionId: bigint,
+    submitter: string,
     ipfsCid: string,
-    isTeam: boolean
+    socialHandle: string,
+    deposit: bigint
   ];
   export interface OutputObject {
     bountyId: bigint;
-    subId: bigint;
-    solver: string;
+    submissionId: bigint;
+    submitter: string;
     ipfsCid: string;
-    isTeam: boolean;
+    socialHandle: string;
+    deposit: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -537,21 +426,24 @@ export namespace SubmissionCreatedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace WinnersSelectedEvent {
+export namespace WinnerSelectedEvent {
   export type InputTuple = [
     bountyId: BigNumberish,
-    winners: AddressLike[],
-    submissionIds: BigNumberish[]
+    winner: AddressLike,
+    submissionId: BigNumberish,
+    reward: BigNumberish
   ];
   export type OutputTuple = [
     bountyId: bigint,
-    winners: string[],
-    submissionIds: bigint[]
+    winner: string,
+    submissionId: bigint,
+    reward: bigint
   ];
   export interface OutputObject {
     bountyId: bigint;
-    winners: string[];
-    submissionIds: bigint[];
+    winner: string;
+    submissionId: bigint;
+    reward: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -602,34 +494,7 @@ export interface Quinty extends BaseContract {
     event?: TCEvent
   ): Promise<this>;
 
-  addReply: TypedContractMethod<
-    [_bountyId: BigNumberish, _subId: BigNumberish, _content: string],
-    [void],
-    "nonpayable"
-  >;
-
-  applyToOprec: TypedContractMethod<
-    [
-      _bountyId: BigNumberish,
-      _teamMembers: AddressLike[],
-      _workExamples: string,
-      _skillDescription: string
-    ],
-    [void],
-    "nonpayable"
-  >;
-
-  approveOprecApplications: TypedContractMethod<
-    [_bountyId: BigNumberish, _applicationIds: BigNumberish[]],
-    [void],
-    "nonpayable"
-  >;
-
-  approvedParticipants: TypedContractMethod<
-    [arg0: BigNumberish, arg1: AddressLike],
-    [boolean],
-    "view"
-  >;
+  DEPOSIT_PERCENT: TypedContractMethod<[], [bigint], "view">;
 
   bounties: TypedContractMethod<
     [arg0: BigNumberish],
@@ -637,23 +502,27 @@ export interface Quinty extends BaseContract {
       [
         string,
         string,
+        string,
         bigint,
         bigint,
-        boolean,
         bigint,
         bigint,
-        boolean,
+        bigint,
+        string,
+        bigint,
         bigint
       ] & {
         creator: string;
+        title: string;
         description: string;
         amount: bigint;
-        deadline: bigint;
-        allowMultipleWinners: boolean;
-        status: bigint;
+        openDeadline: bigint;
+        judgingDeadline: bigint;
         slashPercent: bigint;
-        hasOprec: boolean;
-        oprecDeadline: bigint;
+        status: bigint;
+        selectedWinner: string;
+        selectedSubmissionId: bigint;
+        totalDeposits: bigint;
       }
     ],
     "view"
@@ -663,90 +532,89 @@ export interface Quinty extends BaseContract {
 
   createBounty: TypedContractMethod<
     [
+      _title: string,
       _description: string,
-      _deadline: BigNumberish,
-      _allowMultipleWinners: boolean,
-      _winnerShares: BigNumberish[],
-      _slashPercent: BigNumberish,
-      _hasOprec: boolean,
-      _oprecDeadline: BigNumberish
+      _openDeadline: BigNumberish,
+      _judgingDeadline: BigNumberish,
+      _slashPercent: BigNumberish
     ],
     [void],
     "payable"
   >;
 
-  endOprecPhase: TypedContractMethod<
+  getAllSubmissions: TypedContractMethod<
     [_bountyId: BigNumberish],
-    [void],
-    "nonpayable"
+    [Quinty.SubmissionStructOutput[]],
+    "view"
   >;
 
-  getBountyData: TypedContractMethod<
+  getBounty: TypedContractMethod<
     [_bountyId: BigNumberish],
     [
       [
         string,
         string,
+        string,
         bigint,
         bigint,
-        boolean,
-        bigint[],
         bigint,
         bigint,
-        string[],
-        bigint[],
-        boolean,
+        bigint,
+        string,
+        bigint,
+        bigint,
         bigint
       ] & {
         creator: string;
+        title: string;
         description: string;
         amount: bigint;
-        deadline: bigint;
-        allowMultipleWinners: boolean;
-        winnerShares: bigint[];
-        status: bigint;
+        openDeadline: bigint;
+        judgingDeadline: bigint;
         slashPercent: bigint;
-        selectedWinners: string[];
-        selectedSubmissionIds: bigint[];
-        hasOprec: boolean;
-        oprecDeadline: bigint;
+        status: bigint;
+        selectedWinner: string;
+        selectedSubmissionId: bigint;
+        submissionCount: bigint;
+        totalDeposits: bigint;
       }
     ],
     "view"
   >;
 
-  getOprecApplication: TypedContractMethod<
-    [_bountyId: BigNumberish, _appId: BigNumberish],
-    [
-      [string, string[], string, string, bigint, boolean, boolean] & {
-        applicant: string;
-        teamMembers: string[];
-        workExamples: string;
-        skillDescription: string;
-        appliedAt: bigint;
-        approved: boolean;
-        rejected: boolean;
-      }
-    ],
+  getCurrentPhase: TypedContractMethod<
+    [_bountyId: BigNumberish],
+    [string],
     "view"
   >;
 
-  getOprecApplicationCount: TypedContractMethod<
+  getRequiredDeposit: TypedContractMethod<
     [_bountyId: BigNumberish],
     [bigint],
+    "view"
+  >;
+
+  getSocialAccount: TypedContractMethod<
+    [_wallet: AddressLike],
+    [
+      [string, string, bigint, boolean] & {
+        xHandle: string;
+        email: string;
+        linkedAt: bigint;
+        verified: boolean;
+      }
+    ],
     "view"
   >;
 
   getSubmission: TypedContractMethod<
     [_bountyId: BigNumberish, _subId: BigNumberish],
     [
-      [bigint, string, string, bigint, string[], string, bigint] & {
-        bountyId: bigint;
-        solver: string;
-        blindedIpfsCid: string;
+      [string, string, string, bigint, bigint] & {
+        submitter: string;
+        ipfsCid: string;
+        socialHandle: string;
         deposit: bigint;
-        replies: string[];
-        revealIpfsCid: string;
         timestamp: bigint;
       }
     ],
@@ -759,30 +627,34 @@ export interface Quinty extends BaseContract {
     "view"
   >;
 
-  getSubmissionStruct: TypedContractMethod<
-    [_bountyId: BigNumberish, _subId: BigNumberish],
-    [Quinty.SubmissionStructOutput],
-    "view"
-  >;
-
-  isApprovedParticipant: TypedContractMethod<
-    [_bountyId: BigNumberish, _participant: AddressLike],
+  hasSubmitted: TypedContractMethod<
+    [arg0: BigNumberish, arg1: AddressLike],
     [boolean],
     "view"
   >;
 
-  nftAddress: TypedContractMethod<[], [string], "view">;
+  hasUserSubmitted: TypedContractMethod<
+    [_bountyId: BigNumberish, _user: AddressLike],
+    [boolean],
+    "view"
+  >;
 
-  owner: TypedContractMethod<[], [string], "view">;
+  linkSocialAccount: TypedContractMethod<
+    [_xHandle: string, _email: string],
+    [void],
+    "nonpayable"
+  >;
 
-  refundBounty: TypedContractMethod<
+  moveToJudging: TypedContractMethod<
     [_bountyId: BigNumberish],
     [void],
     "nonpayable"
   >;
 
-  rejectOprecApplications: TypedContractMethod<
-    [_bountyId: BigNumberish, _applicationIds: BigNumberish[]],
+  owner: TypedContractMethod<[], [string], "view">;
+
+  refundNoSubmissions: TypedContractMethod<
+    [_bountyId: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -791,34 +663,33 @@ export interface Quinty extends BaseContract {
 
   reputationAddress: TypedContractMethod<[], [string], "view">;
 
-  revealSolution: TypedContractMethod<
-    [_bountyId: BigNumberish, _subId: BigNumberish, _revealIpfsCid: string],
+  selectWinner: TypedContractMethod<
+    [_bountyId: BigNumberish, _submissionId: BigNumberish],
     [void],
     "nonpayable"
   >;
 
-  selectWinners: TypedContractMethod<
+  setReputationAddress: TypedContractMethod<
+    [_repAddress: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  socialAccounts: TypedContractMethod<
+    [arg0: AddressLike],
     [
-      _bountyId: BigNumberish,
-      _winners: AddressLike[],
-      _submissionIds: BigNumberish[]
+      [string, string, bigint, boolean] & {
+        xHandle: string;
+        email: string;
+        linkedAt: bigint;
+        verified: boolean;
+      }
     ],
-    [void],
-    "nonpayable"
+    "view"
   >;
 
-  setAddresses: TypedContractMethod<
-    [_repAddress: AddressLike, _nftAddress: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-
-  submitSolution: TypedContractMethod<
-    [
-      _bountyId: BigNumberish,
-      _blindedIpfsCid: string,
-      _teamMembers: AddressLike[]
-    ],
+  submitToBounty: TypedContractMethod<
+    [_bountyId: BigNumberish, _ipfsCid: string, _socialHandle: string],
     [void],
     "payable"
   >;
@@ -829,43 +700,19 @@ export interface Quinty extends BaseContract {
     "nonpayable"
   >;
 
+  triggerSlash: TypedContractMethod<
+    [_bountyId: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
 
   getFunction(
-    nameOrSignature: "addReply"
-  ): TypedContractMethod<
-    [_bountyId: BigNumberish, _subId: BigNumberish, _content: string],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "applyToOprec"
-  ): TypedContractMethod<
-    [
-      _bountyId: BigNumberish,
-      _teamMembers: AddressLike[],
-      _workExamples: string,
-      _skillDescription: string
-    ],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "approveOprecApplications"
-  ): TypedContractMethod<
-    [_bountyId: BigNumberish, _applicationIds: BigNumberish[]],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "approvedParticipants"
-  ): TypedContractMethod<
-    [arg0: BigNumberish, arg1: AddressLike],
-    [boolean],
-    "view"
-  >;
+    nameOrSignature: "DEPOSIT_PERCENT"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "bounties"
   ): TypedContractMethod<
@@ -874,23 +721,27 @@ export interface Quinty extends BaseContract {
       [
         string,
         string,
+        string,
         bigint,
         bigint,
-        boolean,
         bigint,
         bigint,
-        boolean,
+        bigint,
+        string,
+        bigint,
         bigint
       ] & {
         creator: string;
+        title: string;
         description: string;
         amount: bigint;
-        deadline: bigint;
-        allowMultipleWinners: boolean;
-        status: bigint;
+        openDeadline: bigint;
+        judgingDeadline: bigint;
         slashPercent: bigint;
-        hasOprec: boolean;
-        oprecDeadline: bigint;
+        status: bigint;
+        selectedWinner: string;
+        selectedSubmissionId: bigint;
+        totalDeposits: bigint;
       }
     ],
     "view"
@@ -902,87 +753,87 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "createBounty"
   ): TypedContractMethod<
     [
+      _title: string,
       _description: string,
-      _deadline: BigNumberish,
-      _allowMultipleWinners: boolean,
-      _winnerShares: BigNumberish[],
-      _slashPercent: BigNumberish,
-      _hasOprec: boolean,
-      _oprecDeadline: BigNumberish
+      _openDeadline: BigNumberish,
+      _judgingDeadline: BigNumberish,
+      _slashPercent: BigNumberish
     ],
     [void],
     "payable"
   >;
   getFunction(
-    nameOrSignature: "endOprecPhase"
-  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
+    nameOrSignature: "getAllSubmissions"
+  ): TypedContractMethod<
+    [_bountyId: BigNumberish],
+    [Quinty.SubmissionStructOutput[]],
+    "view"
+  >;
   getFunction(
-    nameOrSignature: "getBountyData"
+    nameOrSignature: "getBounty"
   ): TypedContractMethod<
     [_bountyId: BigNumberish],
     [
       [
         string,
         string,
+        string,
         bigint,
         bigint,
-        boolean,
-        bigint[],
         bigint,
         bigint,
-        string[],
-        bigint[],
-        boolean,
+        bigint,
+        string,
+        bigint,
+        bigint,
         bigint
       ] & {
         creator: string;
+        title: string;
         description: string;
         amount: bigint;
-        deadline: bigint;
-        allowMultipleWinners: boolean;
-        winnerShares: bigint[];
-        status: bigint;
+        openDeadline: bigint;
+        judgingDeadline: bigint;
         slashPercent: bigint;
-        selectedWinners: string[];
-        selectedSubmissionIds: bigint[];
-        hasOprec: boolean;
-        oprecDeadline: bigint;
+        status: bigint;
+        selectedWinner: string;
+        selectedSubmissionId: bigint;
+        submissionCount: bigint;
+        totalDeposits: bigint;
       }
     ],
     "view"
   >;
   getFunction(
-    nameOrSignature: "getOprecApplication"
-  ): TypedContractMethod<
-    [_bountyId: BigNumberish, _appId: BigNumberish],
-    [
-      [string, string[], string, string, bigint, boolean, boolean] & {
-        applicant: string;
-        teamMembers: string[];
-        workExamples: string;
-        skillDescription: string;
-        appliedAt: bigint;
-        approved: boolean;
-        rejected: boolean;
-      }
-    ],
-    "view"
-  >;
+    nameOrSignature: "getCurrentPhase"
+  ): TypedContractMethod<[_bountyId: BigNumberish], [string], "view">;
   getFunction(
-    nameOrSignature: "getOprecApplicationCount"
+    nameOrSignature: "getRequiredDeposit"
   ): TypedContractMethod<[_bountyId: BigNumberish], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "getSocialAccount"
+  ): TypedContractMethod<
+    [_wallet: AddressLike],
+    [
+      [string, string, bigint, boolean] & {
+        xHandle: string;
+        email: string;
+        linkedAt: bigint;
+        verified: boolean;
+      }
+    ],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "getSubmission"
   ): TypedContractMethod<
     [_bountyId: BigNumberish, _subId: BigNumberish],
     [
-      [bigint, string, string, bigint, string[], string, bigint] & {
-        bountyId: bigint;
-        solver: string;
-        blindedIpfsCid: string;
+      [string, string, string, bigint, bigint] & {
+        submitter: string;
+        ipfsCid: string;
+        socialHandle: string;
         deposit: bigint;
-        replies: string[];
-        revealIpfsCid: string;
         timestamp: bigint;
       }
     ],
@@ -992,35 +843,35 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "getSubmissionCount"
   ): TypedContractMethod<[_bountyId: BigNumberish], [bigint], "view">;
   getFunction(
-    nameOrSignature: "getSubmissionStruct"
+    nameOrSignature: "hasSubmitted"
   ): TypedContractMethod<
-    [_bountyId: BigNumberish, _subId: BigNumberish],
-    [Quinty.SubmissionStructOutput],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "isApprovedParticipant"
-  ): TypedContractMethod<
-    [_bountyId: BigNumberish, _participant: AddressLike],
+    [arg0: BigNumberish, arg1: AddressLike],
     [boolean],
     "view"
   >;
   getFunction(
-    nameOrSignature: "nftAddress"
-  ): TypedContractMethod<[], [string], "view">;
+    nameOrSignature: "hasUserSubmitted"
+  ): TypedContractMethod<
+    [_bountyId: BigNumberish, _user: AddressLike],
+    [boolean],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "linkSocialAccount"
+  ): TypedContractMethod<
+    [_xHandle: string, _email: string],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "moveToJudging"
+  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "owner"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "refundBounty"
+    nameOrSignature: "refundNoSubmissions"
   ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
-  getFunction(
-    nameOrSignature: "rejectOprecApplications"
-  ): TypedContractMethod<
-    [_bountyId: BigNumberish, _applicationIds: BigNumberish[]],
-    [void],
-    "nonpayable"
-  >;
   getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
@@ -1028,44 +879,42 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "reputationAddress"
   ): TypedContractMethod<[], [string], "view">;
   getFunction(
-    nameOrSignature: "revealSolution"
+    nameOrSignature: "selectWinner"
   ): TypedContractMethod<
-    [_bountyId: BigNumberish, _subId: BigNumberish, _revealIpfsCid: string],
+    [_bountyId: BigNumberish, _submissionId: BigNumberish],
     [void],
     "nonpayable"
   >;
   getFunction(
-    nameOrSignature: "selectWinners"
+    nameOrSignature: "setReputationAddress"
+  ): TypedContractMethod<[_repAddress: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "socialAccounts"
   ): TypedContractMethod<
+    [arg0: AddressLike],
     [
-      _bountyId: BigNumberish,
-      _winners: AddressLike[],
-      _submissionIds: BigNumberish[]
+      [string, string, bigint, boolean] & {
+        xHandle: string;
+        email: string;
+        linkedAt: bigint;
+        verified: boolean;
+      }
     ],
-    [void],
-    "nonpayable"
+    "view"
   >;
   getFunction(
-    nameOrSignature: "setAddresses"
+    nameOrSignature: "submitToBounty"
   ): TypedContractMethod<
-    [_repAddress: AddressLike, _nftAddress: AddressLike],
-    [void],
-    "nonpayable"
-  >;
-  getFunction(
-    nameOrSignature: "submitSolution"
-  ): TypedContractMethod<
-    [
-      _bountyId: BigNumberish,
-      _blindedIpfsCid: string,
-      _teamMembers: AddressLike[]
-    ],
+    [_bountyId: BigNumberish, _ipfsCid: string, _socialHandle: string],
     [void],
     "payable"
   >;
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "triggerSlash"
+  ): TypedContractMethod<[_bountyId: BigNumberish], [void], "nonpayable">;
 
   getEvent(
     key: "BountyCreated"
@@ -1075,11 +924,11 @@ export interface Quinty extends BaseContract {
     BountyCreatedEvent.OutputObject
   >;
   getEvent(
-    key: "BountyResolved"
+    key: "BountyMovedToJudging"
   ): TypedContractEvent<
-    BountyResolvedEvent.InputTuple,
-    BountyResolvedEvent.OutputTuple,
-    BountyResolvedEvent.OutputObject
+    BountyMovedToJudgingEvent.InputTuple,
+    BountyMovedToJudgingEvent.OutputTuple,
+    BountyMovedToJudgingEvent.OutputObject
   >;
   getEvent(
     key: "BountySlashed"
@@ -1089,32 +938,11 @@ export interface Quinty extends BaseContract {
     BountySlashedEvent.OutputObject
   >;
   getEvent(
-    key: "OprecApplicationApproved"
+    key: "DepositsRefunded"
   ): TypedContractEvent<
-    OprecApplicationApprovedEvent.InputTuple,
-    OprecApplicationApprovedEvent.OutputTuple,
-    OprecApplicationApprovedEvent.OutputObject
-  >;
-  getEvent(
-    key: "OprecApplicationRejected"
-  ): TypedContractEvent<
-    OprecApplicationRejectedEvent.InputTuple,
-    OprecApplicationRejectedEvent.OutputTuple,
-    OprecApplicationRejectedEvent.OutputObject
-  >;
-  getEvent(
-    key: "OprecApplicationSubmitted"
-  ): TypedContractEvent<
-    OprecApplicationSubmittedEvent.InputTuple,
-    OprecApplicationSubmittedEvent.OutputTuple,
-    OprecApplicationSubmittedEvent.OutputObject
-  >;
-  getEvent(
-    key: "OprecPhaseEnded"
-  ): TypedContractEvent<
-    OprecPhaseEndedEvent.InputTuple,
-    OprecPhaseEndedEvent.OutputTuple,
-    OprecPhaseEndedEvent.OutputObject
+    DepositsRefundedEvent.InputTuple,
+    DepositsRefundedEvent.OutputTuple,
+    DepositsRefundedEvent.OutputObject
   >;
   getEvent(
     key: "OwnershipTransferred"
@@ -1124,18 +952,11 @@ export interface Quinty extends BaseContract {
     OwnershipTransferredEvent.OutputObject
   >;
   getEvent(
-    key: "ReplyAdded"
+    key: "SocialAccountLinked"
   ): TypedContractEvent<
-    ReplyAddedEvent.InputTuple,
-    ReplyAddedEvent.OutputTuple,
-    ReplyAddedEvent.OutputObject
-  >;
-  getEvent(
-    key: "SolutionRevealed"
-  ): TypedContractEvent<
-    SolutionRevealedEvent.InputTuple,
-    SolutionRevealedEvent.OutputTuple,
-    SolutionRevealedEvent.OutputObject
+    SocialAccountLinkedEvent.InputTuple,
+    SocialAccountLinkedEvent.OutputTuple,
+    SocialAccountLinkedEvent.OutputObject
   >;
   getEvent(
     key: "SubmissionCreated"
@@ -1145,15 +966,15 @@ export interface Quinty extends BaseContract {
     SubmissionCreatedEvent.OutputObject
   >;
   getEvent(
-    key: "WinnersSelected"
+    key: "WinnerSelected"
   ): TypedContractEvent<
-    WinnersSelectedEvent.InputTuple,
-    WinnersSelectedEvent.OutputTuple,
-    WinnersSelectedEvent.OutputObject
+    WinnerSelectedEvent.InputTuple,
+    WinnerSelectedEvent.OutputTuple,
+    WinnerSelectedEvent.OutputObject
   >;
 
   filters: {
-    "BountyCreated(uint256,address,uint256,uint256,bool)": TypedContractEvent<
+    "BountyCreated(uint256,address,string,uint256,uint256,uint256,uint256)": TypedContractEvent<
       BountyCreatedEvent.InputTuple,
       BountyCreatedEvent.OutputTuple,
       BountyCreatedEvent.OutputObject
@@ -1164,18 +985,18 @@ export interface Quinty extends BaseContract {
       BountyCreatedEvent.OutputObject
     >;
 
-    "BountyResolved(uint256)": TypedContractEvent<
-      BountyResolvedEvent.InputTuple,
-      BountyResolvedEvent.OutputTuple,
-      BountyResolvedEvent.OutputObject
+    "BountyMovedToJudging(uint256)": TypedContractEvent<
+      BountyMovedToJudgingEvent.InputTuple,
+      BountyMovedToJudgingEvent.OutputTuple,
+      BountyMovedToJudgingEvent.OutputObject
     >;
-    BountyResolved: TypedContractEvent<
-      BountyResolvedEvent.InputTuple,
-      BountyResolvedEvent.OutputTuple,
-      BountyResolvedEvent.OutputObject
+    BountyMovedToJudging: TypedContractEvent<
+      BountyMovedToJudgingEvent.InputTuple,
+      BountyMovedToJudgingEvent.OutputTuple,
+      BountyMovedToJudgingEvent.OutputObject
     >;
 
-    "BountySlashed(uint256,uint256)": TypedContractEvent<
+    "BountySlashed(uint256,uint256,uint256)": TypedContractEvent<
       BountySlashedEvent.InputTuple,
       BountySlashedEvent.OutputTuple,
       BountySlashedEvent.OutputObject
@@ -1186,48 +1007,15 @@ export interface Quinty extends BaseContract {
       BountySlashedEvent.OutputObject
     >;
 
-    "OprecApplicationApproved(uint256,uint256,address)": TypedContractEvent<
-      OprecApplicationApprovedEvent.InputTuple,
-      OprecApplicationApprovedEvent.OutputTuple,
-      OprecApplicationApprovedEvent.OutputObject
+    "DepositsRefunded(uint256,uint256)": TypedContractEvent<
+      DepositsRefundedEvent.InputTuple,
+      DepositsRefundedEvent.OutputTuple,
+      DepositsRefundedEvent.OutputObject
     >;
-    OprecApplicationApproved: TypedContractEvent<
-      OprecApplicationApprovedEvent.InputTuple,
-      OprecApplicationApprovedEvent.OutputTuple,
-      OprecApplicationApprovedEvent.OutputObject
-    >;
-
-    "OprecApplicationRejected(uint256,uint256,address)": TypedContractEvent<
-      OprecApplicationRejectedEvent.InputTuple,
-      OprecApplicationRejectedEvent.OutputTuple,
-      OprecApplicationRejectedEvent.OutputObject
-    >;
-    OprecApplicationRejected: TypedContractEvent<
-      OprecApplicationRejectedEvent.InputTuple,
-      OprecApplicationRejectedEvent.OutputTuple,
-      OprecApplicationRejectedEvent.OutputObject
-    >;
-
-    "OprecApplicationSubmitted(uint256,uint256,address,bool)": TypedContractEvent<
-      OprecApplicationSubmittedEvent.InputTuple,
-      OprecApplicationSubmittedEvent.OutputTuple,
-      OprecApplicationSubmittedEvent.OutputObject
-    >;
-    OprecApplicationSubmitted: TypedContractEvent<
-      OprecApplicationSubmittedEvent.InputTuple,
-      OprecApplicationSubmittedEvent.OutputTuple,
-      OprecApplicationSubmittedEvent.OutputObject
-    >;
-
-    "OprecPhaseEnded(uint256)": TypedContractEvent<
-      OprecPhaseEndedEvent.InputTuple,
-      OprecPhaseEndedEvent.OutputTuple,
-      OprecPhaseEndedEvent.OutputObject
-    >;
-    OprecPhaseEnded: TypedContractEvent<
-      OprecPhaseEndedEvent.InputTuple,
-      OprecPhaseEndedEvent.OutputTuple,
-      OprecPhaseEndedEvent.OutputObject
+    DepositsRefunded: TypedContractEvent<
+      DepositsRefundedEvent.InputTuple,
+      DepositsRefundedEvent.OutputTuple,
+      DepositsRefundedEvent.OutputObject
     >;
 
     "OwnershipTransferred(address,address)": TypedContractEvent<
@@ -1241,29 +1029,18 @@ export interface Quinty extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "ReplyAdded(uint256,uint256,address)": TypedContractEvent<
-      ReplyAddedEvent.InputTuple,
-      ReplyAddedEvent.OutputTuple,
-      ReplyAddedEvent.OutputObject
+    "SocialAccountLinked(address,string,string)": TypedContractEvent<
+      SocialAccountLinkedEvent.InputTuple,
+      SocialAccountLinkedEvent.OutputTuple,
+      SocialAccountLinkedEvent.OutputObject
     >;
-    ReplyAdded: TypedContractEvent<
-      ReplyAddedEvent.InputTuple,
-      ReplyAddedEvent.OutputTuple,
-      ReplyAddedEvent.OutputObject
-    >;
-
-    "SolutionRevealed(uint256,uint256,address,string)": TypedContractEvent<
-      SolutionRevealedEvent.InputTuple,
-      SolutionRevealedEvent.OutputTuple,
-      SolutionRevealedEvent.OutputObject
-    >;
-    SolutionRevealed: TypedContractEvent<
-      SolutionRevealedEvent.InputTuple,
-      SolutionRevealedEvent.OutputTuple,
-      SolutionRevealedEvent.OutputObject
+    SocialAccountLinked: TypedContractEvent<
+      SocialAccountLinkedEvent.InputTuple,
+      SocialAccountLinkedEvent.OutputTuple,
+      SocialAccountLinkedEvent.OutputObject
     >;
 
-    "SubmissionCreated(uint256,uint256,address,string,bool)": TypedContractEvent<
+    "SubmissionCreated(uint256,uint256,address,string,string,uint256)": TypedContractEvent<
       SubmissionCreatedEvent.InputTuple,
       SubmissionCreatedEvent.OutputTuple,
       SubmissionCreatedEvent.OutputObject
@@ -1274,15 +1051,15 @@ export interface Quinty extends BaseContract {
       SubmissionCreatedEvent.OutputObject
     >;
 
-    "WinnersSelected(uint256,address[],uint256[])": TypedContractEvent<
-      WinnersSelectedEvent.InputTuple,
-      WinnersSelectedEvent.OutputTuple,
-      WinnersSelectedEvent.OutputObject
+    "WinnerSelected(uint256,address,uint256,uint256)": TypedContractEvent<
+      WinnerSelectedEvent.InputTuple,
+      WinnerSelectedEvent.OutputTuple,
+      WinnerSelectedEvent.OutputObject
     >;
-    WinnersSelected: TypedContractEvent<
-      WinnersSelectedEvent.InputTuple,
-      WinnersSelectedEvent.OutputTuple,
-      WinnersSelectedEvent.OutputObject
+    WinnerSelected: TypedContractEvent<
+      WinnerSelectedEvent.InputTuple,
+      WinnerSelectedEvent.OutputTuple,
+      WinnerSelectedEvent.OutputObject
     >;
   };
 }

@@ -3,14 +3,10 @@ import path from 'path';
 
 const contracts = [
   'Quinty',
+  'Quest',
   'QuintyReputation',
-  'DisputeResolver',
   'QuintyNFT',
-  'AirdropBounty',
-  'SocialVerification',
-  'GrantProgram',
-  'LookingForGrant',
-  'Crowdfunding'
+  'AirdropBounty', // Legacy, keep for backward compatibility
 ];
 
 const exportDir = path.join(__dirname, '../exported-abis');
@@ -60,73 +56,48 @@ console.log('\n✅ all-abis.json (combined) exported');
 const tsDefinitions = `
 // Auto-generated TypeScript definitions for Quinty V2 contracts
 // Generated: ${new Date().toISOString()}
+// incuBase Milestone - Phases, 1% Deposit, Slash Mechanism
 
 export interface ContractAddresses {
   Quinty: string;
+  Quest: string;
   QuintyReputation: string;
-  DisputeResolver: string;
   QuintyNFT: string;
-  AirdropBounty: string;
-  SocialVerification: string;
-  GrantProgram: string;
-  LookingForGrant: string;
-  Crowdfunding: string;
+  AirdropBounty: string; // Legacy
 }
 
+// Deployed addresses on Base Sepolia (2026-02-06)
 export const BASE_SEPOLIA_ADDRESSES: ContractAddresses = {
-  Quinty: "0x7169c907F80f95b20232F5B979B1Aac392bD282a",
-  QuintyReputation: "0x2dc731f796Df125B282484E844485814B2DCd363",
-  DisputeResolver: "0xF04b0Ec52bFe602D0D38bEA4f613ABb7cFA79FB5",
-  QuintyNFT: "0x80edb4Aeb39913FaFfDAC2a86F3184508B57AAe2",
-  AirdropBounty: "0x79dAe15C3612854F6bd025f7CDc6D4CDEE289049",
-  SocialVerification: "0xe3cd834a963B3A6A550aed05ece2535B02C83E3a",
-  GrantProgram: "0xf70fBEba52Cc2A6F1e511179A10BdB4B820c7879",
-  LookingForGrant: "0x423fb3E158B8bA79Fabbd387dAEb844DC0709BeF",
-  Crowdfunding: "0x64aC0a7A52f3E0a414D8344f6A4620b51dFfB6C2"
+  Quinty: "0xdB6511DC9869a10Ed00C3706Ff9332820db87463",
+  Quest: "0xFeFAB11BA3Bc2d74B8B4804044f39A12E55BE4ae",
+  QuintyReputation: "0xE84dA988177707e9e8371894C082049D2C4F5e5e",
+  QuintyNFT: "0xDe5eB0e3232B40ED445E94f33708dc7E425E84F8",
+  AirdropBounty: "0xFeFAB11BA3Bc2d74B8B4804044f39A12E55BE4ae", // Legacy alias
 };
 
 export const BASE_SEPOLIA_CHAIN_ID = 84532;
 export const BASE_SEPOLIA_RPC = "https://sepolia.base.org";
 export const BASE_SEPOLIA_EXPLORER = "https://sepolia-explorer.base.org";
 
+// Bounty Status Enum (incuBase milestone - phase-based)
 export enum BountyStatus {
-  OPREC = 0,
-  OPEN = 1,
-  PENDING_REVEAL = 2,
-  RESOLVED = 3,
-  DISPUTED = 4,
-  EXPIRED = 5
+  OPEN = 0,      // Accepting submissions (before openDeadline)
+  JUDGING = 1,   // Creator judging (before judgingDeadline)
+  RESOLVED = 2,  // Winner selected and paid
+  SLASHED = 3    // Creator slashed for not selecting winner
+}
+
+// Quest Entry Verification Status
+export enum VerificationStatus {
+  Pending = 0,
+  Approved = 1,
+  Rejected = 2
 }
 
 export enum BadgeType {
   BountyCreator = 0,
   BountySolver = 1,
-  TeamMember = 2,
-  GrantGiver = 3,
-  GrantRecipient = 4,
-  CrowdfundingDonor = 5,
-  LookingForGrantSupporter = 6
-}
-
-export enum GrantStatus {
-  Open = 0,
-  SelectionPhase = 1,
-  Active = 2,
-  Completed = 3,
-  Cancelled = 4
-}
-
-export enum CampaignStatus {
-  Active = 0,
-  Successful = 1,
-  Failed = 2,
-  Completed = 3
-}
-
-export enum RequestStatus {
-  Active = 0,
-  Funded = 1,
-  Cancelled = 2
+  TeamMember = 2
 }
 `;
 

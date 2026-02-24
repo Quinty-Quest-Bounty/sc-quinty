@@ -43,41 +43,23 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "creator",
+        "name": "solver",
         "type": "address"
       },
       {
         "indexed": false,
         "internalType": "string",
-        "name": "title",
+        "name": "ipfsProofCid",
         "type": "string"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "openDeadline",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "judgingDeadline",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "slashPercent",
-        "type": "uint256"
+        "internalType": "string",
+        "name": "socialHandle",
+        "type": "string"
       }
     ],
-    "name": "BountyCreated",
+    "name": "EntrySubmitted",
     "type": "event"
   },
   {
@@ -86,55 +68,29 @@
       {
         "indexed": true,
         "internalType": "uint256",
-        "name": "bountyId",
+        "name": "questId",
         "type": "uint256"
-      }
-    ],
-    "name": "BountyMovedToJudging",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
+      },
       {
         "indexed": true,
         "internalType": "uint256",
-        "name": "bountyId",
+        "name": "entryId",
         "type": "uint256"
       },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "slashAmount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "refundToCreator",
-        "type": "uint256"
-      }
-    ],
-    "name": "BountySlashed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "verifier",
+        "type": "address"
       },
       {
         "indexed": false,
-        "internalType": "uint256",
-        "name": "totalRefunded",
-        "type": "uint256"
+        "internalType": "enum Quest.VerificationStatus",
+        "name": "status",
+        "type": "uint8"
       }
     ],
-    "name": "DepositsRefunded",
+    "name": "EntryVerified",
     "type": "event"
   },
   {
@@ -154,6 +110,93 @@
       }
     ],
     "name": "OwnershipTransferred",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "refundAmount",
+        "type": "uint256"
+      }
+    ],
+    "name": "QuestCancelled",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "perQualifier",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "maxQualifiers",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      }
+    ],
+    "name": "QuestCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "id",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "address[]",
+        "name": "qualifiers",
+        "type": "address[]"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "totalDistributed",
+        "type": "uint256"
+      }
+    ],
+    "name": "QuestFinalized",
     "type": "event"
   },
   {
@@ -182,172 +225,16 @@
     "type": "event"
   },
   {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "submissionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "submitter",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "ipfsCid",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "socialHandle",
-        "type": "string"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "deposit",
-        "type": "uint256"
-      }
-    ],
-    "name": "SubmissionCreated",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "winner",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "submissionId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "reward",
-        "type": "uint256"
-      }
-    ],
-    "name": "WinnerSelected",
-    "type": "event"
-  },
-  {
-    "inputs": [],
-    "name": "DEPOSIT_PERCENT",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "_id",
         "type": "uint256"
       }
     ],
-    "name": "bounties",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "creator",
-        "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "title",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "description",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "openDeadline",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "judgingDeadline",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "slashPercent",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum Quinty.BountyStatus",
-        "name": "status",
-        "type": "uint8"
-      },
-      {
-        "internalType": "address",
-        "name": "selectedWinner",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "selectedSubmissionId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "totalDeposits",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "bountyCounter",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
+    "name": "cancelQuest",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -364,21 +251,26 @@
       },
       {
         "internalType": "uint256",
-        "name": "_openDeadline",
+        "name": "_perQualifier",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "_judgingDeadline",
+        "name": "_maxQualifiers",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "_slashPercent",
+        "name": "_deadline",
         "type": "uint256"
+      },
+      {
+        "internalType": "string",
+        "name": "_requirements",
+        "type": "string"
       }
     ],
-    "name": "createBounty",
+    "name": "createQuest",
     "outputs": [],
     "stateMutability": "payable",
     "type": "function"
@@ -387,43 +279,46 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_bountyId",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
-    "name": "getAllSubmissions",
+    "name": "entries",
     "outputs": [
       {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "submitter",
-            "type": "address"
-          },
-          {
-            "internalType": "string",
-            "name": "ipfsCid",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "socialHandle",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "deposit",
-            "type": "uint256"
-          },
-          {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
-          }
-        ],
-        "internalType": "struct Quinty.Submission[]",
-        "name": "",
-        "type": "tuple[]"
+        "internalType": "address",
+        "name": "solver",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "ipfsProofCid",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "socialHandle",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum Quest.VerificationStatus",
+        "name": "status",
+        "type": "uint8"
+      },
+      {
+        "internalType": "string",
+        "name": "feedback",
+        "type": "string"
       }
     ],
     "stateMutability": "view",
@@ -433,11 +328,92 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_bountyId",
+        "name": "_id",
         "type": "uint256"
       }
     ],
-    "name": "getBounty",
+    "name": "finalizeQuest",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_questId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_entryId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getEntry",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "solver",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "ipfsProofCid",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "socialHandle",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "timestamp",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum Quest.VerificationStatus",
+        "name": "status",
+        "type": "uint8"
+      },
+      {
+        "internalType": "string",
+        "name": "feedback",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_questId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getEntryCount",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_id",
+        "type": "uint256"
+      }
+    ],
+    "name": "getQuest",
     "outputs": [
       {
         "internalType": "address",
@@ -456,66 +432,47 @@
       },
       {
         "internalType": "uint256",
-        "name": "amount",
+        "name": "totalAmount",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "openDeadline",
+        "name": "perQualifier",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "judgingDeadline",
+        "name": "maxQualifiers",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "slashPercent",
-        "type": "uint256"
-      },
-      {
-        "internalType": "enum Quinty.BountyStatus",
-        "name": "status",
-        "type": "uint8"
-      },
-      {
-        "internalType": "address",
-        "name": "selectedWinner",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "selectedSubmissionId",
+        "name": "qualifiersCount",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "submissionCount",
+        "name": "deadline",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "totalDeposits",
+        "name": "createdAt",
         "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
+      },
       {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getCurrentPhase",
-    "outputs": [
+        "internalType": "bool",
+        "name": "resolved",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "cancelled",
+        "type": "bool"
+      },
       {
         "internalType": "string",
-        "name": "",
+        "name": "requirements",
         "type": "string"
       }
     ],
@@ -526,15 +483,35 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_bountyId",
+        "name": "_questId",
         "type": "uint256"
       }
     ],
-    "name": "getRequiredDeposit",
+    "name": "getQuestStats",
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "totalEntries",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "pendingEntries",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "approvedEntries",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "rejectedEntries",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "remainingSlots",
         "type": "uint256"
       }
     ],
@@ -579,60 +556,31 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_bountyId",
+        "name": "_questId",
         "type": "uint256"
       },
-      {
-        "internalType": "uint256",
-        "name": "_subId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getSubmission",
-    "outputs": [
       {
         "internalType": "address",
-        "name": "submitter",
+        "name": "_user",
         "type": "address"
-      },
-      {
-        "internalType": "string",
-        "name": "ipfsCid",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "socialHandle",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "deposit",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "timestamp",
-        "type": "uint256"
       }
     ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getSubmissionCount",
+    "name": "getUserSubmission",
     "outputs": [
       {
+        "internalType": "bool",
+        "name": "hasSubmittedEntry",
+        "type": "bool"
+      },
+      {
         "internalType": "uint256",
-        "name": "",
+        "name": "submissionIndex",
         "type": "uint256"
+      },
+      {
+        "internalType": "enum Quest.VerificationStatus",
+        "name": "status",
+        "type": "uint8"
       }
     ],
     "stateMutability": "view",
@@ -665,30 +613,6 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_user",
-        "type": "address"
-      }
-    ],
-    "name": "hasUserSubmitted",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
         "internalType": "string",
         "name": "_xHandle",
         "type": "string"
@@ -700,19 +624,6 @@
       }
     ],
     "name": "linkSocialAccount",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      }
-    ],
-    "name": "moveToJudging",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -731,33 +642,13 @@
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      }
-    ],
-    "name": "refundNoSubmissions",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
     "inputs": [],
-    "name": "renounceOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "reputationAddress",
+    "name": "questCounter",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "uint256",
         "name": "",
-        "type": "address"
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -767,29 +658,79 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_bountyId",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "name": "quests",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "creator",
+        "type": "address"
+      },
+      {
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "internalType": "uint256",
+        "name": "totalAmount",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "_submissionId",
+        "name": "perQualifier",
         "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "maxQualifiers",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "qualifiersCount",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "deadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "createdAt",
+        "type": "uint256"
+      },
+      {
+        "internalType": "bool",
+        "name": "resolved",
+        "type": "bool"
+      },
+      {
+        "internalType": "bool",
+        "name": "cancelled",
+        "type": "bool"
+      },
+      {
+        "internalType": "string",
+        "name": "requirements",
+        "type": "string"
       }
     ],
-    "name": "selectWinner",
-    "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "view",
     "type": "function"
   },
   {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_repAddress",
-        "type": "address"
-      }
-    ],
-    "name": "setReputationAddress",
+    "inputs": [],
+    "name": "renounceOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -832,12 +773,12 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_bountyId",
+        "name": "_id",
         "type": "uint256"
       },
       {
         "internalType": "string",
-        "name": "_ipfsCid",
+        "name": "_ipfsProofCid",
         "type": "string"
       },
       {
@@ -846,9 +787,9 @@
         "type": "string"
       }
     ],
-    "name": "submitToBounty",
+    "name": "submitEntry",
     "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -868,11 +809,78 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_bountyId",
+        "name": "",
+        "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "userSubmissionIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
         "type": "uint256"
       }
     ],
-    "name": "triggerSlash",
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_questId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_entryId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "enum Quest.VerificationStatus",
+        "name": "_status",
+        "type": "uint8"
+      },
+      {
+        "internalType": "string",
+        "name": "_feedback",
+        "type": "string"
+      }
+    ],
+    "name": "verifyEntry",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_questId",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256[]",
+        "name": "_entryIds",
+        "type": "uint256[]"
+      },
+      {
+        "internalType": "enum Quest.VerificationStatus[]",
+        "name": "_statuses",
+        "type": "uint8[]"
+      },
+      {
+        "internalType": "string[]",
+        "name": "_feedbacks",
+        "type": "string[]"
+      }
+    ],
+    "name": "verifyMultipleEntries",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

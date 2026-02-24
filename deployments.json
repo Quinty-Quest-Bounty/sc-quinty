@@ -1,11 +1,11 @@
 {
   "chainId": 84532,
   "network": "Base Sepolia",
-  "timestamp": "2026-01-24T02:27:10.500Z",
+  "timestamp": "2026-02-09T19:43:43.384Z",
   "contracts": {
-    "Quinty": "0x1c52AAc4f772E2eAbcAb6A0aC7a218d3d5661d85",
-    "QuintyReputation": "0xeA6C17Bafa574f33f2ceCfD64E553A17444e5E94",
-    "QuintyNFT": "0x5f821a06cB7BBBbD3F470ebB6Cb1e43E84853B05",
-    "AirdropBounty": "0x920c7eCC8A9AC48B0aEb5Ea91768964208b82938"
+    "Quinty": "0x034cf0b72BcB1b529a2B0458275E0307CD6b5459",
+    "Quest": "0x86cc170e725784812A31F548c434e425bc0181B1",
+    "QuintyReputation": "0x3Fc6d21B3AC4E419a2bEe6BeB40E00FfF2bF1014",
+    "QuintyNFT": "0x6fcd78D8BB923E20B3C657C65f64A20a4a6b9884"
   }
 }

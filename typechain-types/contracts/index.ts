@@ -4,5 +4,6 @@
 import type * as quintySol from "./Quinty.sol";
 export type { quintySol };
 export type { AirdropBounty } from "./AirdropBounty";
+export type { Quest } from "./Quest";
 export type { QuintyNFT } from "./QuintyNFT";
 export type { QuintyReputation } from "./QuintyReputation";
