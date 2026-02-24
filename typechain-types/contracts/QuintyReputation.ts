@@ -53,6 +53,8 @@ export interface QuintyReputationInterface extends Interface {
       | "MONTH_DURATION"
       | "achievementTokenIds"
       | "approve"
+      | "authorizeCaller"
+      | "authorizedCallers"
       | "balanceOf"
       | "creatorMilestones"
       | "currentSeasonId"
@@ -69,6 +71,7 @@ export interface QuintyReputationInterface extends Interface {
       | "recordSubmission"
       | "recordWin"
       | "renounceOwnership"
+      | "revokeCaller"
       | "safeTransferFrom(address,address,uint256)"
       | "safeTransferFrom(address,address,uint256,bytes)"
       | "seasonStats"
@@ -91,6 +94,8 @@ export interface QuintyReputationInterface extends Interface {
       | "Approval"
       | "ApprovalForAll"
       | "BatchMetadataUpdate"
+      | "CallerAuthorized"
+      | "CallerRevoked"
       | "MetadataUpdate"
       | "OwnershipTransferred"
       | "SeasonEnded"
@@ -109,6 +114,14 @@ export interface QuintyReputationInterface extends Interface {
   encodeFunctionData(
     functionFragment: "approve",
     values: [AddressLike, BigNumberish]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "authorizeCaller",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "authorizedCallers",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "balanceOf",
@@ -167,6 +180,10 @@ export interface QuintyReputationInterface extends Interface {
   encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "revokeCaller",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "safeTransferFrom(address,address,uint256)",
@@ -231,6 +248,14 @@ export interface QuintyReputationInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "authorizeCaller",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "authorizedCallers",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "creatorMilestones",
@@ -278,6 +303,10 @@ export interface QuintyReputationInterface extends Interface {
   decodeFunctionResult(functionFragment: "recordWin", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "revokeCaller",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -397,6 +426,30 @@ export namespace BatchMetadataUpdateEvent {
   export interface OutputObject {
     _fromTokenId: bigint;
     _toTokenId: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace CallerAuthorizedEvent {
+  export type InputTuple = [caller: AddressLike];
+  export type OutputTuple = [caller: string];
+  export interface OutputObject {
+    caller: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace CallerRevokedEvent {
+  export type InputTuple = [caller: AddressLike];
+  export type OutputTuple = [caller: string];
+  export interface OutputObject {
+    caller: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -539,6 +592,18 @@ export interface QuintyReputation extends BaseContract {
     "nonpayable"
   >;
 
+  authorizeCaller: TypedContractMethod<
+    [_caller: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  authorizedCallers: TypedContractMethod<
+    [arg0: AddressLike],
+    [boolean],
+    "view"
+  >;
+
   balanceOf: TypedContractMethod<[owner: AddressLike], [bigint], "view">;
 
   creatorMilestones: TypedContractMethod<
@@ -610,6 +675,12 @@ export interface QuintyReputation extends BaseContract {
   recordWin: TypedContractMethod<[_user: AddressLike], [void], "nonpayable">;
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
+
+  revokeCaller: TypedContractMethod<
+    [_caller: AddressLike],
+    [void],
+    "nonpayable"
+  >;
 
   "safeTransferFrom(address,address,uint256)": TypedContractMethod<
     [from: AddressLike, to: AddressLike, tokenId: BigNumberish],
@@ -731,6 +802,12 @@ export interface QuintyReputation extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "authorizeCaller"
+  ): TypedContractMethod<[_caller: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "authorizedCallers"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
+  getFunction(
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<[owner: AddressLike], [bigint], "view">;
   getFunction(
@@ -806,6 +883,9 @@ export interface QuintyReputation extends BaseContract {
   getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "revokeCaller"
+  ): TypedContractMethod<[_caller: AddressLike], [void], "nonpayable">;
   getFunction(
     nameOrSignature: "safeTransferFrom(address,address,uint256)"
   ): TypedContractMethod<
@@ -936,6 +1016,20 @@ export interface QuintyReputation extends BaseContract {
     BatchMetadataUpdateEvent.OutputObject
   >;
   getEvent(
+    key: "CallerAuthorized"
+  ): TypedContractEvent<
+    CallerAuthorizedEvent.InputTuple,
+    CallerAuthorizedEvent.OutputTuple,
+    CallerAuthorizedEvent.OutputObject
+  >;
+  getEvent(
+    key: "CallerRevoked"
+  ): TypedContractEvent<
+    CallerRevokedEvent.InputTuple,
+    CallerRevokedEvent.OutputTuple,
+    CallerRevokedEvent.OutputObject
+  >;
+  getEvent(
     key: "MetadataUpdate"
   ): TypedContractEvent<
     MetadataUpdateEvent.InputTuple,
@@ -1014,6 +1108,28 @@ export interface QuintyReputation extends BaseContract {
       BatchMetadataUpdateEvent.InputTuple,
       BatchMetadataUpdateEvent.OutputTuple,
       BatchMetadataUpdateEvent.OutputObject
+    >;
+
+    "CallerAuthorized(address)": TypedContractEvent<
+      CallerAuthorizedEvent.InputTuple,
+      CallerAuthorizedEvent.OutputTuple,
+      CallerAuthorizedEvent.OutputObject
+    >;
+    CallerAuthorized: TypedContractEvent<
+      CallerAuthorizedEvent.InputTuple,
+      CallerAuthorizedEvent.OutputTuple,
+      CallerAuthorizedEvent.OutputObject
+    >;
+
+    "CallerRevoked(address)": TypedContractEvent<
+      CallerRevokedEvent.InputTuple,
+      CallerRevokedEvent.OutputTuple,
+      CallerRevokedEvent.OutputObject
+    >;
+    CallerRevoked: TypedContractEvent<
+      CallerRevokedEvent.InputTuple,
+      CallerRevokedEvent.OutputTuple,
+      CallerRevokedEvent.OutputObject
     >;
 
     "MetadataUpdate(uint256)": TypedContractEvent<
