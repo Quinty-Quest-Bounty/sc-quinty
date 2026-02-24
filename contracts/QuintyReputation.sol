@@ -326,35 +326,102 @@ contract QuintyReputation is ERC721URIStorage, Ownable {
         ));
     }
 
-    function _getCustomImageCID(AchievementType _achievement) internal pure returns (string memory) {
-        if (_achievement == AchievementType.FIRST_SOLVER)
-            return "bafybeidke5yz36dg2rxilvutum5vgncvqyltf6cu762etepaihsmw2iyg4";
-        if (_achievement == AchievementType.FIRST_WIN)
-            return "bafybeiahm5nfkbjljmhiel2sgbkjo2qglcsfzmnkxplzxtwhuc2nm2m7au";
-        if (_achievement == AchievementType.FIRST_CREATOR)
-            return "bafybeiagnlf5wyutxfto2ds6aflecsdgzk4eowz3qn32qlx3h6uuz3vxme";
-        if (_achievement == AchievementType.MONTHLY_CHAMPION)
-            return "bafybeifugvc5houty2heem7fvkwfsumms77los4rbxxis3yh32apqvpomu";
+    // All images are generated on-chain as SVGs (no IPFS dependency)
+    function _getCustomImageCID(AchievementType) internal pure returns (string memory) {
         return "";
     }
 
     function _generateSVGImage(AchievementType _achievement) internal pure returns (string memory) {
-        string memory emoji = _getAchievementEmoji(_achievement);
-        string memory color = _getAchievementColor(_achievement);
+        string memory letter = _getAchievementLetter(_achievement);
+        string memory color1 = _getGradientStart(_achievement);
+        string memory color2 = _getGradientEnd(_achievement);
+        string memory name = _getAchievementName(_achievement);
+        string memory rarity = _getAchievementRarity(_achievement);
 
-        string memory svg = string(abi.encodePacked(
+        // Build SVG in parts to avoid stack-too-deep
+        string memory svgPart1 = string(abi.encodePacked(
             '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">',
-            '<rect width="512" height="512" fill="', color, '" rx="50"/>',
-            '<text x="256" y="300" font-family="Arial" font-size="120" text-anchor="middle" fill="white">',
-            emoji,
+            '<defs><linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">',
+            '<stop offset="0%" style="stop-color:', color1, '"/>',
+            '<stop offset="100%" style="stop-color:', color2, '"/>',
+            '</linearGradient></defs>',
+            '<rect width="512" height="512" fill="url(#bg)" rx="40"/>'
+        ));
+
+        string memory svgPart2 = string(abi.encodePacked(
+            '<circle cx="256" cy="220" r="120" fill="rgba(255,255,255,0.15)"/>',
+            '<text x="256" y="260" font-family="Arial,sans-serif" font-size="100" font-weight="bold" text-anchor="middle" fill="white">',
+            letter,
             '</text>',
-            '</svg>'
+            '<text x="256" y="400" font-family="Arial,sans-serif" font-size="24" font-weight="bold" text-anchor="middle" fill="rgba(255,255,255,0.9)">',
+            name,
+            '</text>',
+            '<text x="256" y="440" font-family="Arial,sans-serif" font-size="16" text-anchor="middle" fill="rgba(255,255,255,0.6)">',
+            rarity,
+            '</text></svg>'
         ));
 
         return string(abi.encodePacked(
             "data:image/svg+xml;base64,",
-            Base64.encode(bytes(svg))
+            Base64.encode(bytes(string(abi.encodePacked(svgPart1, svgPart2))))
         ));
+    }
+
+    function _getAchievementLetter(AchievementType _achievement) internal pure returns (string memory) {
+        if (uint(_achievement) <= uint(AchievementType.LEGEND_SOLVER)) return "S";
+        if (uint(_achievement) <= uint(AchievementType.LEGEND_WINNER)) return "W";
+        if (uint(_achievement) <= uint(AchievementType.LEGEND_CREATOR)) return "C";
+        if (_achievement == AchievementType.MONTHLY_CHAMPION) return "MC";
+        return "MB";
+    }
+
+    // Gradient colors vary by category AND rarity
+    function _getGradientStart(AchievementType _achievement) internal pure returns (string memory) {
+        // Solver: Blue spectrum
+        if (_achievement == AchievementType.FIRST_SOLVER) return "#60A5FA";
+        if (_achievement == AchievementType.ACTIVE_SOLVER) return "#3B82F6";
+        if (_achievement == AchievementType.SKILLED_SOLVER) return "#2563EB";
+        if (_achievement == AchievementType.EXPERT_SOLVER) return "#1D4ED8";
+        if (_achievement == AchievementType.LEGEND_SOLVER) return "#1E40AF";
+        // Winner: Gold spectrum
+        if (_achievement == AchievementType.FIRST_WIN) return "#FBBF24";
+        if (_achievement == AchievementType.SKILLED_WINNER) return "#F59E0B";
+        if (_achievement == AchievementType.EXPERT_WINNER) return "#D97706";
+        if (_achievement == AchievementType.CHAMPION_WINNER) return "#B45309";
+        if (_achievement == AchievementType.LEGEND_WINNER) return "#92400E";
+        // Creator: Green spectrum
+        if (_achievement == AchievementType.FIRST_CREATOR) return "#34D399";
+        if (_achievement == AchievementType.ACTIVE_CREATOR) return "#10B981";
+        if (_achievement == AchievementType.SKILLED_CREATOR) return "#059669";
+        if (_achievement == AchievementType.EXPERT_CREATOR) return "#047857";
+        if (_achievement == AchievementType.LEGEND_CREATOR) return "#065F46";
+        // Season: Purple spectrum
+        if (_achievement == AchievementType.MONTHLY_CHAMPION) return "#A78BFA";
+        return "#7C3AED";
+    }
+
+    function _getGradientEnd(AchievementType _achievement) internal pure returns (string memory) {
+        // Solver: darker blue
+        if (_achievement == AchievementType.FIRST_SOLVER) return "#2563EB";
+        if (_achievement == AchievementType.ACTIVE_SOLVER) return "#1D4ED8";
+        if (_achievement == AchievementType.SKILLED_SOLVER) return "#1E40AF";
+        if (_achievement == AchievementType.EXPERT_SOLVER) return "#1E3A8A";
+        if (_achievement == AchievementType.LEGEND_SOLVER) return "#172554";
+        // Winner: darker gold
+        if (_achievement == AchievementType.FIRST_WIN) return "#D97706";
+        if (_achievement == AchievementType.SKILLED_WINNER) return "#B45309";
+        if (_achievement == AchievementType.EXPERT_WINNER) return "#92400E";
+        if (_achievement == AchievementType.CHAMPION_WINNER) return "#78350F";
+        if (_achievement == AchievementType.LEGEND_WINNER) return "#451A03";
+        // Creator: darker green
+        if (_achievement == AchievementType.FIRST_CREATOR) return "#059669";
+        if (_achievement == AchievementType.ACTIVE_CREATOR) return "#047857";
+        if (_achievement == AchievementType.SKILLED_CREATOR) return "#065F46";
+        if (_achievement == AchievementType.EXPERT_CREATOR) return "#064E3B";
+        if (_achievement == AchievementType.LEGEND_CREATOR) return "#022C22";
+        // Season: darker purple
+        if (_achievement == AchievementType.MONTHLY_CHAMPION) return "#6D28D9";
+        return "#4C1D95";
     }
 
     function _getAchievementName(AchievementType _achievement) internal pure returns (string memory) {
@@ -469,19 +536,6 @@ contract QuintyReputation is ERC721URIStorage, Ownable {
         return "Mythic";
     }
 
-    function _getAchievementEmoji(AchievementType _achievement) internal pure returns (string memory) {
-        if (uint(_achievement) <= uint(AchievementType.LEGEND_SOLVER)) return "S";
-        if (uint(_achievement) <= uint(AchievementType.LEGEND_WINNER)) return "W";
-        if (uint(_achievement) <= uint(AchievementType.LEGEND_CREATOR)) return "C";
-        return "K";
-    }
-
-    function _getAchievementColor(AchievementType _achievement) internal pure returns (string memory) {
-        if (uint(_achievement) <= uint(AchievementType.LEGEND_SOLVER)) return "#3B82F6";
-        if (uint(_achievement) <= uint(AchievementType.LEGEND_WINNER)) return "#F59E0B";
-        if (uint(_achievement) <= uint(AchievementType.LEGEND_CREATOR)) return "#10B981";
-        return "#8B5CF6";
-    }
 
 
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {

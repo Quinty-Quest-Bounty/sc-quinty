@@ -1,227 +1,282 @@
-# CLAUDE.md - incuBase Milestone
+# CLAUDE.md - Quinty Smart Contracts
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Quick Reference
 
-## Commands
+```bash
+npx hardhat compile          # Compile all contracts
+npx hardhat test             # Run all tests
+npx hardhat test test/Quinty.test.ts   # Run specific test
+npx hardhat run scripts/deploy.ts --network baseSepolia  # Deploy
+npx ts-node scripts/export-abis.ts     # Export ABIs to exported-abis/
+```
 
-### Smart Contract Development
+## Network: Base Sepolia (Chain ID: 84532)
 
-- **Compile**: `npx hardhat compile` - Compiles all contracts with IR optimization
-- **Test**: `npx hardhat test` - Runs comprehensive test suite (99 tests)
-- **Test specific file**: `npx hardhat test test/Quinty.test.ts`
-- **Deploy locally**: `npx hardhat run scripts/deploy.ts --network hardhat`
-- **Deploy to Base Sepolia**: `npx hardhat run scripts/deploy.ts --network baseSepolia`
-- **Export ABIs**: `npx ts-node scripts/export-abis.ts`
+RPC: `https://sepolia.base.org`
+Explorer: `https://sepolia-explorer.base.org`
 
-## Architecture Overview
+## Deployed Contracts (2026-02-09)
 
-Quinty is an on-chain task bounty system for Base network with three core smart contracts:
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| Quinty | `0x034cf0b72BcB1b529a2B0458275E0307CD6b5459` | Bounty system |
+| Quest | `0x86cc170e725784812A31F548c434e425bc0181B1` | Social quests |
+| QuintyReputation | `0x3Fc6d21B3AC4E419a2bEe6BeB40E00FfF2bF1014` | Soulbound achievement NFTs |
+| QuintyNFT | `0x6fcd78D8BB923E20B3C657C65f64A20a4a6b9884` | Badge NFTs |
 
-### Core Contract System
+## Tech Stack
 
-1. **Quinty.sol** - Main bounty contract with phases, 1% deposit, and slash mechanism
-2. **Quest.sol** - Social quests/promotion tasks with fixed ETH rewards
-3. **QuintyReputation.sol** - Soulbound ERC-721 NFT reputation system
+- Solidity 0.8.28, Hardhat, TypeScript
+- OpenZeppelin v5.4.0 (Ownable, ReentrancyGuard, ERC721URIStorage)
+- IR optimization enabled (viaIR: true, runs: 200)
 
 ---
 
-## Bounty System (Quinty.sol)
+## Contract 1: Quinty.sol (Bounty System)
 
-### Key Features
+Single-winner bounty system with 1% deposit, phase deadlines, and slash mechanism.
 
-- **1% Deposit**: Submitters pay 1% of bounty amount as deposit
-- **Slash Mechanism**: Creator gets slashed (25-50%) if they don't select winner on time
-- **Phase Deadlines**: Creator sets open deadline and judging deadline at creation
-- **Social Verification**: All participants' social accounts stored on-chain
-- **NO CANCELLATION**: Once created, bounty cannot be cancelled
+### Status Enum
+
+```
+OPEN (0) -> JUDGING (1) -> RESOLVED (2) or SLASHED (3)
+```
 
 ### Bounty Flow
 
 ```
-1. CREATION
-   - Creator sets: title, description, escrow amount
-   - Creator sets: openDeadline (when submissions close)
-   - Creator sets: judgingDeadline (when must select winner)
-   - Creator sets: slashPercent (25-50%)
+1. Creator calls createBounty() with ETH escrow
+   - Sets: title, description, openDeadline, judgingDeadline, slashPercent (2500-5000 basis points)
 
-2. OPEN PHASE (until openDeadline)
-   - Submitters pay 1% deposit
-   - Submitters provide IPFS CID + social handle
-   - Social accounts stored on-chain
+2. OPEN PHASE (now -> openDeadline)
+   - Submitters call submitToBounty() paying 1% deposit of bounty amount
+   - Each submission has: ipfsCid, socialHandle
 
 3. JUDGING PHASE (openDeadline -> judgingDeadline)
-   - Creator reviews submissions
-   - Creator must select winner before judgingDeadline
+   - Anyone can call moveToJudging() after openDeadline
+   - Creator calls selectWinner(bountyId, submissionId)
+     -> Winner gets: escrow + their deposit
+     -> Non-winners get: their deposits refunded
 
-4. RESOLUTION
-   Option A: Winner Selected (before judgingDeadline)
-   - Winner receives: escrow + their deposit
-   - Non-winners receive: their deposits refunded
-   - Status: RESOLVED
+4. SLASH (if creator misses judgingDeadline)
+   - Anyone calls triggerSlash()
+   - slashAmount = escrow * slashPercent / 10000
+   - Each submitter gets: (slashAmount / submitterCount) + their deposit
+   - Creator gets: escrow - slashAmount
 
-   Option B: No Winner Selected (after judgingDeadline)
-   - Anyone can call triggerSlash()
-   - Slash amount (25-50%) distributed equally to all submitters
-   - Each submitter receives: (slashAmount / submitterCount) + their deposit
-   - Creator receives: remaining (50-75%) of escrow
-   - Status: SLASHED
-
-5. SPECIAL CASE: No Submissions
-   - If no submissions after openDeadline, creator can call refundNoSubmissions()
-   - Creator receives full escrow back (no slash)
-```
-
-### Bounty Status Enum
-
-```solidity
-enum BountyStatus { OPEN, JUDGING, RESOLVED, SLASHED }
+5. NO SUBMISSIONS
+   - Creator/owner calls refundNoSubmissions() after openDeadline
+   - Full escrow refunded to creator
 ```
 
 ### Key Functions
 
-| Function | Description |
-|----------|-------------|
-| `createBounty(title, desc, openDeadline, judgingDeadline, slashPercent)` | Create bounty with phase deadlines |
-| `submitToBounty(bountyId, ipfsCid, socialHandle)` | Submit work with 1% deposit |
-| `moveToJudging(bountyId)` | Manually move to judging (auto-triggered) |
-| `selectWinner(bountyId, submissionId)` | Select winner, pay escrow |
-| `triggerSlash(bountyId)` | Slash creator if deadline passed |
-| `refundNoSubmissions(bountyId)` | Refund if no submissions |
-| `linkSocialAccount(xHandle, email)` | Link social account to wallet |
+| Function | Access | Description |
+|----------|--------|-------------|
+| `createBounty(title, desc, openDeadline, judgingDeadline, slashPercent)` | Anyone (payable) | Create bounty with ETH escrow |
+| `submitToBounty(bountyId, ipfsCid, socialHandle)` | Anyone (payable, 1% deposit) | Submit work |
+| `selectWinner(bountyId, submissionId)` | Bounty creator | Pick winner, distribute funds |
+| `triggerSlash(bountyId)` | Anyone (after judgingDeadline) | Slash creator, pay submitters |
+| `refundNoSubmissions(bountyId)` | Creator or owner | Refund if zero submissions |
+| `moveToJudging(bountyId)` | Anyone (after openDeadline) | Transition to judging phase |
+| `linkSocialAccount(xHandle, email)` | Anyone | Store social account on-chain |
+| `setReputationAddress(addr)` | Owner only | Connect to QuintyReputation |
 
-### Social Account Storage
+### View Functions
 
-All users who interact with the contract have their social accounts stored on-chain:
+| Function | Returns |
+|----------|---------|
+| `getBounty(id)` | All bounty fields |
+| `getSubmission(bountyId, subId)` | Single submission data |
+| `getAllSubmissions(bountyId)` | Full submissions array |
+| `getSubmissionCount(bountyId)` | Number of submissions |
+| `hasUserSubmitted(bountyId, addr)` | Boolean |
+| `getRequiredDeposit(bountyId)` | 1% of bounty amount |
+| `getCurrentPhase(bountyId)` | "OPEN", "JUDGING", "SLASH_PENDING", "RESOLVED", "SLASHED" |
+
+### Events
 
 ```solidity
-struct SocialAccount {
-    string xHandle;      // X/Twitter handle
-    string email;        // Email (optional)
-    uint256 linkedAt;    // Timestamp
-    bool verified;       // Verification status
-}
+BountyCreated(id, creator, title, amount, openDeadline, judgingDeadline, slashPercent)
+SubmissionCreated(bountyId, submissionId, submitter, ipfsCid, socialHandle, deposit)
+BountyMovedToJudging(bountyId)
+WinnerSelected(bountyId, winner, submissionId, reward)
+BountySlashed(bountyId, slashAmount, refundToCreator)
+DepositsRefunded(bountyId, totalRefunded)
+SocialAccountLinked(wallet, xHandle, email)
 ```
 
 ---
 
-## Quest System (Quest.sol)
+## Contract 2: Quest.sol (Social Quests)
+
+Fixed-reward quest system for social/promotion tasks. Multiple qualifiers, no deposit required.
 
 ### Quest Flow
 
 ```
-1. Creator creates quest with escrow (perQualifier * maxQualifiers)
-2. Users submit entries with IPFS proof and social handle
-3. Creator approves entries -> immediate payout
-4. Quest finalizes when max qualifiers reached or deadline passes
+1. Creator calls createQuest() with ETH escrow = perQualifier * maxQualifiers
+   - Sets: title, description, requirements, perQualifier, maxQualifiers, deadline
+
+2. ACTIVE PHASE
+   - Users call submitEntry(questId, ipfsCid, socialHandle) -- no deposit
+   - Max submissions capped at maxQualifiers * 3
+
+3. VERIFICATION
+   - Creator calls verifyEntry(questId, entryId, status, feedback)
+   - On Approved: solver immediately receives perQualifier ETH
+   - On max qualifiers reached: quest auto-finalizes
+
+4. FINALIZATION
+   - Creator, owner, or anyone (after deadline) calls finalizeQuest()
+   - Unused escrow refunded to creator
+
+5. CANCELLATION
+   - Creator calls cancelQuest() -- only if no entries approved yet
+   - Full escrow refunded
 ```
 
-### Key Differences from Bounty
+### Key Functions
 
-| Feature | Bounty | Quest |
-|---------|--------|-------|
-| Winners | Single winner | Multiple qualifiers |
-| Deposit | 1% required | No deposit |
-| Phases | OPEN -> JUDGING -> RESOLVED | Single active phase |
-| Slash | Yes, if no winner selected | No slash |
-| Cancellation | Not allowed | Allowed (if no approvals) |
+| Function | Access | Description |
+|----------|--------|-------------|
+| `createQuest(title, desc, requirements, perQualifier, maxQualifiers, deadline)` | Anyone (payable) | Create quest |
+| `submitEntry(questId, ipfsCid, socialHandle)` | Anyone | Submit proof |
+| `verifyEntry(questId, entryId, status, feedback)` | Quest creator | Approve/reject, pays on approve |
+| `verifyMultipleEntries(questId, entryIds[], statuses[], feedbacks[])` | Quest creator | Batch verify (max 50) |
+| `finalizeQuest(questId)` | Creator/owner/anyone after deadline | End quest, refund unused |
+| `cancelQuest(questId)` | Quest creator (no approvals yet) | Cancel and refund |
+
+### View Functions
+
+| Function | Returns |
+|----------|---------|
+| `getQuest(id)` | All quest fields |
+| `getEntry(questId, entryId)` | Single entry data |
+| `getEntryCount(questId)` | Number of entries |
+| `getUserSubmission(questId, addr)` | User's entry data |
+| `getQuestStats(questId)` | Pending/approved/rejected counts |
+
+### Events
+
+```solidity
+QuestCreated(id, creator, title, totalAmount, perQualifier, maxQualifiers, deadline)
+EntrySubmitted(questId, entryId, solver, ipfsProofCid, socialHandle)
+EntryVerified(questId, entryId, solver, status, feedback, reward)
+QuestFinalized(questId, qualifiersCount, unusedRefund)
+QuestCancelled(questId, refundAmount)
+SocialAccountLinked(wallet, xHandle, email)
+```
 
 ---
 
-## Reputation System (QuintyReputation.sol)
+## Contract 3: QuintyReputation.sol (Soulbound Achievement NFTs)
 
-Tracks user activity and mints achievement NFTs:
+ERC-721 soulbound token (non-transferable). Tracks user statistics and mints achievement badges at milestones.
 
-- **Submissions**: 1, 10, 25, 50, 100 milestones
-- **Wins**: 1, 10, 25, 50, 100 milestones  
-- **Bounties Created**: 1, 10, 25, 50, 100 milestones
-- **Monthly Champions**: Top solver and creator each month
+**Owner:** Quinty contract (ownership transferred during deploy). Only Quinty can call record functions.
+
+### Record Functions (called by Quinty contract)
+
+| Function | Effect |
+|----------|--------|
+| `recordSubmission(addr)` | +1 submission count, check solver milestones |
+| `recordWin(addr)` | +1 win count, check winner milestones, update leaderboard |
+| `recordBountyCreation(addr)` | +1 bounty created count, check creator milestones, update leaderboard |
+
+### Achievement Milestones
+
+| Category | Milestones (submissions/wins/bounties) |
+|----------|---------------------------------------|
+| Solver | 1, 10, 25, 50, 100 |
+| Winner | 1, 10, 25, 50, 100 |
+| Creator | 1, 10, 25, 50, 100 |
+| Season | Monthly Champion (top solver), Monthly Builder (top creator) |
+
+### Key Detail
+
+- Tokens are **soulbound** -- transfer reverts, only minting allowed
+- Metadata is generated fully on-chain (base64 JSON with SVG or IPFS image)
+- Seasons rotate every 30 days
 
 ---
 
-## Network Configuration
+## Contract 4: QuintyNFT.sol (Badge NFTs)
 
-### Base Sepolia (Testnet)
-- Chain ID: 84532
-- RPC: https://sepolia.base.org
-- Explorer: https://sepolia-explorer.base.org
+Simpler soulbound badge system with 3 types: BountyCreator, BountySolver, TeamMember.
 
-### Base Mainnet
-- Chain ID: 8453
-- RPC: https://mainnet.base.org
-- Explorer: https://base.blockscout.com/
+- Owner can authorize minter addresses (`authorizeMinter`)
+- Supports batch minting (up to 100 recipients)
+- Each badge has custom metadataURI
+- Soulbound: `approve()` and `setApprovalForAll()` both revert
 
 ---
 
-## Testing
-
-### Test Results
+## Contract Relationships
 
 ```
-99 passing tests:
-- 20 Quinty tests (phases, deposit, slash)
-- 24 Quest tests (creation, verification)
-- 26 AirdropBounty tests (legacy)
-- 29 QuintyNFT tests (soulbound, badges)
+Quinty.sol --[calls]--> QuintyReputation.sol (recordSubmission, recordWin, recordBountyCreation)
+Quinty.sol --[authorized minter]--> QuintyNFT.sol (but NOT currently used in code)
+Quest.sol  -- standalone, no cross-contract calls
 ```
 
-### Key Test Scenarios
+Deploy order: QuintyReputation -> Quinty -> Quest -> QuintyNFT
+Post-deploy: quinty.setReputationAddress(), reputation.transferOwnership(quinty), nft.authorizeMinter(quinty)
 
-1. **Bounty with Winner Selection**
-   - Create bounty with deadlines
-   - Submit with 1% deposit
-   - Wait for judging phase
-   - Select winner
-   - Verify payouts
+---
 
-2. **Bounty with Slash**
-   - Create bounty
-   - Submit entries
-   - Let judging deadline pass
-   - Call triggerSlash
-   - Verify slash distribution
+## Payment Flow (ETH Only)
 
-3. **Social Account Storage**
-   - Link social account
-   - Verify on-chain storage
-   - Auto-link during submission
+All payments use native ETH via `msg.value` and `.call{value: amount}("")`.
+
+- **Bounty escrow:** `msg.value` on `createBounty()`
+- **Submission deposit:** `msg.value` on `submitToBounty()` (exactly 1% of bounty amount)
+- **Winner payout:** Push payment in `selectWinner()`
+- **Slash payout:** Push payment loop in `triggerSlash()`
+- **Quest escrow:** `msg.value` on `createQuest()` (must equal perQualifier * maxQualifiers)
+- **Quest reward:** Push payment on `verifyEntry()` approval
 
 ---
 
 ## Frontend Integration
 
-### Updated Contract Interfaces
+### Required Files
 
-**Bounty Creation:**
+ABIs are exported to `exported-abis/`:
+- `Quinty.json` -- Bounty contract ABI
+- `Quest.json` -- Quest contract ABI
+- `all-abis.json` -- All ABIs in one file
+- `constants.ts` -- Contract addresses and TypeScript types
+
+### Integration Pattern (ethers.js / viem)
+
 ```typescript
-createBounty(
-  title: string,
-  description: string,
-  openDeadline: bigint,      // When submissions close
-  judgingDeadline: bigint,   // When must select winner
-  slashPercent: bigint       // 2500-5000 (25%-50%)
-)
-```
+// Read contract addresses from constants.ts or deployments.json
+const QUINTY_ADDRESS = "0x034cf0b72BcB1b529a2B0458275E0307CD6b5459";
+const QUEST_ADDRESS = "0x86cc170e725784812A31F548c434e425bc0181B1";
 
-**Submit to Bounty:**
-```typescript
-submitToBounty(
-  bountyId: bigint,
-  ipfsCid: string,
-  socialHandle: string,
-  { value: depositAmount }   // 1% of bounty amount
-)
-```
+// Create bounty
+await quintyContract.createBounty(title, desc, openDeadline, judgingDeadline, slashPercent, {
+  value: escrowAmount
+});
 
-**Get Required Deposit:**
-```typescript
-getRequiredDeposit(bountyId) // Returns 1% of bounty amount
-```
+// Submit to bounty (1% deposit)
+const deposit = await quintyContract.getRequiredDeposit(bountyId);
+await quintyContract.submitToBounty(bountyId, ipfsCid, socialHandle, { value: deposit });
 
-### ABI Export
+// Select winner
+await quintyContract.selectWinner(bountyId, submissionId);
 
-```bash
-npx ts-node scripts/export-abis.ts
-cp exported-abis/*.json ../fe-quinty/contracts/
+// Create quest
+await questContract.createQuest(title, desc, requirements, perQualifier, maxQualifiers, deadline, {
+  value: perQualifier * maxQualifiers
+});
+
+// Submit quest entry (no deposit)
+await questContract.submitEntry(questId, ipfsCid, socialHandle);
+
+// Verify quest entry
+await questContract.verifyEntry(questId, entryId, 1, "Approved!"); // 1 = Approved
 ```
 
 ---
@@ -231,17 +286,17 @@ cp exported-abis/*.json ../fe-quinty/contracts/
 ```env
 BASE_SEPOLIA_RPC=https://sepolia.base.org
 BASE_MAINNET_RPC=https://mainnet.base.org
-PRIVATE_KEY=your_deployer_private_key
+PRIVATE_KEY=your_deployer_private_key_without_0x
 ```
 
 ---
 
-## Deployment Checklist
+## Known Limitations (Current Version)
 
-1. [ ] Compile contracts: `npx hardhat compile`
-2. [ ] Run tests: `npx hardhat test`
-3. [ ] Deploy: `npx hardhat run scripts/deploy.ts --network baseSepolia`
-4. [ ] Export ABIs: `npx ts-node scripts/export-abis.ts`
-5. [ ] Update frontend contract addresses
-6. [ ] Set reputation address: `quinty.setReputationAddress(...)`
-7. [ ] Transfer reputation ownership to Quinty contract
+1. **ETH only** -- No ERC-20 token support
+2. **Single winner** per bounty
+3. **No pause mechanism** -- No emergency stop
+4. **Push payments** -- Funds can get stuck if recipient is a reverting contract
+5. **Quest has no reputation integration** -- Only Quinty calls QuintyReputation
+6. **Duplicated SocialAccount** storage in both Quinty.sol and Quest.sol
+7. **`receive()` on non-escrow contracts** traps accidentally sent ETH
