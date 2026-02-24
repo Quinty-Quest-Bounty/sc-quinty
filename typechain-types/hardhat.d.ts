@@ -74,10 +74,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Strings__factory>;
     getContractFactory(
-      name: "AirdropBounty",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.AirdropBounty__factory>;
-    getContractFactory(
       name: "Quest",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Quest__factory>;
@@ -174,11 +170,6 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.Strings>;
     getContractAt(
-      name: "AirdropBounty",
-      address: string | ethers.Addressable,
-      signer?: ethers.Signer
-    ): Promise<Contracts.AirdropBounty>;
-    getContractAt(
       name: "Quest",
       address: string | ethers.Addressable,
       signer?: ethers.Signer
@@ -264,10 +255,6 @@ declare module "hardhat/types/runtime" {
       name: "Strings",
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Strings>;
-    deployContract(
-      name: "AirdropBounty",
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.AirdropBounty>;
     deployContract(
       name: "Quest",
       signerOrOptions?: ethers.Signer | DeployContractOptions
@@ -364,11 +351,6 @@ declare module "hardhat/types/runtime" {
       args: any[],
       signerOrOptions?: ethers.Signer | DeployContractOptions
     ): Promise<Contracts.Strings>;
-    deployContract(
-      name: "AirdropBounty",
-      args: any[],
-      signerOrOptions?: ethers.Signer | DeployContractOptions
-    ): Promise<Contracts.AirdropBounty>;
     deployContract(
       name: "Quest",
       args: any[],

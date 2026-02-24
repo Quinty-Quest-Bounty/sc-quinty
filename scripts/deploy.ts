@@ -35,7 +35,7 @@ async function main() {
   const quintyAddress = await quinty.getAddress();
   console.log("✅ Quinty deployed to:", quintyAddress);
 
-  // 3. Deploy Quest contract (renamed from AirdropBounty)
+  // 3. Deploy Quest contract
   console.log("\n🎁 Deploying Quest contract...");
   const Quest = await ethers.getContractFactory("Quest");
   const quest = await Quest.deploy();

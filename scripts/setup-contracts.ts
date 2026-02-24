@@ -2,10 +2,10 @@ import { ethers } from "hardhat";
 
 // Use the most recent deployment addresses
 const ADDRESSES = {
-  QuintyReputation: "0x2dc731f796Df125B282484E844485814B2DCd363",
-  Quinty: "0x7169c907F80f95b20232F5B979B1Aac392bD282a",
-  QuintyNFT: "0x80edb4Aeb39913FaFfDAC2a86F3184508B57AAe2",
-  AirdropBounty: "0x79dAe15C3612854F6bd025f7CDc6D4CDEE289049",
+  QuintyReputation: "0x3Fc6d21B3AC4E419a2bEe6BeB40E00FfF2bF1014",
+  Quinty: "0x034cf0b72BcB1b529a2B0458275E0307CD6b5459",
+  Quest: "0x86cc170e725784812A31F548c434e425bc0181B1",
+  QuintyNFT: "0x6fcd78D8BB923E20B3C657C65f64A20a4a6b9884",
 };
 
 async function main() {

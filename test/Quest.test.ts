@@ -107,41 +107,34 @@ describe("Quest Contract", function () {
             );
         });
 
-        it("Should accept valid entry with social handle", async function () {
+        it("Should accept valid entry", async function () {
             await expect(
-                quest.connect(solver1).submitEntry(1, "QmProof123", "@twitteruser")
+                quest.connect(solver1).submitEntry(1, "QmProof123")
             ).to.emit(quest, "EntrySubmitted");
 
             const entry = await quest.getEntry(1, 0);
             expect(entry.solver).to.equal(solver1.address);
             expect(entry.ipfsProofCid).to.equal("QmProof123");
-            expect(entry.socialHandle).to.equal("@twitteruser");
             expect(entry.status).to.equal(0); // Pending
         });
 
         it("Should prevent duplicate submissions", async function () {
-            await quest.connect(solver1).submitEntry(1, "QmProof1", "@user1");
+            await quest.connect(solver1).submitEntry(1, "QmProof1");
             await expect(
-                quest.connect(solver1).submitEntry(1, "QmProof2", "@user1")
+                quest.connect(solver1).submitEntry(1, "QmProof2")
             ).to.be.revertedWith("Already submitted");
         });
 
         it("Should reject empty proof CID", async function () {
             await expect(
-                quest.connect(solver1).submitEntry(1, "", "@user")
+                quest.connect(solver1).submitEntry(1, "")
             ).to.be.revertedWith("Invalid proof CID");
-        });
-
-        it("Should reject empty social handle", async function () {
-            await expect(
-                quest.connect(solver1).submitEntry(1, "QmProof", "")
-            ).to.be.revertedWith("Social handle required");
         });
 
         it("Should reject submissions after deadline", async function () {
             await time.increase(86400 * 7 + 1);
             await expect(
-                quest.connect(solver1).submitEntry(1, "QmProof", "@user")
+                quest.connect(solver1).submitEntry(1, "QmProof")
             ).to.be.revertedWith("Quest inactive");
         });
 
@@ -149,7 +142,7 @@ describe("Quest Contract", function () {
             let userSub = await quest.getUserSubmission(1, solver1.address);
             expect(userSub.hasSubmittedEntry).to.be.false;
 
-            await quest.connect(solver1).submitEntry(1, "QmProof", "@user");
+            await quest.connect(solver1).submitEntry(1, "QmProof");
 
             userSub = await quest.getUserSubmission(1, solver1.address);
             expect(userSub.hasSubmittedEntry).to.be.true;
@@ -170,9 +163,9 @@ describe("Quest Contract", function () {
                 { value: TOTAL_ESCROW }
             );
 
-            await quest.connect(solver1).submitEntry(1, "QmProof1", "@user1");
-            await quest.connect(solver2).submitEntry(1, "QmProof2", "@user2");
-            await quest.connect(solver3).submitEntry(1, "QmProof3", "@user3");
+            await quest.connect(solver1).submitEntry(1, "QmProof1");
+            await quest.connect(solver2).submitEntry(1, "QmProof2");
+            await quest.connect(solver3).submitEntry(1, "QmProof3");
         });
 
         it("Should allow creator to approve entry and pay immediately", async function () {
@@ -236,8 +229,8 @@ describe("Quest Contract", function () {
             const solver4 = (await ethers.getSigners())[6];
             const solver5 = (await ethers.getSigners())[7];
 
-            await quest.connect(solver4).submitEntry(1, "QmProof4", "@user4");
-            await quest.connect(solver5).submitEntry(1, "QmProof5", "@user5");
+            await quest.connect(solver4).submitEntry(1, "QmProof4");
+            await quest.connect(solver5).submitEntry(1, "QmProof5");
 
             // Approve exactly MAX_QUALIFIERS entries (5)
             await quest.connect(creator).verifyEntry(1, 0, 1, "Good");
@@ -268,8 +261,8 @@ describe("Quest Contract", function () {
                 { value: TOTAL_ESCROW }
             );
 
-            await quest.connect(solver1).submitEntry(1, "QmProof1", "@user1");
-            await quest.connect(solver2).submitEntry(1, "QmProof2", "@user2");
+            await quest.connect(solver1).submitEntry(1, "QmProof1");
+            await quest.connect(solver2).submitEntry(1, "QmProof2");
         });
 
         it("Should refund unused amount on finalization", async function () {
@@ -337,7 +330,7 @@ describe("Quest Contract", function () {
         });
 
         it("Should prevent cancellation with approved entries", async function () {
-            await quest.connect(solver1).submitEntry(1, "QmProof", "@user");
+            await quest.connect(solver1).submitEntry(1, "QmProof");
             await quest.connect(creator).verifyEntry(1, 0, 1, "Good");
 
             await expect(
@@ -364,9 +357,9 @@ describe("Quest Contract", function () {
                 { value: TOTAL_ESCROW }
             );
 
-            await quest.connect(solver1).submitEntry(1, "QmProof1", "@user1");
-            await quest.connect(solver2).submitEntry(1, "QmProof2", "@user2");
-            await quest.connect(solver3).submitEntry(1, "QmProof3", "@user3");
+            await quest.connect(solver1).submitEntry(1, "QmProof1");
+            await quest.connect(solver2).submitEntry(1, "QmProof2");
+            await quest.connect(solver3).submitEntry(1, "QmProof3");
 
             await quest.connect(creator).verifyEntry(1, 0, 1, "Good"); // Approved
             await quest.connect(creator).verifyEntry(1, 1, 2, "Bad");  // Rejected

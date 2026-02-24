@@ -1,6 +1,6 @@
 
 // Auto-generated TypeScript definitions for Quinty V2 contracts
-// Generated: 2026-02-05T23:05:24.770Z
+// Generated: 2026-02-24T23:18:38.110Z
 // incuBase Milestone - Phases, 1% Deposit, Slash Mechanism
 
 export interface ContractAddresses {
@@ -8,16 +8,14 @@ export interface ContractAddresses {
   Quest: string;
   QuintyReputation: string;
   QuintyNFT: string;
-  AirdropBounty: string; // Legacy
 }
 
-// Deployed addresses on Base Sepolia (2026-02-06)
+// Deployed addresses on Base Sepolia (2026-02-09)
 export const BASE_SEPOLIA_ADDRESSES: ContractAddresses = {
-  Quinty: "0xdB6511DC9869a10Ed00C3706Ff9332820db87463",
-  Quest: "0xFeFAB11BA3Bc2d74B8B4804044f39A12E55BE4ae",
-  QuintyReputation: "0xE84dA988177707e9e8371894C082049D2C4F5e5e",
-  QuintyNFT: "0xDe5eB0e3232B40ED445E94f33708dc7E425E84F8",
-  AirdropBounty: "0xFeFAB11BA3Bc2d74B8B4804044f39A12E55BE4ae", // Legacy alias
+  Quinty: "0x034cf0b72BcB1b529a2B0458275E0307CD6b5459",
+  Quest: "0x86cc170e725784812A31F548c434e425bc0181B1",
+  QuintyReputation: "0x3Fc6d21B3AC4E419a2bEe6BeB40E00FfF2bF1014",
+  QuintyNFT: "0x6fcd78D8BB923E20B3C657C65f64A20a4a6b9884",
 };
 
 export const BASE_SEPOLIA_CHAIN_ID = 84532;

@@ -2,7 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export * as quintySol from "./Quinty.sol";
-export { AirdropBounty__factory } from "./AirdropBounty__factory";
 export { Quest__factory } from "./Quest__factory";
 export { QuintyNFT__factory } from "./QuintyNFT__factory";
 export { QuintyReputation__factory } from "./QuintyReputation__factory";

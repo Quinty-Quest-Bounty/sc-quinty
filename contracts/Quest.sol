@@ -6,11 +6,11 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /**
  * @title Quest
- * @notice Social quest/promotion tasks with fixed ETH rewards and on-chain social verification
- * 
+ * @notice Social quest/promotion tasks with fixed ETH rewards
+ *
  * Flow:
  * 1. Creator creates quest with escrow (perQualifier * maxQualifiers)
- * 2. Users submit entries with IPFS proof and social handle (stored on-chain)
+ * 2. Users submit entries with IPFS proof
  * 3. Creator approves entries -> immediate payout
  * 4. Quest finalizes when max qualifiers reached or deadline passes
  */
@@ -36,26 +36,16 @@ contract Quest is Ownable, ReentrancyGuard {
     struct Entry {
         address solver;
         string ipfsProofCid;      // IPFS CID with proof (screenshot, link)
-        string socialHandle;      // X/Twitter handle for verification
         uint256 timestamp;
         VerificationStatus status;
         string feedback;          // Optional feedback from verifier
-    }
-
-    // Social account registry - maps wallet address to social handles
-    struct SocialAccount {
-        string xHandle;           // X/Twitter handle
-        string email;             // Email for verification (optional)
-        uint256 linkedAt;
-        bool verified;
     }
 
     mapping(uint256 => QuestData) public quests;
     mapping(uint256 => Entry[]) public entries;
     mapping(uint256 => mapping(address => bool)) public hasSubmitted;
     mapping(uint256 => mapping(address => uint256)) public userSubmissionIndex;
-    mapping(address => SocialAccount) public socialAccounts;
-    
+
     uint256 public questCounter;
 
     event QuestCreated(
@@ -69,8 +59,7 @@ contract Quest is Ownable, ReentrancyGuard {
     event EntrySubmitted(
         uint256 indexed id,
         address indexed solver,
-        string ipfsProofCid,
-        string socialHandle
+        string ipfsProofCid
     );
     event EntryVerified(
         uint256 indexed questId,
@@ -80,7 +69,6 @@ contract Quest is Ownable, ReentrancyGuard {
     );
     event QuestFinalized(uint256 indexed id, address[] qualifiers, uint256 totalDistributed);
     event QuestCancelled(uint256 indexed id, uint256 refundAmount);
-    event SocialAccountLinked(address indexed wallet, string xHandle, string email);
 
     modifier validQuest(uint256 _id) {
         require(_id > 0 && _id <= questCounter, "Invalid quest ID");
@@ -104,24 +92,6 @@ contract Quest is Ownable, ReentrancyGuard {
     }
 
     constructor() Ownable(msg.sender) {}
-
-    /**
-     * @notice Link social account to wallet address (stored on-chain)
-     * @param _xHandle X/Twitter handle
-     * @param _email Email address (optional)
-     */
-    function linkSocialAccount(string memory _xHandle, string memory _email) external {
-        require(bytes(_xHandle).length > 0, "X handle required");
-        
-        socialAccounts[msg.sender] = SocialAccount({
-            xHandle: _xHandle,
-            email: _email,
-            linkedAt: block.timestamp,
-            verified: false
-        });
-        
-        emit SocialAccountLinked(msg.sender, _xHandle, _email);
-    }
 
     /**
      * @notice Create a new quest with ETH escrow
@@ -169,38 +139,24 @@ contract Quest is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Submit an entry to a quest (social handle stored on-chain)
+     * @notice Submit an entry to a quest
      * @param _id Quest ID
      * @param _ipfsProofCid IPFS CID containing proof of completion
-     * @param _socialHandle Social media handle for verification
      */
     function submitEntry(
         uint256 _id,
-        string memory _ipfsProofCid,
-        string memory _socialHandle
+        string memory _ipfsProofCid
     ) external validQuest(_id) questActive(_id) nonReentrant {
         require(bytes(_ipfsProofCid).length > 0, "Invalid proof CID");
-        require(bytes(_socialHandle).length > 0, "Social handle required");
         require(!hasSubmitted[_id][msg.sender], "Already submitted");
 
         QuestData storage quest = quests[_id];
         require(entries[_id].length < quest.maxQualifiers * 3, "Too many submissions");
 
-        // Store social account on-chain if not already linked
-        if (bytes(socialAccounts[msg.sender].xHandle).length == 0) {
-            socialAccounts[msg.sender] = SocialAccount({
-                xHandle: _socialHandle,
-                email: "",
-                linkedAt: block.timestamp,
-                verified: false
-            });
-        }
-
         uint256 entryIndex = entries[_id].length;
         entries[_id].push(Entry({
             solver: msg.sender,
             ipfsProofCid: _ipfsProofCid,
-            socialHandle: _socialHandle,
             timestamp: block.timestamp,
             status: VerificationStatus.Pending,
             feedback: ""
@@ -209,7 +165,7 @@ contract Quest is Ownable, ReentrancyGuard {
         hasSubmitted[_id][msg.sender] = true;
         userSubmissionIndex[_id][msg.sender] = entryIndex;
 
-        emit EntrySubmitted(_id, msg.sender, _ipfsProofCid, _socialHandle);
+        emit EntrySubmitted(_id, msg.sender, _ipfsProofCid);
     }
 
     /**
@@ -402,7 +358,6 @@ contract Quest is Ownable, ReentrancyGuard {
     function getEntry(uint256 _questId, uint256 _entryId) external view returns (
         address solver,
         string memory ipfsProofCid,
-        string memory socialHandle,
         uint256 timestamp,
         VerificationStatus status,
         string memory feedback
@@ -412,7 +367,6 @@ contract Quest is Ownable, ReentrancyGuard {
         return (
             entry.solver,
             entry.ipfsProofCid,
-            entry.socialHandle,
             entry.timestamp,
             entry.status,
             entry.feedback
@@ -457,16 +411,6 @@ contract Quest is Ownable, ReentrancyGuard {
 
         remainingSlots = quest.maxQualifiers > approvedEntries ?
             quest.maxQualifiers - approvedEntries : 0;
-    }
-
-    function getSocialAccount(address _wallet) external view returns (
-        string memory xHandle,
-        string memory email,
-        uint256 linkedAt,
-        bool verified
-    ) {
-        SocialAccount storage account = socialAccounts[_wallet];
-        return (account.xHandle, account.email, account.linkedAt, account.verified);
     }
 
     receive() external payable {}

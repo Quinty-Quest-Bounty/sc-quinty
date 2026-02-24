@@ -34,15 +34,12 @@ export interface QuestInterface extends Interface {
       | "getEntryCount"
       | "getQuest"
       | "getQuestStats"
-      | "getSocialAccount"
       | "getUserSubmission"
       | "hasSubmitted"
-      | "linkSocialAccount"
       | "owner"
       | "questCounter"
       | "quests"
       | "renounceOwnership"
-      | "socialAccounts"
       | "submitEntry"
       | "transferOwnership"
       | "userSubmissionIndex"
@@ -58,7 +55,6 @@ export interface QuestInterface extends Interface {
       | "QuestCancelled"
       | "QuestCreated"
       | "QuestFinalized"
-      | "SocialAccountLinked"
   ): EventFragment;
 
   encodeFunctionData(
@@ -94,20 +90,12 @@ export interface QuestInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getSocialAccount",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "getUserSubmission",
     values: [BigNumberish, AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "hasSubmitted",
     values: [BigNumberish, AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "linkSocialAccount",
-    values: [string, string]
   ): string;
   encodeFunctionData(functionFragment: "owner", values?: undefined): string;
   encodeFunctionData(
@@ -123,12 +111,8 @@ export interface QuestInterface extends Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "socialAccounts",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "submitEntry",
-    values: [BigNumberish, string, string]
+    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
@@ -171,19 +155,11 @@ export interface QuestInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getSocialAccount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getUserSubmission",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "hasSubmitted",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "linkSocialAccount",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
@@ -194,10 +170,6 @@ export interface QuestInterface extends Interface {
   decodeFunctionResult(functionFragment: "quests", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "renounceOwnership",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "socialAccounts",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -226,20 +198,13 @@ export namespace EntrySubmittedEvent {
   export type InputTuple = [
     id: BigNumberish,
     solver: AddressLike,
-    ipfsProofCid: string,
-    socialHandle: string
+    ipfsProofCid: string
   ];
-  export type OutputTuple = [
-    id: bigint,
-    solver: string,
-    ipfsProofCid: string,
-    socialHandle: string
-  ];
+  export type OutputTuple = [id: bigint, solver: string, ipfsProofCid: string];
   export interface OutputObject {
     id: bigint;
     solver: string;
     ipfsProofCid: string;
-    socialHandle: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -351,24 +316,6 @@ export namespace QuestFinalizedEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace SocialAccountLinkedEvent {
-  export type InputTuple = [
-    wallet: AddressLike,
-    xHandle: string,
-    email: string
-  ];
-  export type OutputTuple = [wallet: string, xHandle: string, email: string];
-  export interface OutputObject {
-    wallet: string;
-    xHandle: string;
-    email: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export interface Quest extends BaseContract {
   connect(runner?: ContractRunner | null): Quest;
   waitForDeployment(): Promise<this>;
@@ -430,10 +377,9 @@ export interface Quest extends BaseContract {
   entries: TypedContractMethod<
     [arg0: BigNumberish, arg1: BigNumberish],
     [
-      [string, string, string, bigint, bigint, string] & {
+      [string, string, bigint, bigint, string] & {
         solver: string;
         ipfsProofCid: string;
-        socialHandle: string;
         timestamp: bigint;
         status: bigint;
         feedback: string;
@@ -447,10 +393,9 @@ export interface Quest extends BaseContract {
   getEntry: TypedContractMethod<
     [_questId: BigNumberish, _entryId: BigNumberish],
     [
-      [string, string, string, bigint, bigint, string] & {
+      [string, string, bigint, bigint, string] & {
         solver: string;
         ipfsProofCid: string;
-        socialHandle: string;
         timestamp: bigint;
         status: bigint;
         feedback: string;
@@ -513,19 +458,6 @@ export interface Quest extends BaseContract {
     "view"
   >;
 
-  getSocialAccount: TypedContractMethod<
-    [_wallet: AddressLike],
-    [
-      [string, string, bigint, boolean] & {
-        xHandle: string;
-        email: string;
-        linkedAt: bigint;
-        verified: boolean;
-      }
-    ],
-    "view"
-  >;
-
   getUserSubmission: TypedContractMethod<
     [_questId: BigNumberish, _user: AddressLike],
     [
@@ -542,12 +474,6 @@ export interface Quest extends BaseContract {
     [arg0: BigNumberish, arg1: AddressLike],
     [boolean],
     "view"
-  >;
-
-  linkSocialAccount: TypedContractMethod<
-    [_xHandle: string, _email: string],
-    [void],
-    "nonpayable"
   >;
 
   owner: TypedContractMethod<[], [string], "view">;
@@ -590,21 +516,8 @@ export interface Quest extends BaseContract {
 
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
-  socialAccounts: TypedContractMethod<
-    [arg0: AddressLike],
-    [
-      [string, string, bigint, boolean] & {
-        xHandle: string;
-        email: string;
-        linkedAt: bigint;
-        verified: boolean;
-      }
-    ],
-    "view"
-  >;
-
   submitEntry: TypedContractMethod<
-    [_id: BigNumberish, _ipfsProofCid: string, _socialHandle: string],
+    [_id: BigNumberish, _ipfsProofCid: string],
     [void],
     "nonpayable"
   >;
@@ -669,10 +582,9 @@ export interface Quest extends BaseContract {
   ): TypedContractMethod<
     [arg0: BigNumberish, arg1: BigNumberish],
     [
-      [string, string, string, bigint, bigint, string] & {
+      [string, string, bigint, bigint, string] & {
         solver: string;
         ipfsProofCid: string;
-        socialHandle: string;
         timestamp: bigint;
         status: bigint;
         feedback: string;
@@ -688,10 +600,9 @@ export interface Quest extends BaseContract {
   ): TypedContractMethod<
     [_questId: BigNumberish, _entryId: BigNumberish],
     [
-      [string, string, string, bigint, bigint, string] & {
+      [string, string, bigint, bigint, string] & {
         solver: string;
         ipfsProofCid: string;
-        socialHandle: string;
         timestamp: bigint;
         status: bigint;
         feedback: string;
@@ -753,20 +664,6 @@ export interface Quest extends BaseContract {
     "view"
   >;
   getFunction(
-    nameOrSignature: "getSocialAccount"
-  ): TypedContractMethod<
-    [_wallet: AddressLike],
-    [
-      [string, string, bigint, boolean] & {
-        xHandle: string;
-        email: string;
-        linkedAt: bigint;
-        verified: boolean;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
     nameOrSignature: "getUserSubmission"
   ): TypedContractMethod<
     [_questId: BigNumberish, _user: AddressLike],
@@ -785,13 +682,6 @@ export interface Quest extends BaseContract {
     [arg0: BigNumberish, arg1: AddressLike],
     [boolean],
     "view"
-  >;
-  getFunction(
-    nameOrSignature: "linkSocialAccount"
-  ): TypedContractMethod<
-    [_xHandle: string, _email: string],
-    [void],
-    "nonpayable"
   >;
   getFunction(
     nameOrSignature: "owner"
@@ -838,23 +728,9 @@ export interface Quest extends BaseContract {
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "socialAccounts"
-  ): TypedContractMethod<
-    [arg0: AddressLike],
-    [
-      [string, string, bigint, boolean] & {
-        xHandle: string;
-        email: string;
-        linkedAt: bigint;
-        verified: boolean;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
     nameOrSignature: "submitEntry"
   ): TypedContractMethod<
-    [_id: BigNumberish, _ipfsProofCid: string, _socialHandle: string],
+    [_id: BigNumberish, _ipfsProofCid: string],
     [void],
     "nonpayable"
   >;
@@ -935,16 +811,9 @@ export interface Quest extends BaseContract {
     QuestFinalizedEvent.OutputTuple,
     QuestFinalizedEvent.OutputObject
   >;
-  getEvent(
-    key: "SocialAccountLinked"
-  ): TypedContractEvent<
-    SocialAccountLinkedEvent.InputTuple,
-    SocialAccountLinkedEvent.OutputTuple,
-    SocialAccountLinkedEvent.OutputObject
-  >;
 
   filters: {
-    "EntrySubmitted(uint256,address,string,string)": TypedContractEvent<
+    "EntrySubmitted(uint256,address,string)": TypedContractEvent<
       EntrySubmittedEvent.InputTuple,
       EntrySubmittedEvent.OutputTuple,
       EntrySubmittedEvent.OutputObject
@@ -1008,17 +877,6 @@ export interface Quest extends BaseContract {
       QuestFinalizedEvent.InputTuple,
       QuestFinalizedEvent.OutputTuple,
       QuestFinalizedEvent.OutputObject
-    >;
-
-    "SocialAccountLinked(address,string,string)": TypedContractEvent<
-      SocialAccountLinkedEvent.InputTuple,
-      SocialAccountLinkedEvent.OutputTuple,
-      SocialAccountLinkedEvent.OutputObject
-    >;
-    SocialAccountLinked: TypedContractEvent<
-      SocialAccountLinkedEvent.InputTuple,
-      SocialAccountLinkedEvent.OutputTuple,
-      SocialAccountLinkedEvent.OutputObject
     >;
   };
 }

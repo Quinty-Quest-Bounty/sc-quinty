@@ -101,36 +101,28 @@ describe("Quinty - Bounty with Phases and Slash", function () {
             );
         });
 
-        it("Should allow submission with 1% deposit and social handle", async function () {
+        it("Should allow submission with 1% deposit", async function () {
             await expect(
-                quinty.connect(submitter1).submitToBounty(1, "QmTestCid123", "@testuser", { value: DEPOSIT_AMOUNT })
+                quinty.connect(submitter1).submitToBounty(1, "QmTestCid123", { value: DEPOSIT_AMOUNT })
             ).to.emit(quinty, "SubmissionCreated");
 
             const submission = await quinty.getSubmission(1, 0);
             expect(submission.submitter).to.equal(submitter1.address);
             expect(submission.ipfsCid).to.equal("QmTestCid123");
-            expect(submission.socialHandle).to.equal("@testuser");
             expect(submission.deposit).to.equal(DEPOSIT_AMOUNT);
         });
 
         it("Should fail with incorrect deposit amount", async function () {
             await expect(
-                quinty.connect(submitter1).submitToBounty(1, "QmCid", "@user", { value: ethers.parseEther("0.005") })
+                quinty.connect(submitter1).submitToBounty(1, "QmCid", { value: ethers.parseEther("0.005") })
             ).to.be.revertedWith("Incorrect deposit amount (1% required)");
         });
 
         it("Should fail after open deadline", async function () {
             await time.increase(86401);
             await expect(
-                quinty.connect(submitter1).submitToBounty(1, "QmCid", "@user", { value: DEPOSIT_AMOUNT })
+                quinty.connect(submitter1).submitToBounty(1, "QmCid", { value: DEPOSIT_AMOUNT })
             ).to.be.revertedWith("Submission deadline passed");
-        });
-
-        it("Should store social account on-chain", async function () {
-            await quinty.connect(submitter1).submitToBounty(1, "QmCid", "@myhandle", { value: DEPOSIT_AMOUNT });
-            
-            const account = await quinty.getSocialAccount(submitter1.address);
-            expect(account.xHandle).to.equal("@myhandle");
         });
 
         it("Should calculate required deposit correctly", async function () {
@@ -151,7 +143,7 @@ describe("Quinty - Bounty with Phases and Slash", function () {
                 "Test", "Desc", openDeadline, judgingDeadline, SLASH_PERCENT,
                 { value: BOUNTY_AMOUNT }
             );
-            await quinty.connect(submitter1).submitToBounty(1, "QmCid1", "@user1", { value: DEPOSIT_AMOUNT });
+            await quinty.connect(submitter1).submitToBounty(1, "QmCid1", { value: DEPOSIT_AMOUNT });
         });
 
         it("Should return correct current phase", async function () {
@@ -185,8 +177,8 @@ describe("Quinty - Bounty with Phases and Slash", function () {
                 "Test", "Desc", openDeadline, judgingDeadline, SLASH_PERCENT,
                 { value: BOUNTY_AMOUNT }
             );
-            await quinty.connect(submitter1).submitToBounty(1, "QmCid1", "@user1", { value: DEPOSIT_AMOUNT });
-            await quinty.connect(submitter2).submitToBounty(1, "QmCid2", "@user2", { value: DEPOSIT_AMOUNT });
+            await quinty.connect(submitter1).submitToBounty(1, "QmCid1", { value: DEPOSIT_AMOUNT });
+            await quinty.connect(submitter2).submitToBounty(1, "QmCid2", { value: DEPOSIT_AMOUNT });
         });
 
         it("Should allow creator to select winner during judging phase", async function () {
@@ -231,8 +223,8 @@ describe("Quinty - Bounty with Phases and Slash", function () {
                 "Test", "Desc", openDeadline, judgingDeadline, SLASH_PERCENT,
                 { value: BOUNTY_AMOUNT }
             );
-            await quinty.connect(submitter1).submitToBounty(1, "QmCid1", "@user1", { value: DEPOSIT_AMOUNT });
-            await quinty.connect(submitter2).submitToBounty(1, "QmCid2", "@user2", { value: DEPOSIT_AMOUNT });
+            await quinty.connect(submitter1).submitToBounty(1, "QmCid1", { value: DEPOSIT_AMOUNT });
+            await quinty.connect(submitter2).submitToBounty(1, "QmCid2", { value: DEPOSIT_AMOUNT });
         });
 
         it("Should slash creator and distribute to submitters after judging deadline", async function () {
@@ -297,25 +289,13 @@ describe("Quinty - Bounty with Phases and Slash", function () {
                 "Test", "Desc", now + 86400, now + 172800, SLASH_PERCENT,
                 { value: BOUNTY_AMOUNT }
             );
-            await quinty.connect(submitter1).submitToBounty(1, "QmCid", "@user", { value: DEPOSIT_AMOUNT });
+            await quinty.connect(submitter1).submitToBounty(1, "QmCid", { value: DEPOSIT_AMOUNT });
 
             await time.increase(86401);
 
             await expect(
                 quinty.connect(creator).refundNoSubmissions(1)
             ).to.be.revertedWith("Has submissions - use triggerSlash or selectWinner");
-        });
-    });
-
-    describe("Social Account Linking", function () {
-        it("Should allow users to link social accounts", async function () {
-            await expect(
-                quinty.connect(submitter1).linkSocialAccount("@mytwitter", "test@email.com")
-            ).to.emit(quinty, "SocialAccountLinked");
-
-            const account = await quinty.getSocialAccount(submitter1.address);
-            expect(account.xHandle).to.equal("@mytwitter");
-            expect(account.email).to.equal("test@email.com");
         });
     });
 
@@ -337,7 +317,7 @@ describe("Quinty - Bounty with Phases and Slash", function () {
                 "Test", "Desc", now + 86400, now + 172800, SLASH_PERCENT,
                 { value: BOUNTY_AMOUNT }
             );
-            await quinty.connect(submitter1).submitToBounty(1, "QmCid", "@user", { value: DEPOSIT_AMOUNT });
+            await quinty.connect(submitter1).submitToBounty(1, "QmCid", { value: DEPOSIT_AMOUNT });
 
             const rep = await reputation.getUserStats(submitter1.address);
             expect(rep.totalSubmissions).to.equal(1);
@@ -349,8 +329,8 @@ describe("Quinty - Bounty with Phases and Slash", function () {
                 "Test", "Desc", now + 86400, now + 172800, SLASH_PERCENT,
                 { value: BOUNTY_AMOUNT }
             );
-            await quinty.connect(submitter1).submitToBounty(1, "QmCid", "@user", { value: DEPOSIT_AMOUNT });
-            
+            await quinty.connect(submitter1).submitToBounty(1, "QmCid", { value: DEPOSIT_AMOUNT });
+
             await time.increase(86401);
             await quinty.connect(creator).selectWinner(1, 0);
 

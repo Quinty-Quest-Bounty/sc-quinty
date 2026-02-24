@@ -27,7 +27,6 @@ export declare namespace Quinty {
   export type SubmissionStruct = {
     submitter: AddressLike;
     ipfsCid: string;
-    socialHandle: string;
     deposit: BigNumberish;
     timestamp: BigNumberish;
   };
@@ -35,13 +34,11 @@ export declare namespace Quinty {
   export type SubmissionStructOutput = [
     submitter: string,
     ipfsCid: string,
-    socialHandle: string,
     deposit: bigint,
     timestamp: bigint
   ] & {
     submitter: string;
     ipfsCid: string;
-    socialHandle: string;
     deposit: bigint;
     timestamp: bigint;
   };
@@ -58,12 +55,10 @@ export interface QuintyInterface extends Interface {
       | "getBounty"
       | "getCurrentPhase"
       | "getRequiredDeposit"
-      | "getSocialAccount"
       | "getSubmission"
       | "getSubmissionCount"
       | "hasSubmitted"
       | "hasUserSubmitted"
-      | "linkSocialAccount"
       | "moveToJudging"
       | "owner"
       | "refundNoSubmissions"
@@ -71,7 +66,6 @@ export interface QuintyInterface extends Interface {
       | "reputationAddress"
       | "selectWinner"
       | "setReputationAddress"
-      | "socialAccounts"
       | "submitToBounty"
       | "transferOwnership"
       | "triggerSlash"
@@ -84,7 +78,6 @@ export interface QuintyInterface extends Interface {
       | "BountySlashed"
       | "DepositsRefunded"
       | "OwnershipTransferred"
-      | "SocialAccountLinked"
       | "SubmissionCreated"
       | "WinnerSelected"
   ): EventFragment;
@@ -122,10 +115,6 @@ export interface QuintyInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getSocialAccount",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "getSubmission",
     values: [BigNumberish, BigNumberish]
   ): string;
@@ -140,10 +129,6 @@ export interface QuintyInterface extends Interface {
   encodeFunctionData(
     functionFragment: "hasUserSubmitted",
     values: [BigNumberish, AddressLike]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "linkSocialAccount",
-    values: [string, string]
   ): string;
   encodeFunctionData(
     functionFragment: "moveToJudging",
@@ -171,12 +156,8 @@ export interface QuintyInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "socialAccounts",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "submitToBounty",
-    values: [BigNumberish, string, string]
+    values: [BigNumberish, string]
   ): string;
   encodeFunctionData(
     functionFragment: "transferOwnership",
@@ -214,10 +195,6 @@ export interface QuintyInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getSocialAccount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "getSubmission",
     data: BytesLike
   ): Result;
@@ -231,10 +208,6 @@ export interface QuintyInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "hasUserSubmitted",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "linkSocialAccount",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -260,10 +233,6 @@ export interface QuintyInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "setReputationAddress",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "socialAccounts",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -377,31 +346,12 @@ export namespace OwnershipTransferredEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
-export namespace SocialAccountLinkedEvent {
-  export type InputTuple = [
-    wallet: AddressLike,
-    xHandle: string,
-    email: string
-  ];
-  export type OutputTuple = [wallet: string, xHandle: string, email: string];
-  export interface OutputObject {
-    wallet: string;
-    xHandle: string;
-    email: string;
-  }
-  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
-  export type Filter = TypedDeferredTopicFilter<Event>;
-  export type Log = TypedEventLog<Event>;
-  export type LogDescription = TypedLogDescription<Event>;
-}
-
 export namespace SubmissionCreatedEvent {
   export type InputTuple = [
     bountyId: BigNumberish,
     submissionId: BigNumberish,
     submitter: AddressLike,
     ipfsCid: string,
-    socialHandle: string,
     deposit: BigNumberish
   ];
   export type OutputTuple = [
@@ -409,7 +359,6 @@ export namespace SubmissionCreatedEvent {
     submissionId: bigint,
     submitter: string,
     ipfsCid: string,
-    socialHandle: string,
     deposit: bigint
   ];
   export interface OutputObject {
@@ -417,7 +366,6 @@ export namespace SubmissionCreatedEvent {
     submissionId: bigint;
     submitter: string;
     ipfsCid: string;
-    socialHandle: string;
     deposit: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
@@ -594,26 +542,12 @@ export interface Quinty extends BaseContract {
     "view"
   >;
 
-  getSocialAccount: TypedContractMethod<
-    [_wallet: AddressLike],
-    [
-      [string, string, bigint, boolean] & {
-        xHandle: string;
-        email: string;
-        linkedAt: bigint;
-        verified: boolean;
-      }
-    ],
-    "view"
-  >;
-
   getSubmission: TypedContractMethod<
     [_bountyId: BigNumberish, _subId: BigNumberish],
     [
-      [string, string, string, bigint, bigint] & {
+      [string, string, bigint, bigint] & {
         submitter: string;
         ipfsCid: string;
-        socialHandle: string;
         deposit: bigint;
         timestamp: bigint;
       }
@@ -637,12 +571,6 @@ export interface Quinty extends BaseContract {
     [_bountyId: BigNumberish, _user: AddressLike],
     [boolean],
     "view"
-  >;
-
-  linkSocialAccount: TypedContractMethod<
-    [_xHandle: string, _email: string],
-    [void],
-    "nonpayable"
   >;
 
   moveToJudging: TypedContractMethod<
@@ -675,21 +603,8 @@ export interface Quinty extends BaseContract {
     "nonpayable"
   >;
 
-  socialAccounts: TypedContractMethod<
-    [arg0: AddressLike],
-    [
-      [string, string, bigint, boolean] & {
-        xHandle: string;
-        email: string;
-        linkedAt: bigint;
-        verified: boolean;
-      }
-    ],
-    "view"
-  >;
-
   submitToBounty: TypedContractMethod<
-    [_bountyId: BigNumberish, _ipfsCid: string, _socialHandle: string],
+    [_bountyId: BigNumberish, _ipfsCid: string],
     [void],
     "payable"
   >;
@@ -811,28 +726,13 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "getRequiredDeposit"
   ): TypedContractMethod<[_bountyId: BigNumberish], [bigint], "view">;
   getFunction(
-    nameOrSignature: "getSocialAccount"
-  ): TypedContractMethod<
-    [_wallet: AddressLike],
-    [
-      [string, string, bigint, boolean] & {
-        xHandle: string;
-        email: string;
-        linkedAt: bigint;
-        verified: boolean;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
     nameOrSignature: "getSubmission"
   ): TypedContractMethod<
     [_bountyId: BigNumberish, _subId: BigNumberish],
     [
-      [string, string, string, bigint, bigint] & {
+      [string, string, bigint, bigint] & {
         submitter: string;
         ipfsCid: string;
-        socialHandle: string;
         deposit: bigint;
         timestamp: bigint;
       }
@@ -855,13 +755,6 @@ export interface Quinty extends BaseContract {
     [_bountyId: BigNumberish, _user: AddressLike],
     [boolean],
     "view"
-  >;
-  getFunction(
-    nameOrSignature: "linkSocialAccount"
-  ): TypedContractMethod<
-    [_xHandle: string, _email: string],
-    [void],
-    "nonpayable"
   >;
   getFunction(
     nameOrSignature: "moveToJudging"
@@ -889,23 +782,9 @@ export interface Quinty extends BaseContract {
     nameOrSignature: "setReputationAddress"
   ): TypedContractMethod<[_repAddress: AddressLike], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "socialAccounts"
-  ): TypedContractMethod<
-    [arg0: AddressLike],
-    [
-      [string, string, bigint, boolean] & {
-        xHandle: string;
-        email: string;
-        linkedAt: bigint;
-        verified: boolean;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
     nameOrSignature: "submitToBounty"
   ): TypedContractMethod<
-    [_bountyId: BigNumberish, _ipfsCid: string, _socialHandle: string],
+    [_bountyId: BigNumberish, _ipfsCid: string],
     [void],
     "payable"
   >;
@@ -950,13 +829,6 @@ export interface Quinty extends BaseContract {
     OwnershipTransferredEvent.InputTuple,
     OwnershipTransferredEvent.OutputTuple,
     OwnershipTransferredEvent.OutputObject
-  >;
-  getEvent(
-    key: "SocialAccountLinked"
-  ): TypedContractEvent<
-    SocialAccountLinkedEvent.InputTuple,
-    SocialAccountLinkedEvent.OutputTuple,
-    SocialAccountLinkedEvent.OutputObject
   >;
   getEvent(
     key: "SubmissionCreated"
@@ -1029,18 +901,7 @@ export interface Quinty extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "SocialAccountLinked(address,string,string)": TypedContractEvent<
-      SocialAccountLinkedEvent.InputTuple,
-      SocialAccountLinkedEvent.OutputTuple,
-      SocialAccountLinkedEvent.OutputObject
-    >;
-    SocialAccountLinked: TypedContractEvent<
-      SocialAccountLinkedEvent.InputTuple,
-      SocialAccountLinkedEvent.OutputTuple,
-      SocialAccountLinkedEvent.OutputObject
-    >;
-
-    "SubmissionCreated(uint256,uint256,address,string,string,uint256)": TypedContractEvent<
+    "SubmissionCreated(uint256,uint256,address,string,uint256)": TypedContractEvent<
       SubmissionCreatedEvent.InputTuple,
       SubmissionCreatedEvent.OutputTuple,
       SubmissionCreatedEvent.OutputObject

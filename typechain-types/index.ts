@@ -36,8 +36,6 @@ export type { ReentrancyGuard } from "./@openzeppelin/contracts/utils/Reentrancy
 export { ReentrancyGuard__factory } from "./factories/@openzeppelin/contracts/utils/ReentrancyGuard__factory";
 export type { Strings } from "./@openzeppelin/contracts/utils/Strings";
 export { Strings__factory } from "./factories/@openzeppelin/contracts/utils/Strings__factory";
-export type { AirdropBounty } from "./contracts/AirdropBounty";
-export { AirdropBounty__factory } from "./factories/contracts/AirdropBounty__factory";
 export type { Quest } from "./contracts/Quest";
 export { Quest__factory } from "./factories/contracts/Quest__factory";
 export type { IQuintyReputation } from "./contracts/Quinty.sol/IQuintyReputation";

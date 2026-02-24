@@ -29,36 +29,36 @@ Delete legacy code and prepare base infrastructure.
 
 #### 1.1 Delete AirdropBounty and Legacy Files
 
-- [ ] Delete `contracts/AirdropBounty.sol`
-- [ ] Delete `test/AirdropBounty.test.ts`
-- [ ] Delete `exported-abis/AirdropBounty.json`
-- [ ] Delete `scripts/list-airdrops.ts`
-- [ ] Delete `typechain-types/contracts/AirdropBounty.ts`
-- [ ] Delete `typechain-types/factories/contracts/AirdropBounty__factory.ts`
-- [ ] Update `exported-abis/constants.ts` -- remove `AirdropBounty` field from `ContractAddresses` interface and `BASE_SEPOLIA_ADDRESSES`
-- [ ] Update `scripts/export-abis.ts` -- remove AirdropBounty from artifact list
-- [ ] Update `scripts/deploy.ts` -- remove AirdropBounty deployment
-- [ ] Update all scripts that reference "airdrop": `check-all.ts`, `check-state.ts`, `complete-flow.ts`, `inspect-subs.ts`, `solver-test.ts`, `sync-abis.ts`
-- [ ] Run `npx hardhat compile` to regenerate typechain without AirdropBounty
-- [ ] Run `npx hardhat test` -- verify remaining tests pass (should be ~73 tests after removing 26 AirdropBounty tests)
+- [x] Delete `contracts/AirdropBounty.sol`
+- [x] Delete `test/AirdropBounty.test.ts`
+- [x] Delete `exported-abis/AirdropBounty.json`
+- [x] Delete `scripts/list-airdrops.ts`
+- [x] Delete `typechain-types/contracts/AirdropBounty.ts`
+- [x] Delete `typechain-types/factories/contracts/AirdropBounty__factory.ts`
+- [x] Update `exported-abis/constants.ts` -- remove `AirdropBounty` field from `ContractAddresses` interface and `BASE_SEPOLIA_ADDRESSES`
+- [x] Update `scripts/export-abis.ts` -- remove AirdropBounty from artifact list
+- [x] Update `scripts/deploy.ts` -- remove AirdropBounty deployment
+- [x] Update all scripts that reference "airdrop": deleted 9 legacy scripts (`check-all.ts`, `check-state.ts`, `complete-flow.ts`, `inspect-subs.ts`, `solver-test.ts`, `sync-abis.ts`, `test-full-flow.ts`, `test-interaction.ts`, `create-active-quest.ts`), updated `setup-contracts.ts` addresses
+- [x] Run `npx hardhat compile` to regenerate typechain without AirdropBounty
+- [x] Run `npx hardhat test` -- 73 tests pass
 
 #### 1.2 Remove SocialAccount from Contracts
 
-- [ ] `contracts/Quinty.sol` -- Remove `SocialAccount` struct, `socialAccounts` mapping, `linkSocialAccount()` function, `SocialAccountLinked` event, `getSocialAccount()` view function
-- [ ] `contracts/Quinty.sol` -- Remove `socialHandle` parameter from `submitToBounty()` and `Submission` struct. Keep only `ipfsCid`.
-- [ ] `contracts/Quinty.sol` -- Remove auto-link logic inside `submitToBounty()`
-- [ ] `contracts/Quest.sol` -- Same removal: `SocialAccount` struct, mapping, `linkSocialAccount()`, event, `getSocialAccount()`
-- [ ] `contracts/Quest.sol` -- Remove `socialHandle` from `submitEntry()` and `Entry` struct
-- [ ] Update `SubmissionCreated` event in Quinty.sol -- remove `socialHandle` field
-- [ ] Update `EntrySubmitted` event in Quest.sol -- remove `socialHandle` field
-- [ ] Update all tests to remove `socialHandle` arguments from submit calls
-- [ ] Compile + test
+- [x] `contracts/Quinty.sol` -- Remove `SocialAccount` struct, `socialAccounts` mapping, `linkSocialAccount()` function, `SocialAccountLinked` event, `getSocialAccount()` view function
+- [x] `contracts/Quinty.sol` -- Remove `socialHandle` parameter from `submitToBounty()` and `Submission` struct. Keep only `ipfsCid`.
+- [x] `contracts/Quinty.sol` -- Remove auto-link logic inside `submitToBounty()`
+- [x] `contracts/Quest.sol` -- Same removal: `SocialAccount` struct, mapping, `linkSocialAccount()`, event, `getSocialAccount()`
+- [x] `contracts/Quest.sol` -- Remove `socialHandle` from `submitEntry()` and `Entry` struct
+- [x] Update `SubmissionCreated` event in Quinty.sol -- remove `socialHandle` field
+- [x] Update `EntrySubmitted` event in Quest.sol -- remove `socialHandle` field
+- [x] Update all tests to remove `socialHandle` arguments from submit calls
+- [x] Compile + test -- 70 tests pass
 
 #### 1.3 Remove `receive()` from Non-Escrow Contracts
 
-- [ ] `contracts/QuintyReputation.sol` -- Remove `receive() external payable` (if present -- check current code)
-- [ ] `contracts/QuintyNFT.sol` -- Remove `receive() external payable` (if present)
-- [ ] Compile + test
+- [x] `contracts/QuintyReputation.sol` -- No `receive()` found, already clean
+- [x] `contracts/QuintyNFT.sol` -- No `receive()` found, already clean
+- [x] Compile + test -- confirmed
 
 ---
 

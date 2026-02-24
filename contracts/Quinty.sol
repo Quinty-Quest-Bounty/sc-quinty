@@ -13,15 +13,15 @@ interface IQuintyReputation {
 
 /**
  * @title Quinty
- * @notice Bounty contract with 1% deposit, slash mechanism, and social verification
- * 
+ * @notice Bounty contract with 1% deposit and slash mechanism
+ *
  * Flow:
  * 1. Creator creates bounty with ETH escrow + phase deadlines + slash percentage
- * 2. OPEN PHASE: Submitters pay 1% deposit and provide social handle
+ * 2. OPEN PHASE: Submitters pay 1% deposit
  * 3. JUDGING PHASE: After openDeadline, creator judges submissions
  * 4. RESOLVED: Creator selects winner before judgingDeadline, prize sent
  * 5. SLASHED: If creator doesn't select winner by judgingDeadline, slash distributed to submitters
- * 
+ *
  * NO CANCELLATION allowed once created
  */
 contract Quinty is Ownable, ReentrancyGuard {
@@ -31,7 +31,6 @@ contract Quinty is Ownable, ReentrancyGuard {
     struct Submission {
         address submitter;
         string ipfsCid;           // IPFS CID with work proof
-        string socialHandle;      // X/Twitter handle for credibility verification
         uint256 deposit;          // 1% deposit amount
         uint256 timestamp;
     }
@@ -51,18 +50,9 @@ contract Quinty is Ownable, ReentrancyGuard {
         uint256 totalDeposits;    // Sum of all submission deposits
     }
 
-    // Social account registry - maps wallet address to social handles
-    struct SocialAccount {
-        string xHandle;           // X/Twitter handle
-        string email;             // Email for verification (optional)
-        uint256 linkedAt;
-        bool verified;
-    }
-
     mapping(uint256 => Bounty) public bounties;
     mapping(uint256 => mapping(address => bool)) public hasSubmitted;
-    mapping(address => SocialAccount) public socialAccounts;
-    
+
     uint256 public bountyCounter;
     uint256 public constant DEPOSIT_PERCENT = 100; // 1% = 100 basis points
 
@@ -84,7 +74,6 @@ contract Quinty is Ownable, ReentrancyGuard {
         uint256 submissionId,
         address indexed submitter,
         string ipfsCid,
-        string socialHandle,
         uint256 deposit
     );
     event BountyMovedToJudging(uint256 indexed bountyId);
@@ -100,7 +89,6 @@ contract Quinty is Ownable, ReentrancyGuard {
         uint256 refundToCreator
     );
     event DepositsRefunded(uint256 indexed bountyId, uint256 totalRefunded);
-    event SocialAccountLinked(address indexed wallet, string xHandle, string email);
 
     modifier onlyCreator(uint256 _bountyId) {
         require(msg.sender == bounties[_bountyId].creator, "Not bounty creator");
@@ -110,24 +98,6 @@ contract Quinty is Ownable, ReentrancyGuard {
     modifier validBounty(uint256 _bountyId) {
         require(_bountyId > 0 && _bountyId <= bountyCounter, "Invalid bounty ID");
         _;
-    }
-
-    /**
-     * @notice Link social account to wallet address (stored on-chain)
-     * @param _xHandle X/Twitter handle
-     * @param _email Email address (optional)
-     */
-    function linkSocialAccount(string memory _xHandle, string memory _email) external {
-        require(bytes(_xHandle).length > 0, "X handle required");
-        
-        socialAccounts[msg.sender] = SocialAccount({
-            xHandle: _xHandle,
-            email: _email,
-            linkedAt: block.timestamp,
-            verified: false
-        });
-        
-        emit SocialAccountLinked(msg.sender, _xHandle, _email);
     }
 
     /**
@@ -183,18 +153,15 @@ contract Quinty is Ownable, ReentrancyGuard {
      * @notice Submit work to a bounty with 1% deposit (only during OPEN phase)
      * @param _bountyId Bounty ID
      * @param _ipfsCid IPFS CID containing work proof
-     * @param _socialHandle Social media handle for verification
      */
     function submitToBounty(
         uint256 _bountyId,
-        string memory _ipfsCid,
-        string memory _socialHandle
+        string memory _ipfsCid
     ) external payable validBounty(_bountyId) nonReentrant {
         Bounty storage bounty = bounties[_bountyId];
         require(bounty.status == BountyStatus.OPEN, "Bounty not open for submissions");
         require(block.timestamp <= bounty.openDeadline, "Submission deadline passed");
         require(bytes(_ipfsCid).length > 0, "IPFS CID required");
-        require(bytes(_socialHandle).length > 0, "Social handle required");
         require(!hasSubmitted[_bountyId][msg.sender], "Already submitted");
         require(msg.sender != bounty.creator, "Creator cannot submit");
 
@@ -205,27 +172,16 @@ contract Quinty is Ownable, ReentrancyGuard {
         hasSubmitted[_bountyId][msg.sender] = true;
         bounty.totalDeposits += depositAmount;
 
-        // Store social account on-chain if not already linked
-        if (bytes(socialAccounts[msg.sender].xHandle).length == 0) {
-            socialAccounts[msg.sender] = SocialAccount({
-                xHandle: _socialHandle,
-                email: "",
-                linkedAt: block.timestamp,
-                verified: false
-            });
-        }
-
         bounty.submissions.push(Submission({
             submitter: msg.sender,
             ipfsCid: _ipfsCid,
-            socialHandle: _socialHandle,
             deposit: depositAmount,
             timestamp: block.timestamp
         }));
 
         uint256 subId = bounty.submissions.length - 1;
 
-        emit SubmissionCreated(_bountyId, subId, msg.sender, _ipfsCid, _socialHandle, depositAmount);
+        emit SubmissionCreated(_bountyId, subId, msg.sender, _ipfsCid, depositAmount);
 
         // Update reputation
         if (reputationAddress != address(0)) {
@@ -256,13 +212,13 @@ contract Quinty is Ownable, ReentrancyGuard {
         uint256 _submissionId
     ) external validBounty(_bountyId) onlyCreator(_bountyId) nonReentrant {
         Bounty storage bounty = bounties[_bountyId];
-        
+
         // Auto-move to judging if open deadline passed
         if (bounty.status == BountyStatus.OPEN && block.timestamp > bounty.openDeadline) {
             bounty.status = BountyStatus.JUDGING;
             emit BountyMovedToJudging(_bountyId);
         }
-        
+
         require(bounty.status == BountyStatus.JUDGING, "Not in judging phase");
         require(block.timestamp <= bounty.judgingDeadline, "Judging deadline passed - call triggerSlash");
         require(_submissionId < bounty.submissions.length, "Invalid submission ID");
@@ -307,12 +263,12 @@ contract Quinty is Ownable, ReentrancyGuard {
      */
     function triggerSlash(uint256 _bountyId) external validBounty(_bountyId) nonReentrant {
         Bounty storage bounty = bounties[_bountyId];
-        
+
         // Auto-move to judging if needed
         if (bounty.status == BountyStatus.OPEN && block.timestamp > bounty.openDeadline) {
             bounty.status = BountyStatus.JUDGING;
         }
-        
+
         require(bounty.status == BountyStatus.JUDGING, "Not in judging phase");
         require(block.timestamp > bounty.judgingDeadline, "Judging deadline not passed");
         require(bounty.submissions.length > 0, "No submissions - creator can claim refund");
@@ -401,13 +357,12 @@ contract Quinty is Ownable, ReentrancyGuard {
     function getSubmission(uint256 _bountyId, uint256 _subId) external view validBounty(_bountyId) returns (
         address submitter,
         string memory ipfsCid,
-        string memory socialHandle,
         uint256 deposit,
         uint256 timestamp
     ) {
         require(_subId < bounties[_bountyId].submissions.length, "Invalid submission ID");
         Submission storage sub = bounties[_bountyId].submissions[_subId];
-        return (sub.submitter, sub.ipfsCid, sub.socialHandle, sub.deposit, sub.timestamp);
+        return (sub.submitter, sub.ipfsCid, sub.deposit, sub.timestamp);
     }
 
     function getSubmissionCount(uint256 _bountyId) external view validBounty(_bountyId) returns (uint256) {
@@ -420,16 +375,6 @@ contract Quinty is Ownable, ReentrancyGuard {
 
     function getAllSubmissions(uint256 _bountyId) external view validBounty(_bountyId) returns (Submission[] memory) {
         return bounties[_bountyId].submissions;
-    }
-
-    function getSocialAccount(address _wallet) external view returns (
-        string memory xHandle,
-        string memory email,
-        uint256 linkedAt,
-        bool verified
-    ) {
-        SocialAccount storage account = socialAccounts[_wallet];
-        return (account.xHandle, account.email, account.linkedAt, account.verified);
     }
 
     function getRequiredDeposit(uint256 _bountyId) external view validBounty(_bountyId) returns (uint256) {
