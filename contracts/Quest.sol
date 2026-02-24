@@ -3,18 +3,29 @@ pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+interface IQuintyReputation {
+    function recordBountyCreation(address _user) external;
+    function recordSubmission(address _user) external;
+}
 
 /**
- * @title Quest
- * @notice Social quest/promotion tasks with fixed ETH rewards
+ * @title Quest V2
+ * @notice Social quest/promotion tasks with ERC-20 support, pull-based withdrawals,
+ *         delegated verifiers, reputation integration, and emergency pause.
  *
  * Flow:
- * 1. Creator creates quest with escrow (perQualifier * maxQualifiers)
+ * 1. Creator creates quest with ETH/ERC-20 escrow (perQualifier * maxQualifiers)
  * 2. Users submit entries with IPFS proof
- * 3. Creator approves entries -> immediate payout
+ * 3. Creator or delegated verifier approves entries -> reward credited
  * 4. Quest finalizes when max qualifiers reached or deadline passes
+ * 5. Users withdraw credited funds via pull pattern
  */
-contract Quest is Ownable, ReentrancyGuard {
+contract Quest is Ownable, ReentrancyGuard, Pausable {
+    using SafeERC20 for IERC20;
 
     enum VerificationStatus { Pending, Approved, Rejected }
 
@@ -22,7 +33,8 @@ contract Quest is Ownable, ReentrancyGuard {
         address creator;
         string title;
         string description;
-        uint256 totalAmount;      // ETH escrowed
+        address token;            // address(0) for ETH, token address for ERC-20
+        uint256 totalAmount;      // Total escrowed
         uint256 perQualifier;     // Reward per approved entry
         uint256 maxQualifiers;    // Max number of rewards
         uint256 qualifiersCount;  // Current approved count
@@ -35,10 +47,10 @@ contract Quest is Ownable, ReentrancyGuard {
 
     struct Entry {
         address solver;
-        string ipfsProofCid;      // IPFS CID with proof (screenshot, link)
+        string ipfsProofCid;
         uint256 timestamp;
         VerificationStatus status;
-        string feedback;          // Optional feedback from verifier
+        string feedback;
     }
 
     mapping(uint256 => QuestData) public quests;
@@ -46,12 +58,26 @@ contract Quest is Ownable, ReentrancyGuard {
     mapping(uint256 => mapping(address => bool)) public hasSubmitted;
     mapping(uint256 => mapping(address => uint256)) public userSubmissionIndex;
 
+    // Delegated verifiers per quest
+    mapping(uint256 => mapping(address => bool)) public questVerifiers;
+
+    // Pull-based withdrawals: token => user => amount
+    mapping(address => mapping(address => uint256)) public pendingWithdrawals;
+    mapping(address => uint256) public totalEscrowed;
+
+    // Token whitelist
+    mapping(address => bool) public allowedTokens;
+
     uint256 public questCounter;
 
+    address public reputationAddress;
+
+    // Events
     event QuestCreated(
         uint256 indexed id,
         address indexed creator,
         string title,
+        address token,
         uint256 perQualifier,
         uint256 maxQualifiers,
         uint256 deadline
@@ -69,6 +95,12 @@ contract Quest is Ownable, ReentrancyGuard {
     );
     event QuestFinalized(uint256 indexed id, address[] qualifiers, uint256 totalDistributed);
     event QuestCancelled(uint256 indexed id, uint256 refundAmount);
+    event VerifierAdded(uint256 indexed questId, address indexed verifier);
+    event VerifierRemoved(uint256 indexed questId, address indexed verifier);
+    event FundsCredited(address indexed token, address indexed recipient, uint256 amount);
+    event Withdrawn(address indexed token, address indexed recipient, uint256 amount);
+    event TokenAllowed(address indexed token);
+    event TokenRevoked(address indexed token);
 
     modifier validQuest(uint256 _id) {
         require(_id > 0 && _id <= questCounter, "Invalid quest ID");
@@ -91,16 +123,67 @@ contract Quest is Ownable, ReentrancyGuard {
         _;
     }
 
+    modifier onlyQuestVerifier(uint256 _id) {
+        require(
+            msg.sender == quests[_id].creator ||
+            questVerifiers[_id][msg.sender],
+            "Not authorized verifier"
+        );
+        _;
+    }
+
+    modifier onlyAllowedToken(address _token) {
+        require(_token == address(0) || allowedTokens[_token], "Token not allowed");
+        _;
+    }
+
     constructor() Ownable(msg.sender) {}
 
+    // ============ ADMIN FUNCTIONS ============
+
+    function pause() external onlyOwner { _pause(); }
+    function unpause() external onlyOwner { _unpause(); }
+
+    function setReputationAddress(address _repAddress) external onlyOwner {
+        reputationAddress = _repAddress;
+    }
+
+    function allowToken(address _token) external onlyOwner {
+        require(_token != address(0), "Use address(0) for ETH");
+        allowedTokens[_token] = true;
+        emit TokenAllowed(_token);
+    }
+
+    function revokeToken(address _token) external onlyOwner {
+        allowedTokens[_token] = false;
+        emit TokenRevoked(_token);
+    }
+
+    function rescueERC20(address _token, uint256 _amount) external onlyOwner {
+        require(_token != address(0), "Cannot rescue ETH");
+        uint256 contractBalance = IERC20(_token).balanceOf(address(this));
+        uint256 escrowed = totalEscrowed[_token];
+        require(_amount <= contractBalance - escrowed, "Cannot drain escrow");
+        IERC20(_token).safeTransfer(owner(), _amount);
+    }
+
+    // ============ VERIFIER MANAGEMENT ============
+
+    function addVerifier(uint256 _questId, address _verifier) external onlyCreator(_questId) {
+        require(_verifier != address(0), "Zero address");
+        questVerifiers[_questId][_verifier] = true;
+        emit VerifierAdded(_questId, _verifier);
+    }
+
+    function removeVerifier(uint256 _questId, address _verifier) external onlyCreator(_questId) {
+        questVerifiers[_questId][_verifier] = false;
+        emit VerifierRemoved(_questId, _verifier);
+    }
+
+    // ============ CORE FUNCTIONS ============
+
     /**
-     * @notice Create a new quest with ETH escrow
-     * @param _title Quest title
-     * @param _description Quest description
-     * @param _perQualifier Reward per approved qualifier
-     * @param _maxQualifiers Maximum number of qualifiers
-     * @param _deadline Deadline timestamp
-     * @param _requirements IPFS CID with detailed requirements
+     * @notice Create a new quest with ETH or ERC-20 escrow
      */
     function createQuest(
         string memory _title,
@@ -108,9 +191,10 @@ contract Quest is Ownable, ReentrancyGuard {
         uint256 _perQualifier,
         uint256 _maxQualifiers,
         uint256 _deadline,
-        string memory _requirements
-    ) external payable nonReentrant {
-        require(msg.value == _perQualifier * _maxQualifiers, "Must escrow full amount");
+        string memory _requirements,
+        address _token
+    ) external payable whenNotPaused nonReentrant onlyAllowedToken(_token) {
+        uint256 total = _perQualifier * _maxQualifiers;
         require(_deadline > block.timestamp, "Invalid deadline");
         require(_deadline <= block.timestamp + 365 days, "Deadline too far");
         require(_maxQualifiers > 0 && _maxQualifiers <= 10000, "Invalid max qualifiers");
@@ -118,13 +202,23 @@ contract Quest is Ownable, ReentrancyGuard {
         require(bytes(_title).length > 0, "Title required");
         require(bytes(_requirements).length > 0, "Requirements required");
 
+        if (_token == address(0)) {
+            require(msg.value == total, "Must escrow full amount");
+        } else {
+            require(msg.value == 0, "Do not send ETH for token quest");
+            IERC20(_token).safeTransferFrom(msg.sender, address(this), total);
+        }
+
+        totalEscrowed[_token] += total;
+
         questCounter++;
 
         quests[questCounter] = QuestData({
             creator: msg.sender,
             title: _title,
             description: _description,
-            totalAmount: msg.value,
+            token: _token,
+            totalAmount: total,
             perQualifier: _perQualifier,
             maxQualifiers: _maxQualifiers,
             qualifiersCount: 0,
@@ -135,18 +229,20 @@ contract Quest is Ownable, ReentrancyGuard {
             requirements: _requirements
         });
 
-        emit QuestCreated(questCounter, msg.sender, _title, _perQualifier, _maxQualifiers, _deadline);
+        if (reputationAddress != address(0)) {
+            IQuintyReputation(reputationAddress).recordBountyCreation(msg.sender);
+        }
+
+        emit QuestCreated(questCounter, msg.sender, _title, _token, _perQualifier, _maxQualifiers, _deadline);
     }
 
     /**
      * @notice Submit an entry to a quest
-     * @param _id Quest ID
-     * @param _ipfsProofCid IPFS CID containing proof of completion
      */
     function submitEntry(
         uint256 _id,
         string memory _ipfsProofCid
-    ) external validQuest(_id) questActive(_id) nonReentrant {
+    ) external validQuest(_id) questActive(_id) whenNotPaused nonReentrant {
         require(bytes(_ipfsProofCid).length > 0, "Invalid proof CID");
         require(!hasSubmitted[_id][msg.sender], "Already submitted");
 
@@ -165,27 +261,28 @@ contract Quest is Ownable, ReentrancyGuard {
         hasSubmitted[_id][msg.sender] = true;
         userSubmissionIndex[_id][msg.sender] = entryIndex;
 
+        if (reputationAddress != address(0)) {
+            IQuintyReputation(reputationAddress).recordSubmission(msg.sender);
+        }
+
         emit EntrySubmitted(_id, msg.sender, _ipfsProofCid);
     }
 
     /**
      * @notice Verify a single entry (approve or reject)
-     * @param _questId Quest ID
-     * @param _entryId Entry ID
-     * @param _status Verification status (1=Approved, 2=Rejected)
-     * @param _feedback Optional feedback message
      */
     function verifyEntry(
         uint256 _questId,
         uint256 _entryId,
         VerificationStatus _status,
         string memory _feedback
-    ) external onlyCreator(_questId) validQuest(_questId) nonReentrant {
+    ) external onlyQuestVerifier(_questId) validQuest(_questId) whenNotPaused nonReentrant {
         require(_entryId < entries[_questId].length, "Invalid entry");
         require(_status != VerificationStatus.Pending, "Must approve or reject");
 
         Entry storage entry = entries[_questId][_entryId];
         require(entry.status == VerificationStatus.Pending, "Already verified");
+        require(msg.sender != entry.solver, "Cannot verify own entry");
 
         entry.status = _status;
         entry.feedback = _feedback;
@@ -196,11 +293,10 @@ contract Quest is Ownable, ReentrancyGuard {
         if (!quest.resolved && _status == VerificationStatus.Approved) {
             quest.qualifiersCount++;
 
-            // Pay the approved entry immediately
-            (bool success, ) = payable(entry.solver).call{value: quest.perQualifier}("");
-            require(success, "Payment failed");
+            // Credit the approved entry via pull pattern
+            _credit(quest.token, entry.solver, quest.perQualifier);
+            totalEscrowed[quest.token] -= quest.perQualifier;
 
-            // Auto-finalize if max qualifiers reached
             if (quest.qualifiersCount >= quest.maxQualifiers) {
                 _finalizeQuest(_questId);
             }
@@ -209,17 +305,13 @@ contract Quest is Ownable, ReentrancyGuard {
 
     /**
      * @notice Verify multiple entries at once
-     * @param _questId Quest ID
-     * @param _entryIds Array of entry IDs
-     * @param _statuses Array of verification statuses
-     * @param _feedbacks Array of feedback messages
      */
     function verifyMultipleEntries(
         uint256 _questId,
         uint256[] memory _entryIds,
         VerificationStatus[] memory _statuses,
         string[] memory _feedbacks
-    ) external onlyCreator(_questId) validQuest(_questId) nonReentrant {
+    ) external onlyQuestVerifier(_questId) validQuest(_questId) whenNotPaused nonReentrant {
         require(
             _entryIds.length == _statuses.length &&
             _statuses.length == _feedbacks.length,
@@ -236,15 +328,15 @@ contract Quest is Ownable, ReentrancyGuard {
 
             Entry storage entry = entries[_questId][entryId];
             require(entry.status == VerificationStatus.Pending, "Already verified");
+            require(msg.sender != entry.solver, "Cannot verify own entry");
 
             entry.status = _statuses[i];
             entry.feedback = _feedbacks[i];
 
             if (_statuses[i] == VerificationStatus.Approved) {
                 newApprovals++;
-                // Pay approved entry
-                (bool success, ) = payable(entry.solver).call{value: quest.perQualifier}("");
-                require(success, "Payment failed");
+                _credit(quest.token, entry.solver, quest.perQualifier);
+                totalEscrowed[quest.token] -= quest.perQualifier;
             }
 
             emit EntryVerified(_questId, entryId, msg.sender, _statuses[i]);
@@ -261,9 +353,8 @@ contract Quest is Ownable, ReentrancyGuard {
 
     /**
      * @notice Finalize quest and refund unused funds
-     * @param _id Quest ID
      */
-    function finalizeQuest(uint256 _id) external validQuest(_id) nonReentrant {
+    function finalizeQuest(uint256 _id) external validQuest(_id) whenNotPaused nonReentrant {
         QuestData storage quest = quests[_id];
         require(
             msg.sender == quest.creator ||
@@ -279,19 +370,16 @@ contract Quest is Ownable, ReentrancyGuard {
     function _finalizeQuest(uint256 _id) internal {
         QuestData storage quest = quests[_id];
 
-        // Calculate unused amount (already paid out during verification)
         uint256 paidOut = quest.qualifiersCount * quest.perQualifier;
         uint256 unusedAmount = quest.totalAmount - paidOut;
 
-        // Refund unused amount to creator
         if (unusedAmount > 0) {
-            (bool success, ) = payable(quest.creator).call{value: unusedAmount}("");
-            require(success, "Refund failed");
+            _credit(quest.token, quest.creator, unusedAmount);
+            totalEscrowed[quest.token] -= unusedAmount;
         }
 
         quest.resolved = true;
 
-        // Collect qualifier addresses for event
         address[] memory qualifiers = new address[](quest.qualifiersCount);
         uint256 qualifierIndex = 0;
         for (uint i = 0; i < entries[_id].length && qualifierIndex < quest.qualifiersCount; i++) {
@@ -306,7 +394,7 @@ contract Quest is Ownable, ReentrancyGuard {
 
     /**
      * @notice Cancel quest and refund creator (only if no approvals yet)
-     * @param _id Quest ID
+     *         Available during pause since it's a refund.
      */
     function cancelQuest(uint256 _id) external validQuest(_id) onlyCreator(_id) nonReentrant {
         QuestData storage quest = quests[_id];
@@ -315,11 +403,44 @@ contract Quest is Ownable, ReentrancyGuard {
 
         quest.cancelled = true;
 
-        // Refund creator
-        (bool success, ) = payable(quest.creator).call{value: quest.totalAmount}("");
-        require(success, "Refund failed");
+        _credit(quest.token, quest.creator, quest.totalAmount);
+        totalEscrowed[quest.token] -= quest.totalAmount;
 
         emit QuestCancelled(_id, quest.totalAmount);
+    }
+
+    // ============ WITHDRAWAL FUNCTIONS ============
+
+    function withdrawETH() external nonReentrant {
+        uint256 amount = pendingWithdrawals[address(0)][msg.sender];
+        require(amount > 0, "Nothing to withdraw");
+
+        pendingWithdrawals[address(0)][msg.sender] = 0;
+
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        require(ok, "ETH transfer failed");
+
+        emit Withdrawn(address(0), msg.sender, amount);
+    }
+
+    function withdrawToken(address _token) external nonReentrant {
+        require(_token != address(0), "Use withdrawETH");
+
+        uint256 amount = pendingWithdrawals[_token][msg.sender];
+        require(amount > 0, "Nothing to withdraw");
+
+        pendingWithdrawals[_token][msg.sender] = 0;
+
+        IERC20(_token).safeTransfer(msg.sender, amount);
+
+        emit Withdrawn(_token, msg.sender, amount);
+    }
+
+    // ============ INTERNAL FUNCTIONS ============
+
+    function _credit(address _token, address _recipient, uint256 _amount) internal {
+        pendingWithdrawals[_token][_recipient] += _amount;
+        emit FundsCredited(_token, _recipient, _amount);
     }
 
     // ============ VIEW FUNCTIONS ============
@@ -328,6 +449,7 @@ contract Quest is Ownable, ReentrancyGuard {
         address creator,
         string memory title,
         string memory description,
+        address token,
         uint256 totalAmount,
         uint256 perQualifier,
         uint256 maxQualifiers,
@@ -340,18 +462,10 @@ contract Quest is Ownable, ReentrancyGuard {
     ) {
         QuestData storage quest = quests[_id];
         return (
-            quest.creator,
-            quest.title,
-            quest.description,
-            quest.totalAmount,
-            quest.perQualifier,
-            quest.maxQualifiers,
-            quest.qualifiersCount,
-            quest.deadline,
-            quest.createdAt,
-            quest.resolved,
-            quest.cancelled,
-            quest.requirements
+            quest.creator, quest.title, quest.description, quest.token,
+            quest.totalAmount, quest.perQualifier, quest.maxQualifiers,
+            quest.qualifiersCount, quest.deadline, quest.createdAt,
+            quest.resolved, quest.cancelled, quest.requirements
         );
     }
 
@@ -364,13 +478,7 @@ contract Quest is Ownable, ReentrancyGuard {
     ) {
         require(_entryId < entries[_questId].length, "Invalid entry");
         Entry storage entry = entries[_questId][_entryId];
-        return (
-            entry.solver,
-            entry.ipfsProofCid,
-            entry.timestamp,
-            entry.status,
-            entry.feedback
-        );
+        return (entry.solver, entry.ipfsProofCid, entry.timestamp, entry.status, entry.feedback);
     }
 
     function getEntryCount(uint256 _questId) external view validQuest(_questId) returns (uint256) {
@@ -411,6 +519,10 @@ contract Quest is Ownable, ReentrancyGuard {
 
         remainingSlots = quest.maxQualifiers > approvedEntries ?
             quest.maxQualifiers - approvedEntries : 0;
+    }
+
+    function pendingBalance(address _token, address _user) external view returns (uint256) {
+        return pendingWithdrawals[_token][_user];
     }
 
     receive() external payable {}

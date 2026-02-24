@@ -60,6 +60,9 @@ contract QuintyReputation is ERC721URIStorage, Ownable {
         uint256 bountiesCreated;
     }
 
+    // Authorized callers (Quinty, Quest contracts)
+    mapping(address => bool) public authorizedCallers;
+
     // State variables
     mapping(address => UserStats) public userStats;
     mapping(uint256 => Season) public seasons;
@@ -80,6 +83,13 @@ contract QuintyReputation is ERC721URIStorage, Ownable {
     event AchievementUnlocked(address indexed user, AchievementType achievement, uint256 tokenId);
     event SeasonStarted(uint256 indexed seasonId, uint256 startTime);
     event SeasonEnded(uint256 indexed seasonId, address topSolver, address topCreator);
+    event CallerAuthorized(address indexed caller);
+    event CallerRevoked(address indexed caller);
+
+    modifier onlyAuthorized() {
+        require(authorizedCallers[msg.sender] || msg.sender == owner(), "Not authorized");
+        _;
+    }
 
     constructor(string memory baseTokenURI) ERC721("Quinty Reputation", "QREP") Ownable(msg.sender) {
         _baseTokenURI = baseTokenURI;
@@ -90,8 +100,19 @@ contract QuintyReputation is ERC721URIStorage, Ownable {
         _baseTokenURI = baseTokenURI;
     }
 
-    // Called by Quinty contract when user submits solution
-    function recordSubmission(address _user) external onlyOwner {
+    function authorizeCaller(address _caller) external onlyOwner {
+        require(_caller != address(0), "Zero address");
+        authorizedCallers[_caller] = true;
+        emit CallerAuthorized(_caller);
+    }
+
+    function revokeCaller(address _caller) external onlyOwner {
+        authorizedCallers[_caller] = false;
+        emit CallerRevoked(_caller);
+    }
+
+    // Called by Quinty/Quest contracts when user submits solution
+    function recordSubmission(address _user) external onlyAuthorized {
         userStats[_user].totalSubmissions++;
         if (userStats[_user].firstActivity == 0) {
             userStats[_user].firstActivity = block.timestamp;
@@ -105,7 +126,7 @@ contract QuintyReputation is ERC721URIStorage, Ownable {
     }
 
     // Called by Quinty contract when user wins bounty
-    function recordWin(address _user) external onlyOwner {
+    function recordWin(address _user) external onlyAuthorized {
         userStats[_user].totalWins++;
         userStats[_user].lastActivity = block.timestamp;
 
@@ -115,8 +136,8 @@ contract QuintyReputation is ERC721URIStorage, Ownable {
         _checkWinnerMilestones(_user);
     }
 
-    // Called by Quinty contract when user creates bounty
-    function recordBountyCreation(address _user) external onlyOwner {
+    // Called by Quinty/Quest contracts when user creates bounty or quest
+    function recordBountyCreation(address _user) external onlyAuthorized {
         userStats[_user].totalBountiesCreated++;
         if (userStats[_user].firstActivity == 0) {
             userStats[_user].firstActivity = block.timestamp;
