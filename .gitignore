@@ -35,3 +35,5 @@ yarn-debug.log*
 
 # fe quinty
 /fe-quinty
+# Ignore .DS_Store files
+**/.DS_Store
