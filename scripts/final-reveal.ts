@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const RPC_URL = "https://sepolia.base.org";
-const SOLVER_PRIVATE_KEY = "0x4591421ff92c9374e8be266b344d11a5ceaac9c54b99a2b73a6d0b6d5f8ba8f9";
+const SOLVER_PRIVATE_KEY = process.env.SOLVER_PRIVATE_KEY as string;
 const QUINTY_ADDRESS = "0x1c52AAc4f772E2eAbcAb6A0aC7a218d3d5661d85";
 
 async function main() {
