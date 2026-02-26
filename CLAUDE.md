@@ -1,600 +1,379 @@
-# CLAUDE.md
-
-This file provides comprehensive guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-
-**Quinty V2** is a comprehensive on-chain task bounty and funding ecosystem built for the Base network. It combines multiple funding models (bounties, grants, crowdfunding, VC funding) with a reputation system and soulbound NFT badges to create a complete decentralized work platform.
-
-## Commands
-
-### Smart Contract Development
-
-- **Compile**: `npx hardhat compile` - Compiles all 9 contracts with IR optimization
-- **Test**: `npx hardhat test` - Runs comprehensive test suite (68 tests)
-- **Deploy locally**: `npx hardhat run scripts/deploy.ts --network hardhat`
-- **Deploy to Base Sepolia**: `npx hardhat run scripts/deploy.ts --network baseSepolia`
-- **Deploy to Base Mainnet**: `npx hardhat run scripts/deploy.ts --network baseMainnet`
-- **Console**: `npx hardhat console --network baseSepolia` - Interactive REPL for testing
-
-### Testing Commands
-
-- **Full test suite**: `npx hardhat test` - Runs all 68 tests across 9 test files
-- **Single test file**: `npx hardhat test test/Quinty.test.ts`
-- **Individual contract tests**:
-  - `npx hardhat test test/Quinty.test.ts` - Core bounty (21 tests)
-  - `npx hardhat test test/QuintyOprec.test.ts` - Oprec & teams (9 tests)
-  - `npx hardhat test test/AirdropBounty.test.ts` - Airdrops (26 tests)
-  - `npx hardhat test test/QuintyNFT.test.ts` - Soulbound NFTs
-  - `npx hardhat test test/GrantProgram.test.ts` - Grant programs
-  - `npx hardhat test test/Crowdfunding.test.ts` - Crowdfunding
-  - `npx hardhat test test/LookingForGrant.test.ts` - VC funding
-
-## Architecture Overview
-
-Quinty V2 is a comprehensive decentralized work and funding platform built on the Base network with nine interconnected smart contracts.
-
-### Core Contract System (9 Contracts)
-
-#### 1. **Quinty.sol** - Main Bounty Contract
-**Purpose**: Core bounty creation and management with 100% ETH escrow
-
-**Key Features**:
-- **100% ETH Escrow**: All bounties require full upfront payment in native ETH
-- **Tracked IPFS Submissions**: Submissions are permanently recorded on-chain; submitters cannot change CIDs; winners reveal detailed solutions after selection
-- **Team Submissions**: Support for team-based work with automatic equal reward splitting
-- **Multiple Winners**: Customizable winner shares using basis points (must sum to 10000)
-- **Automatic Slashing**: 25-50% slash on expired bounties, funds go to DisputeResolver
-- **Communication System**: Creator and solvers can reply to submissions
-- **Oprec (Open Recruitment)**: Optional pre-bounty application phase for curated participants
-
-**Oprec (Open Recruitment) System**:
-- Creators can enable an optional application phase before the bounty opens
-- Applicants submit portfolios (IPFS CIDs) and skill descriptions
-- Support for both solo and team applications (up to 10 members)
-- Creator approves/rejects applications before opening the bounty to submissions
-- Only approved participants can submit solutions if oprec is enabled
-
-**Team Submission Flow**:
-- Leader submits solution with array of team member addresses
-- Rewards split equally among leader + all team members
-- Deposits also split equally among all team members
-- All team members get reputation updates and Team Member NFT badges
-
-**State Machine**: OPREC → OPEN → PENDING_REVEAL → RESOLVED/EXPIRED/DISPUTED
-
-**Interfaces**: IQuintyReputation, IDisputeResolver, IQuintyNFT
-
-#### 2. **QuintyReputation.sol** - Achievement-Based Reputation
-**Purpose**: Soulbound ERC-721 NFTs tracking user achievements and seasonal leaderboards
-
-**Achievement System**:
-- **Solver Milestones**: 1, 10, 25, 50, 100 submissions
-- **Winner Milestones**: 1, 10, 25, 50, 100 wins
-- **Creator Milestones**: 1, 10, 25, 50, 100 bounties created
-- **Season Winners**: Monthly top solver and top creator
-
-**Features**:
-- **User Stats Tracking**: Submissions, wins, bounties created, first/last activity
-- **Monthly Seasons**: 30-day seasons with automatic rollover
-- **Dynamic NFT Metadata**: Custom IPFS images and on-chain SVG generation
-- **Rarity Tiers**: Common (1), Uncommon (10), Rare (25), Epic (50), Legendary (100)
-- **Soulbound Tokens**: Non-transferable achievement NFTs
-
-**Ownership**: Transferred to Quinty contract after deployment to allow automated reputation updates
-
-#### 3. **DisputeResolver.sol** - Community Voting System
-**Purpose**: Voting system for expired bounty disputes and court (pengadilan) disputes
-
-**Features**:
-- **Minimum Stake**: 0.0001 ETH for accessibility
-- **Weighted Voting**: Stake amount × rank position determines winners
-- **Ranked Voting**: Voters rank exactly 3 submissions in order of preference
-- **Reward Distribution**: 10% to top-ranked non-winner, 5% to correct voters
-- **Expiry Votes**: Triggered when bounties expire and get slashed
-- **Pengadilan (Court) Disputes**: Creator-initiated disputes for resolved bounties
-
-**Status**: Currently marked as "coming soon" in tests
-
-#### 4. **QuintyNFT.sol** - Soulbound Badge System
-**Purpose**: Non-transferable NFT badges for ecosystem participation
-
-**Badge Types** (7 total):
-- **0: BountyCreator** - Minted when creating bounties
-- **1: BountySolver** - For bounty participation
-- **2: TeamMember** - For team-based bounty wins
-- **3: GrantGiver** - For creating grant programs
-- **4: GrantRecipient** - For receiving grants
-- **5: CrowdfundingDonor** - For contributing to campaigns
-- **6: LookingForGrantSupporter** - For VC/investor support
-
-**Features**:
-- **Soulbound**: Cannot be transferred or approved (only mint/burn)
-- **Authorization System**: Only authorized contracts can mint badges
-- **Custom Metadata**: Each badge has unique IPFS metadata URI
-- **Query Functions**: Get user badges, check badge ownership, count by type
-
-**Security**: Overrides _update(), approve(), and setApprovalForAll() to enforce soulbound behavior
-
-#### 5. **AirdropBounty.sol** - Promotion Task Rewards
-**Purpose**: Fixed-reward promotion tasks with social proof verification
-
-**Features**:
-- **Fixed Rewards**: perQualifier × maxQualifiers must be escrowed upfront
-- **Social Proof**: Submissions include IPFS CIDs with social media proof
-- **Verifier System**: Authorized verifiers approve/reject entries
-- **Auto-Finalization**: Distributes rewards when max qualifiers reached
-- **Batch Verification**: Verifiers can process up to 50 entries at once
-- **Cancellation**: Creator can cancel if no approvals exist yet
-
-**Use Cases**: X/Twitter campaigns, social media promotions, community engagement tasks
-
-#### 6. **GrantProgram.sol** - Institutional Grant Distribution
-**Purpose**: Organizations distribute funds to selected applicants
-
-**Features**:
-- **Application-Based**: Users apply with project details and social proof
-- **Selective Approval**: Grant givers choose recipients and custom amounts
-- **Flexible Amounts**: Each recipient can receive different amounts
-- **Claim-Based Distribution**: Recipients claim funds after approval
-- **Grant Lifecycle**: Open → SelectionPhase → Active → Completed/Cancelled
-- **Progress Updates**: Both giver and recipients can post updates
-- **NFT Badges**: GrantGiver and GrantRecipient badges automatically minted
-
-**Security**: Can only cancel before finalization, requires arrays match for approval
-
-#### 7. **LookingForGrant.sol** - VC/Investor Funding Platform
-**Purpose**: Projects seek funding from VCs and investors
-
-**Features**:
-- **Flexible Contributions**: No all-or-nothing, anytime withdrawal
-- **No Deadlines Required**: Optional deadline field (can be 0)
-- **Project Updates**: Requesters can update project details and progress
-- **Progress Tracking**: IPFS CIDs for project status and achievements
-- **Offering Details**: IPFS CID describing what's offered (tokens, equity, etc.)
-- **Auto-Funding**: Marks as funded when goal reached
-- **Supporter Tracking**: Track all supporters and contribution amounts
-
-**Difference from Crowdfunding**: No refund mechanism, creator can withdraw anytime
-
-#### 8. **Crowdfunding.sol** - All-or-Nothing Campaigns
-**Purpose**: All-or-nothing crowdfunding with milestone-based fund release
-
-**Features**:
-- **All-or-Nothing**: Full refund if goal not reached by deadline
-- **Milestone-Based**: Funds released sequentially by milestone
-- **Sequential Release**: Must release milestones in order
-- **Auto-Success**: Marked successful when goal reached
-- **Refund System**: Donors claim refunds for failed campaigns
-- **Progress Updates**: Creators post project updates
-- **NFT Badges**: CrowdfundingDonor badges on first contribution
-
-**Milestone Validation**: Milestone amounts must sum exactly to funding goal
-
-**State Flow**: Active → Successful/Failed → Completed (after all milestones withdrawn)
-
-#### 9. **SocialVerification.sol** - Social Account Verification
-**Purpose**: Link wallet addresses to social accounts (X/Twitter) on-chain
-
-**Features**:
-- **Manual Verification**: Authorized verifiers manually verify users
-- **Social Handle Linking**: Prevent duplicate social accounts
-- **Institution Verification**: Special verification for organizations
-- **Proof Hashing**: Store hash of verification proof data
-- **Verifier Management**: Owner can add/remove verifiers
-- **Revocation System**: Verifiers can revoke verification
-
-**Future Integration**: Ready for Reclaim Protocol or other ZK verification systems
-
-### Contract Dependency Graph
-
-```
-Quinty (Core)
-├── → QuintyReputation (Ownership transferred)
-├── → DisputeResolver (Receives slash funds)
-└── → QuintyNFT (Mints badges for winners)
-
-QuintyNFT (Soulbound Badges)
-├── ← Quinty (Authorized minter)
-├── ← GrantProgram (Authorized minter)
-├── ← LookingForGrant (Authorized minter)
-└── ← Crowdfunding (Authorized minter)
-
-GrantProgram, LookingForGrant, Crowdfunding (Independent contracts with NFT integration)
-└── → QuintyNFT (Mints badges)
-
-AirdropBounty, SocialVerification (Standalone contracts)
-```
-
-### Deployment Order
-
-1. **QuintyReputation** - Deploy first (requires baseTokenURI)
-2. **Quinty** - Deploy second (no constructor args)
-3. **DisputeResolver** - Deploy third (requires Quinty address)
-4. **QuintyNFT** - Deploy fourth (requires baseTokenURI)
-5. **AirdropBounty** - Deploy fifth (no constructor args)
-6. **SocialVerification** - Deploy sixth (no constructor args)
-7. **GrantProgram** - Deploy seventh (no constructor args)
-8. **LookingForGrant** - Deploy eighth (no constructor args)
-9. **Crowdfunding** - Deploy ninth (no constructor args)
-
-**Post-Deployment Setup** (in order):
-1. `Quinty.setAddresses(reputation, dispute, nft)` - Connect core contracts
-2. `QuintyReputation.transferOwnership(quinty)` - Allow Quinty to update reputation
-3. `GrantProgram.setNFTAddress(nft)` - Enable grant badges
-4. `LookingForGrant.setNFTAddress(nft)` - Enable supporter badges
-5. `Crowdfunding.setNFTAddress(nft)` - Enable donor badges
-6. `QuintyNFT.authorizeMinter(quinty)` - Allow Quinty to mint
-7. `QuintyNFT.authorizeMinter(grantProgram)` - Allow GrantProgram to mint
-8. `QuintyNFT.authorizeMinter(lookingForGrant)` - Allow LookingForGrant to mint
-9. `QuintyNFT.authorizeMinter(crowdfunding)` - Allow Crowdfunding to mint
-
-### Network Configuration
-
-#### Base Mainnet (Production)
-- **Network Name**: Base Mainnet
-- **Chain ID**: 8453
-- **RPC Endpoint**: https://mainnet.base.org
-- **Block Explorer**: https://base.blockscout.com/
-- **Native Token**: ETH
-- **Minimum Voting Stake**: 0.0001 ETH
-
-#### Base Sepolia (Testnet)
-- **Network Name**: Base Sepolia
-- **Chain ID**: 84532
-- **RPC Endpoint**: https://sepolia.base.org
-- **Block Explorer**: https://sepolia-explorer.base.org
-- **Native Token**: ETH (Testnet)
-- **Faucet**: https://www.coinbase.com/faucets/base-ethereum-goerli-faucet
-- **Minimum Voting Stake**: 0.0001 ETH
-
-**Current Deployment**: Base Sepolia (see FINAL_SUMMARY.md for addresses)
-
-## Development Patterns
-
-### Contract Architecture
-
-- **Solidity Version**: 0.8.28 with IR optimization enabled (viaIR: true)
-- **Optimizer**: Enabled with 200 runs for balanced gas efficiency
-- **Security**: All contracts use ReentrancyGuard on payable functions
-- **Access Control**: Ownable for admin functions, custom modifiers for role-based access
-- **Modularity**: Contracts are separate but interconnected via clean interfaces
-- **Gas Optimization**: IR compilation for complex interactions, packed structs, efficient loops
-
-### Key Implementation Patterns
-
-**1. Bounty Lifecycle** (Quinty.sol):
-```
-Create → [OPREC (optional)] → OPEN → Submit Solutions → Select Winners →
-PENDING_REVEAL → Reveal Solutions → RESOLVED
-```
-
-**Alternative Flow**:
-```
-OPEN → Deadline Passes → triggerSlash() → EXPIRED → Funds to DisputeResolver
-```
-
-**2. Team Submission Flow** (Quinty.sol:lines 256-294):
-- Solver submits with teamMembers array (up to 10 members)
-- Contract validates team members (no duplicates, no self-inclusion)
-- Marks submission as `isTeam = true`
-- On reveal: splits reward equally among leader + all members
-- Mints Team Member badges for all participants
-
-**3. Reputation Updates** (QuintyReputation.sol):
-- Quinty calls `recordSubmission()`, `recordWin()`, `recordBountyCreation()`
-- QuintyReputation checks milestone thresholds (1, 10, 25, 50, 100)
-- Automatically mints achievement NFTs when milestones reached
-- Updates season leaderboards for monthly champions
-
-**4. Expiry Handling** (Quinty.sol:lines 427-446):
-- Anyone can call `triggerSlash()` after deadline
-- Calculates slash amount (25-50% of bounty)
-- Transfers slash to DisputeResolver via `initiateExpiryVote()`
-- Refunds remaining amount to creator
-- Changes status to EXPIRED
-
-**5. Soulbound Token Enforcement** (QuintyNFT.sol:lines 217-246):
-```solidity
-function _update(address to, uint256 tokenId, address auth) internal override {
-    address from = _ownerOf(tokenId);
-    // Allow minting (from == 0) and burning (to == 0)
-    // Block all other transfers
-    if (from != address(0) && to != address(0)) {
-        revert("Soulbound: Transfer not allowed");
-    }
-    return super._update(to, tokenId, auth);
-}
-```
-
-**6. Milestone-Based Crowdfunding** (Crowdfunding.sol:lines 232-253):
-- Creator releases milestones sequentially
-- Enforces order: milestone N-1 must be released before N
-- Separate release and withdrawal for transparency
-- Auto-marks as completed when all milestones withdrawn
-
-### IPFS Integration
-
-All off-chain data stored on IPFS:
-
-- **Bounty Descriptions**: Full task details with images/videos
-- **Submission CIDs**: Permanently tracked IPFS CIDs submitted by solvers (immutable)
-- **Reveal CIDs**: Additional detailed solution CIDs that winners can reveal after selection
-- **NFT Metadata**: Custom metadata for achievement badges
-- **Grant Applications**: Project details, social proof, portfolios
-- **Campaign Updates**: Progress updates with images/documents
-- **Verification Proofs**: Social media verification screenshots
-
-**Standard Format**: `ipfs://QmExampleCid/metadata.json`
-
-### Testing Strategy
-
-**Test Suite**: 68 tests across 9 test files
-
-- **Quinty.test.ts** (21 tests):
-  - Bounty creation and validation
-  - Submission flow (solo and team)
-  - Winner selection and reveal
-  - Slash mechanism on expiry
-  - Edge cases (no submissions, single submission)
-
-- **QuintyOprec.test.ts** (9 tests):
-  - Oprec application submission
-  - Approval and rejection flow
-  - Phase transition to OPEN
-  - Team vs solo applications
-
-- **AirdropBounty.test.ts** (26 tests):
-  - Airdrop creation and escrow
-  - Entry submission and verification
-  - Verifier management
-  - Batch verification
-  - Auto-finalization
-  - Cancellation logic
-
-- **QuintyNFT.test.ts**: Soulbound behavior, minting authorization
-- **GrantProgram.test.ts**: Application flow, selective approval
-- **Crowdfunding.test.ts**: Milestone release, refund mechanism
-- **LookingForGrant.test.ts**: Flexible funding model
-- **NewContracts.test.ts** (12 tests): Integration tests
-- **DisputeResolver.test.ts**: Voting mechanics (marked "coming soon")
-
-**Mock Data**: Realistic ETH amounts (0.1-10 ETH), valid IPFS CID formats
-
-**Edge Cases Covered**:
-- Zero submissions on bounties
-- Single submission edge cases
-- Large bounty amounts (100 ETH+)
-- Maximum participants (10 team members, 100 grant recipients)
-- Attack vectors (re-entrancy, unauthorized access)
-
-### Security Features
-
-**1. ReentrancyGuard**: All payable and state-changing functions protected
-
-**2. Access Control**:
-- Ownable for admin functions
-- Custom modifiers (`onlyCreator`, `bountyIsOpen`, `oprecIsActive`)
-- Verifier authorization system
-- NFT minting authorization
-
-**3. Input Validation**:
-- Amount checks (> 0, within limits)
-- Deadline validation (future timestamps, reasonable limits)
-- Array length validation (prevent DOS)
-- Address validation (non-zero)
-- IPFS CID validation (non-empty strings)
-
-**4. Safe ETH Transfers**:
-```solidity
-(bool success, ) = payable(recipient).call{value: amount}("");
-require(success, "Transfer failed");
-```
-
-**5. Overflow Protection**: Solidity 0.8.28 built-in overflow checks
-
-**6. Immutable Submissions**: Submission IPFS CIDs are permanently tracked and cannot be changed
-
-**7. Soulbound Enforcement**: Multiple layers (transfer, approve, setApprovalForAll all blocked)
-
-### Gas Optimization Techniques
-
-1. **IR Compilation** (`viaIR: true`): Better optimization for complex contracts
-2. **Packed Structs**: Group smaller types together
-3. **Immutable Variables**: Where applicable for deployed addresses
-4. **Efficient Loops**: Early returns, minimal storage reads
-5. **Batch Operations**: `batchMintBadges`, `verifyMultipleEntries`
-6. **View Functions**: Extensive use for read-only operations
-7. **Minimal Storage Writes**: Calculate in memory, write once
-
-## Important Implementation Details
-
-### Contract Interconnections
-
-**Quinty ↔ QuintyReputation**:
-- QuintyReputation ownership transferred to Quinty
-- Quinty calls `recordSubmission()`, `recordWin()`, `recordBountyCreation()`
-- Automated reputation updates on all bounty actions
-
-**Quinty → DisputeResolver**:
-- DisputeResolver deployed with Quinty address
-- Quinty calls `initiateExpiryVote()` when bounty expires
-- Transfers slash funds (25-50% of bounty) to DisputeResolver
-
-**Quinty → QuintyNFT**:
-- Quinty authorized to mint badges
-- Mints Team Member badges for winning teams
-- Integrates with reputation system
-
-**GrantProgram/LookingForGrant/Crowdfunding → QuintyNFT**:
-- All authorized to mint badges
-- Grant programs mint GrantGiver and GrantRecipient badges
-- Crowdfunding mints CrowdfundingDonor badges
-- LookingForGrant mints LookingForGrantSupporter badges
-
-### ETH Token Usage
-
-**All transactions use native ETH**:
-- No ERC-20 tokens involved
-- Simplifies user experience
-- Lower gas costs
-- msg.value for all deposits
-
-**Minimum Amounts**:
-- Bounty submission deposit: 10% of bounty amount
-- Voting stake: 0.0001 ETH
-- Grant/crowdfunding: Any amount > 0
-
-### Voting Mechanics (DisputeResolver)
-
-**Weighted Voting System**:
-- Voters stake minimum 0.0001 ETH
-- Rank exactly 3 submissions in order
-- Score = stake × rank position
-- Higher scores win
-
-**Reward Distribution**:
-- 10% of slash to top-ranked non-winner
-- 5% of slash split among correct voters
-- Proportional to stake amount
-
-### Deployment Requirements
-
-**Required Environment Variables** (.env):
-```bash
-BASE_SEPOLIA_RPC=https://sepolia.base.org
-BASE_MAINNET_RPC=https://mainnet.base.org
-PRIVATE_KEY=your_private_key_here
-```
-
-**Deployment Scripts**:
-- `scripts/deploy.ts` - Full deployment pipeline with setup
-- `scripts/setup-contracts.ts` - Post-deployment configuration
-- `scripts/export-abis.ts` - Export ABIs for frontend
-
-**Deployment Artifacts**:
-- `deployments.json` - Contract addresses and network info
-- `typechain-types/` - TypeScript contract types
-- `artifacts/contracts/` - Compiled contract artifacts
-
-### Known Issues & Limitations
-
-1. **DisputeResolver Tests**: Marked as "coming soon", voting logic needs testing
-2. **NFT Test Mismatches**: Some tests expect 3 event args but contract emits 4
-3. **GrantProgram Test Issues**: Some function signature mismatches in tests
-4. **Nonce Management**: Base Sepolia sometimes has nonce delays (2-second delays added)
-5. **No Upgrade Path**: Simple deployment, no proxy pattern (intentional for security)
-6. **Season Duration**: Hardcoded to 30 days, cannot be changed without redeployment
-
-## Frontend Integration
-
-**ABI Exports**: Run `npx hardhat run scripts/export-abis.ts`
-
-**Contract Addresses**: See `deployments.json` or `FINAL_SUMMARY.md`
-
-**Frontend Files** (if exported to fe-quinty/):
-- Individual ABIs: `fe-quinty/contracts/*.json`
-- Combined ABIs: `fe-quinty/contracts/all-abis.json`
-- TypeScript constants: `fe-quinty/contracts/constants.ts`
-
-**Documentation**: See `FRONTEND_INTEGRATION.md` for complete integration examples
-
-## Development Workflow
-
-### Adding New Features
-
-1. Create feature branch
-2. Write contract code with NatSpec comments
-3. Add comprehensive tests
-4. Run `npx hardhat compile` to check for errors
-5. Run `npx hardhat test` to ensure all tests pass
-6. Update documentation (this file, DEPLOYMENT_SUMMARY.md)
-7. Deploy to testnet for verification
-
-### Testing Workflow
-
-1. Write tests before implementation (TDD)
-2. Test happy path first
-3. Add edge cases and failure scenarios
-4. Test access control and permissions
-5. Verify gas usage for expensive operations
-6. Test integration between contracts
-
-### Deployment Workflow
-
-1. Test on local Hardhat network
-2. Deploy to Base Sepolia testnet
-3. Verify all contracts on explorer
-4. Test all functions on testnet
-5. Audit contract security
-6. Deploy to Base Mainnet
-7. Verify on mainnet explorer
-8. Export ABIs for frontend
-
-## Resources
-
-- **Hardhat Documentation**: https://hardhat.org/docs
-- **OpenZeppelin Contracts**: https://docs.openzeppelin.com/contracts/
-- **Base Network Docs**: https://docs.base.org/
-- **Ethers.js v6**: https://docs.ethers.org/v6/
-- **IPFS Documentation**: https://docs.ipfs.tech/
-- **Solidity Docs**: https://docs.soliditylang.org/
-
-## Project Structure
-
-```
-sc-quinty/
-├── contracts/              # Solidity smart contracts (9 files)
-│   ├── Quinty.sol         # Core bounty contract
-│   ├── QuintyReputation.sol
-│   ├── QuintyNFT.sol      # Soulbound badges
-│   ├── DisputeResolver.sol
-│   ├── AirdropBounty.sol
-│   ├── SocialVerification.sol
-│   ├── GrantProgram.sol
-│   ├── LookingForGrant.sol
-│   └── Crowdfunding.sol
-├── test/                  # Test files (9 files, 68 tests)
-├── scripts/               # Deployment and utility scripts
-│   ├── deploy.ts         # Main deployment script
-│   ├── setup-contracts.ts
-│   └── export-abis.ts
-├── typechain-types/       # Auto-generated TypeScript types
-├── hardhat.config.ts      # Hardhat configuration
-├── package.json           # Dependencies
-├── deployments.json       # Deployed contract addresses
-├── CLAUDE.md             # This file
-├── DEPLOYMENT_SUMMARY.md  # Architecture overview
-├── FINAL_SUMMARY.md      # Complete deployment summary
-└── FRONTEND_INTEGRATION.md # Frontend integration guide
-```
+# CLAUDE.md - Quinty Smart Contracts
 
 ## Quick Reference
 
-### Contract Sizes (Approximate)
-- Quinty: ~20KB
-- QuintyReputation: ~18KB
-- QuintyNFT: ~12KB
-- Crowdfunding: ~14KB
-- GrantProgram: ~14KB
-- LookingForGrant: ~12KB
-- AirdropBounty: ~10KB
-- DisputeResolver: ~8KB
-- SocialVerification: ~6KB
+```bash
+npx hardhat compile          # Compile all contracts
+npx hardhat test             # Run all tests (115 tests)
+npx hardhat test test/Quinty.test.ts   # Run specific test
+npx hardhat run scripts/deploy.ts --network baseSepolia  # Deploy
+npx ts-node scripts/export-abis.ts     # Export ABIs to exported-abis/
+```
 
-### Gas Estimates
-- Deploy all contracts: ~35M gas
-- Create bounty: ~200k gas
-- Submit solution: ~150k gas
-- Select winners: ~100k gas
-- Create grant: ~180k gas
-- Create campaign: ~250k gas
+## Network: Base Sepolia (Chain ID: 84532)
 
-### Test Coverage
-- **Total Tests**: 68
-- **Passing**: 34 (50%)
-- **Failing/Skipped**: 34 (50% - mostly integration and advanced features)
-- **Core Functionality**: ✅ Working
-- **Advanced Features**: 🚧 In progress
+RPC: `https://sepolia.base.org`
+Explorer: `https://sepolia-explorer.base.org`
+USDC: `0x036CbD53842c5426634e7929541eC2318f3dCF7e` (6 decimals)
 
-Last Updated: January 2025
+## Deployed Contracts (2026-02-09)
+
+| Contract | Address | Purpose |
+|----------|---------|---------|
+| Quinty | `0x034cf0b72BcB1b529a2B0458275E0307CD6b5459` | Bounty system |
+| Quest | `0x86cc170e725784812A31F548c434e425bc0181B1` | Social quests |
+| QuintyReputation | `0x3Fc6d21B3AC4E419a2bEe6BeB40E00FfF2bF1014` | Soulbound achievement NFTs |
+| QuintyNFT | `0x6fcd78D8BB923E20B3C657C65f64A20a4a6b9884` | Badge NFTs |
+
+## Tech Stack
+
+- Solidity 0.8.28, Hardhat, TypeScript
+- OpenZeppelin v5.4.0 (Ownable, ReentrancyGuard, Pausable, SafeERC20, ERC721URIStorage)
+- IR optimization enabled (viaIR: true, runs: 200)
+
+---
+
+## Contract 1: Quinty.sol V3 (Bounty System)
+
+Multi-winner bounty system with ERC-20 support, 1% deposit, phase deadlines, slash mechanism, pull-based withdrawals, and emergency pause.
+
+### Status Enum
+
+```
+OPEN (0) -> JUDGING (1) -> RESOLVED (2) or SLASHED (3)
+```
+
+### Bounty Flow
+
+```
+1. Creator calls createBounty() with ETH or ERC-20 escrow
+   - Sets: title, description, openDeadline, judgingDeadline, slashPercent (2500-5000 basis points)
+   - prizes[] array defines ranked prize tiers (up to 10 winners)
+   - token param: address(0) for ETH, whitelisted ERC-20 address otherwise
+   - For ERC-20: must approve() token transfer first, no msg.value
+
+2. OPEN PHASE (now -> openDeadline)
+   - Submitters call submitToBounty() paying 1% deposit of total bounty amount
+   - For ETH: deposit sent as msg.value
+   - For ERC-20: submitter approves + contract pulls deposit via SafeERC20
+
+3. JUDGING PHASE (openDeadline -> judgingDeadline)
+   - Anyone can call moveToJudging() or selectWinners auto-transitions
+   - Creator calls selectWinners(bountyId, submissionIds[]) ordered by rank
+     -> Winners get: prizes[rank] + their deposit (credited to pull balance)
+     -> Non-winners get: deposits refunded (credited to pull balance)
+     -> Fewer winners than prize slots: unused prizes refunded to creator
+   - All payouts via pull pattern (pendingWithdrawals mapping)
+
+4. SLASH (if creator misses judgingDeadline)
+   - Anyone calls triggerSlash()
+   - slashAmount = totalAmount * slashPercent / 10000
+   - Each submitter gets: (slashAmount / submitterCount) + their deposit
+   - Last submitter gets dust remainder
+   - Creator gets: totalAmount - slashAmount
+   - All credits via pull pattern
+
+5. NO SUBMISSIONS
+   - Creator/owner calls refundNoSubmissions() after openDeadline (NOT paused)
+   - Full escrow credited to creator via pull pattern
+
+6. WITHDRAWAL
+   - withdrawETH() / withdrawToken(tokenAddr) -- always available, even during pause
+```
+
+### Key Functions
+
+| Function | Access | Description |
+|----------|--------|-------------|
+| `createBounty(title, desc, openDeadline, judgingDeadline, slashPercent, prizes[], token)` | Anyone (payable) | Create bounty with ETH/ERC-20 |
+| `submitToBounty(bountyId, ipfsCid)` | Anyone (payable for ETH, approve for ERC-20) | Submit work with 1% deposit |
+| `selectWinners(bountyId, submissionIds[])` | Bounty creator | Pick winners by rank |
+| `triggerSlash(bountyId)` | Anyone (after judgingDeadline) | Slash creator, credit submitters |
+| `refundNoSubmissions(bountyId)` | Creator or owner | Refund if zero submissions |
+| `withdrawETH()` | Anyone with balance | Withdraw pending ETH |
+| `withdrawToken(tokenAddr)` | Anyone with balance | Withdraw pending ERC-20 |
+| `pause() / unpause()` | Owner only | Emergency pause |
+| `allowToken(addr) / revokeToken(addr)` | Owner only | Manage ERC-20 whitelist |
+| `rescueERC20(token, amount)` | Owner only | Rescue accidentally sent tokens (cannot drain escrow) |
+| `setReputationAddress(addr)` | Owner only | Connect to QuintyReputation |
+
+### View Functions
+
+| Function | Returns |
+|----------|---------|
+| `getBounty(id)` | All bounty fields including token, prizes[], totalAmount |
+| `getSubmission(bountyId, subId)` | Single submission data |
+| `getAllSubmissions(bountyId)` | Full submissions array |
+| `getSubmissionCount(bountyId)` | Number of submissions |
+| `hasUserSubmitted(bountyId, addr)` | Boolean |
+| `getRequiredDeposit(bountyId)` | 1% of bounty totalAmount |
+| `getCurrentPhase(bountyId)` | "OPEN", "JUDGING", "SLASH_PENDING", "RESOLVED", "SLASHED" |
+| `pendingBalance(token, user)` | Pending withdrawal amount |
+| `allowedTokens(addr)` | Whether token is whitelisted |
+| `totalEscrowed(token)` | Total escrowed per token |
+
+### Events
+
+```solidity
+BountyCreated(id, creator, title, token, totalAmount, openDeadline, judgingDeadline, slashPercent)
+SubmissionCreated(bountyId, submissionId, submitter, ipfsCid, deposit)
+BountyMovedToJudging(bountyId)
+WinnersSelected(bountyId, winners[], submissionIds[])
+BountySlashed(bountyId, slashAmount, refundToCreator)
+FundsCredited(token, recipient, amount)
+Withdrawn(token, recipient, amount)
+TokenAllowed(token)
+TokenRevoked(token)
+```
+
+---
+
+## Contract 2: Quest.sol V2 (Social Quests)
+
+Fixed-reward quest system with ERC-20 support, pull-based withdrawals, delegated verifiers, reputation integration, and emergency pause.
+
+### Quest Flow
+
+```
+1. Creator calls createQuest() with ETH or ERC-20 escrow = perQualifier * maxQualifiers
+   - Sets: title, description, requirements, perQualifier, maxQualifiers, deadline, token
+   - For ERC-20: approve() then call without msg.value
+
+2. ACTIVE PHASE
+   - Users call submitEntry(questId, ipfsCid) -- no deposit
+   - Max submissions capped at maxQualifiers * 3
+
+3. VERIFICATION
+   - Creator or delegated verifier calls verifyEntry(questId, entryId, status, feedback)
+   - Self-approval prevented (verifier cannot approve own entry)
+   - On Approved: perQualifier credited to solver's pull balance
+   - On max qualifiers reached: quest auto-finalizes
+
+4. FINALIZATION
+   - Creator, owner, or anyone (after deadline) calls finalizeQuest()
+   - Unused escrow credited to creator via pull pattern
+
+5. CANCELLATION
+   - Creator calls cancelQuest() -- only if no entries approved yet
+   - Available during pause (refund safety)
+   - Escrow credited to creator via pull pattern
+
+6. WITHDRAWAL
+   - withdrawETH() / withdrawToken(tokenAddr) -- always available
+```
+
+### Key Functions
+
+| Function | Access | Description |
+|----------|--------|-------------|
+| `createQuest(title, desc, perQualifier, maxQualifiers, deadline, requirements, token)` | Anyone (payable) | Create quest |
+| `submitEntry(questId, ipfsCid)` | Anyone | Submit proof |
+| `verifyEntry(questId, entryId, status, feedback)` | Creator or delegated verifier | Approve/reject |
+| `verifyMultipleEntries(questId, entryIds[], statuses[], feedbacks[])` | Creator or delegated verifier | Batch verify (max 50) |
+| `addVerifier(questId, verifier)` | Quest creator | Add delegated verifier |
+| `removeVerifier(questId, verifier)` | Quest creator | Remove delegated verifier |
+| `finalizeQuest(questId)` | Creator/owner/anyone after deadline | End quest, refund unused |
+| `cancelQuest(questId)` | Quest creator (no approvals yet) | Cancel and refund (works during pause) |
+| `withdrawETH()` | Anyone with balance | Withdraw pending ETH |
+| `withdrawToken(tokenAddr)` | Anyone with balance | Withdraw pending ERC-20 |
+| `pause() / unpause()` | Owner only | Emergency pause |
+| `allowToken(addr) / revokeToken(addr)` | Owner only | Manage ERC-20 whitelist |
+| `rescueERC20(token, amount)` | Owner only | Rescue tokens (cannot drain escrow) |
+| `setReputationAddress(addr)` | Owner only | Connect to QuintyReputation |
+
+### View Functions
+
+| Function | Returns |
+|----------|---------|
+| `getQuest(id)` | All quest fields including token |
+| `getEntry(questId, entryId)` | Single entry data |
+| `getEntryCount(questId)` | Number of entries |
+| `getUserSubmission(questId, addr)` | User's entry data |
+| `getQuestStats(questId)` | Pending/approved/rejected counts, remainingSlots |
+| `pendingBalance(token, user)` | Pending withdrawal amount |
+| `questVerifiers(questId, addr)` | Whether address is a verifier |
+
+### Events
+
+```solidity
+QuestCreated(id, creator, title, token, perQualifier, maxQualifiers, deadline)
+EntrySubmitted(id, solver, ipfsProofCid)
+EntryVerified(questId, entryId, verifier, status)
+QuestFinalized(id, qualifiers[], totalDistributed)
+QuestCancelled(id, refundAmount)
+VerifierAdded(questId, verifier)
+VerifierRemoved(questId, verifier)
+FundsCredited(token, recipient, amount)
+Withdrawn(token, recipient, amount)
+TokenAllowed(token)
+TokenRevoked(token)
+```
+
+---
+
+## Contract 3: QuintyReputation.sol (Soulbound Achievement NFTs)
+
+ERC-721 soulbound token (non-transferable). Tracks user statistics and mints achievement badges at milestones.
+
+**Owner:** Deployer (retains ownership for caller management). Both Quinty and Quest are authorized callers.
+
+### Record Functions (called by authorized contracts)
+
+| Function | Effect |
+|----------|--------|
+| `recordSubmission(addr)` | +1 submission count, check solver milestones |
+| `recordWin(addr)` | +1 win count, check winner milestones, update leaderboard |
+| `recordBountyCreation(addr)` | +1 bounty created count, check creator milestones, update leaderboard |
+
+### Admin Functions
+
+| Function | Access | Description |
+|----------|--------|-------------|
+| `authorizeCaller(addr)` | Owner only | Allow contract to call record functions |
+| `revokeCaller(addr)` | Owner only | Remove caller authorization |
+
+### Achievement Milestones
+
+| Category | Milestones (submissions/wins/bounties) |
+|----------|---------------------------------------|
+| Solver | 1, 10, 25, 50, 100 |
+| Winner | 1, 10, 25, 50, 100 |
+| Creator | 1, 10, 25, 50, 100 |
+| Season | Monthly Champion (top solver), Monthly Builder (top creator) |
+
+### Key Details
+
+- Tokens are **soulbound** -- transfer reverts, only minting allowed
+- Metadata is generated fully on-chain (base64 JSON with SVG or IPFS image)
+- Seasons rotate every 30 days
+- Uses `onlyAuthorized` modifier (not `onlyOwner`) for record functions
+
+---
+
+## Contract 4: QuintyNFT.sol (Badge NFTs)
+
+Simpler soulbound badge system with 3 types: BountyCreator, BountySolver, TeamMember.
+
+- Owner can authorize minter addresses (`authorizeMinter`)
+- Supports batch minting (up to 100 recipients)
+- Each badge has custom metadataURI
+- Soulbound: `approve()` and `setApprovalForAll()` both revert
+
+---
+
+## Contract Relationships
+
+```
+Quinty.sol --[authorized caller]--> QuintyReputation.sol (recordSubmission, recordWin, recordBountyCreation)
+Quest.sol  --[authorized caller]--> QuintyReputation.sol (recordBountyCreation, recordSubmission)
+Quinty.sol --[authorized minter]--> QuintyNFT.sol
+```
+
+Deploy order: QuintyReputation -> Quinty -> Quest -> QuintyNFT
+Post-deploy:
+  quinty.setReputationAddress(reputation)
+  quest.setReputationAddress(reputation)
+  reputation.authorizeCaller(quinty)
+  reputation.authorizeCaller(quest)
+  quinty.allowToken(USDC)
+  quest.allowToken(USDC)
+  nft.authorizeMinter(quinty)
+
+---
+
+## Payment Flow (ETH + ERC-20, Pull-Based)
+
+All payouts use pull-based withdrawals via `pendingWithdrawals` mapping. Users call `withdrawETH()` or `withdrawToken(addr)` to claim.
+
+- **Bounty escrow:** `msg.value` for ETH or `safeTransferFrom` for ERC-20 on `createBounty()`
+- **Submission deposit:** 1% of bounty amount (ETH via `msg.value`, ERC-20 via `safeTransferFrom`)
+- **Winner payout:** Credits via `_credit()` in `selectWinners()`
+- **Slash payout:** Credits via `_credit()` in `triggerSlash()`
+- **Quest escrow:** `msg.value` for ETH or `safeTransferFrom` for ERC-20 on `createQuest()`
+- **Quest reward:** Credits via `_credit()` in `verifyEntry()` approval
+- **Token whitelist:** `address(0)` = ETH (always allowed), ERC-20 must be whitelisted by owner
+- **Rescue:** Owner can rescue accidentally sent ERC-20 tokens that exceed `totalEscrowed`
+
+---
+
+## Frontend Integration
+
+### Required Files
+
+ABIs are exported to `exported-abis/`:
+- `Quinty.json` -- Bounty contract ABI
+- `Quest.json` -- Quest contract ABI
+- `all-abis.json` -- All ABIs in one file
+- `constants.ts` -- Contract addresses, enums, USDC address
+
+### Integration Pattern (ethers.js / viem)
+
+```typescript
+import { BASE_SEPOLIA_ADDRESSES, ETH_ADDRESS, USDC_BASE_SEPOLIA } from "./exported-abis/constants";
+
+// Create ETH bounty (single winner)
+await quintyContract.createBounty(
+  title, desc, openDeadline, judgingDeadline, slashPercent,
+  [prizeAmount],  // prizes array
+  ETH_ADDRESS,    // token (address(0) for ETH)
+  { value: prizeAmount }
+);
+
+// Create ERC-20 bounty (multi-winner)
+await usdcContract.approve(quintyAddress, totalPrizes);
+await quintyContract.createBounty(
+  title, desc, openDeadline, judgingDeadline, slashPercent,
+  [prize1, prize2, prize3],  // ranked prizes
+  USDC_BASE_SEPOLIA          // USDC token address
+);
+
+// Submit to bounty (1% deposit)
+const deposit = await quintyContract.getRequiredDeposit(bountyId);
+await quintyContract.submitToBounty(bountyId, ipfsCid, { value: deposit });
+
+// Select winners (ranked by submission ID)
+await quintyContract.selectWinners(bountyId, [subId1, subId2, subId3]);
+
+// Withdraw winnings
+await quintyContract.withdrawETH();
+// or for ERC-20:
+await quintyContract.withdrawToken(USDC_BASE_SEPOLIA);
+
+// Create ETH quest
+await questContract.createQuest(
+  title, desc, perQualifier, maxQualifiers, deadline, requirements,
+  ETH_ADDRESS, { value: perQualifier * maxQualifiers }
+);
+
+// Submit quest entry (no deposit)
+await questContract.submitEntry(questId, ipfsCid);
+
+// Verify quest entry (creator or delegated verifier)
+await questContract.verifyEntry(questId, entryId, 1, "Approved!");
+
+// Withdraw quest reward
+await questContract.withdrawETH();
+```
+
+---
+
+## Environment Variables
+
+```env
+BASE_SEPOLIA_RPC=https://sepolia.base.org
+BASE_MAINNET_RPC=https://mainnet.base.org
+PRIVATE_KEY=your_deployer_private_key_without_0x
+```
+
+---
+
+## Security Features (V3)
+
+- **Pausable:** Owner can pause/unpause. Pauses createBounty, submitToBounty, selectWinners, triggerSlash, createQuest, submitEntry, verifyEntry. Does NOT pause withdrawals, cancelQuest, or refundNoSubmissions.
+- **Pull Withdrawals:** No push payments. All funds credited to `pendingWithdrawals` mapping, users pull via `withdrawETH()`/`withdrawToken()`.
+- **ReentrancyGuard:** On all state-changing functions.
+- **SafeERC20:** All ERC-20 transfers use `safeTransfer`/`safeTransferFrom`.
+- **Token Whitelist:** Only owner-approved ERC-20 tokens can be used.
+- **Rescue ERC20:** Owner can rescue accidentally sent tokens, but cannot drain active escrow (`totalEscrowed` tracking).
+- **Self-Approval Prevention:** Quest verifiers cannot approve their own entries.
+- **Modifier Ordering:** `whenNotPaused` first, then `nonReentrant`.

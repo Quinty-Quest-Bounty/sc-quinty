@@ -21,6 +21,18 @@
 # Hardhat coverage reports
 /coverage
 
+# Claude / MCP config
+.mcp.json
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# IDE files
+.vscode/
+.idea/
+
 # fe quinty
 /fe-quinty
 # Ignore .DS_Store files

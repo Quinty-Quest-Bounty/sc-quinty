@@ -5,6 +5,16 @@
     "type": "constructor"
   },
   {
+    "inputs": [],
+    "name": "EnforcedPause",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "ExpectedPause",
+    "type": "error"
+  },
+  {
     "inputs": [
       {
         "internalType": "address",
@@ -32,6 +42,17 @@
     "type": "error"
   },
   {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "SafeERC20FailedOperation",
+    "type": "error"
+  },
+  {
     "anonymous": false,
     "inputs": [
       {
@@ -48,21 +69,39 @@
       },
       {
         "indexed": false,
+        "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
-        "name": "amount",
+        "name": "totalAmount",
         "type": "uint256"
       },
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "deadline",
+        "name": "openDeadline",
         "type": "uint256"
       },
       {
         "indexed": false,
-        "internalType": "bool",
-        "name": "hasOprec",
-        "type": "bool"
+        "internalType": "uint256",
+        "name": "judgingDeadline",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "slashPercent",
+        "type": "uint256"
       }
     ],
     "name": "BountyCreated",
@@ -78,7 +117,7 @@
         "type": "uint256"
       }
     ],
-    "name": "BountyResolved",
+    "name": "BountyMovedToJudging",
     "type": "event"
   },
   {
@@ -95,6 +134,12 @@
         "internalType": "uint256",
         "name": "slashAmount",
         "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "refundToCreator",
+        "type": "uint256"
       }
     ],
     "name": "BountySlashed",
@@ -105,93 +150,24 @@
     "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "applicationId",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       },
       {
         "indexed": true,
         "internalType": "address",
-        "name": "applicant",
-        "type": "address"
-      }
-    ],
-    "name": "OprecApplicationApproved",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "applicationId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "applicant",
-        "type": "address"
-      }
-    ],
-    "name": "OprecApplicationRejected",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "applicationId",
-        "type": "uint256"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "applicant",
+        "name": "recipient",
         "type": "address"
       },
       {
         "indexed": false,
-        "internalType": "bool",
-        "name": "isTeam",
-        "type": "bool"
-      }
-    ],
-    "name": "OprecApplicationSubmitted",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
         "internalType": "uint256",
-        "name": "bountyId",
+        "name": "amount",
         "type": "uint256"
       }
     ],
-    "name": "OprecPhaseEnded",
+    "name": "FundsCredited",
     "type": "event"
   },
   {
@@ -217,25 +193,13 @@
     "anonymous": false,
     "inputs": [
       {
-        "indexed": true,
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "subId",
-        "type": "uint256"
-      },
-      {
         "indexed": false,
         "internalType": "address",
-        "name": "replier",
+        "name": "account",
         "type": "address"
       }
     ],
-    "name": "ReplyAdded",
+    "name": "Paused",
     "type": "event"
   },
   {
@@ -250,44 +214,13 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "subId",
+        "name": "submissionId",
         "type": "uint256"
       },
-      {
-        "indexed": false,
-        "internalType": "address",
-        "name": "solver",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "string",
-        "name": "revealIpfsCid",
-        "type": "string"
-      }
-    ],
-    "name": "SolutionRevealed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
       {
         "indexed": true,
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "subId",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
         "internalType": "address",
-        "name": "solver",
+        "name": "submitter",
         "type": "address"
       },
       {
@@ -298,12 +231,51 @@
       },
       {
         "indexed": false,
-        "internalType": "bool",
-        "name": "isTeam",
-        "type": "bool"
+        "internalType": "uint256",
+        "name": "deposit",
+        "type": "uint256"
       }
     ],
     "name": "SubmissionCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "TokenAllowed",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      }
+    ],
+    "name": "TokenRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": false,
+        "internalType": "address",
+        "name": "account",
+        "type": "address"
+      }
+    ],
+    "name": "Unpaused",
     "type": "event"
   },
   {
@@ -332,88 +304,65 @@
     "type": "event"
   },
   {
+    "anonymous": false,
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
+        "indexed": true,
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       },
       {
-        "internalType": "uint256",
-        "name": "_subId",
-        "type": "uint256"
+        "indexed": true,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
       },
       {
-        "internalType": "string",
-        "name": "_content",
-        "type": "string"
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "amount",
+        "type": "uint256"
       }
     ],
-    "name": "addReply",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "name": "Withdrawn",
+    "type": "event"
   },
   {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address[]",
-        "name": "_teamMembers",
-        "type": "address[]"
-      },
-      {
-        "internalType": "string",
-        "name": "_workExamples",
-        "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "_skillDescription",
-        "type": "string"
-      }
-    ],
-    "name": "applyToOprec",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "_applicationIds",
-        "type": "uint256[]"
-      }
-    ],
-    "name": "approveOprecApplications",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
+    "inputs": [],
+    "name": "DEPOSIT_PERCENT",
+    "outputs": [
       {
         "internalType": "uint256",
         "name": "",
         "type": "uint256"
-      },
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      }
+    ],
+    "name": "allowToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
       {
         "internalType": "address",
         "name": "",
         "type": "address"
       }
     ],
-    "name": "approvedParticipants",
+    "name": "allowedTokens",
     "outputs": [
       {
         "internalType": "bool",
@@ -441,23 +390,38 @@
       },
       {
         "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
         "name": "description",
         "type": "string"
       },
       {
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
+      },
+      {
         "internalType": "uint256",
-        "name": "amount",
+        "name": "totalAmount",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "deadline",
+        "name": "openDeadline",
         "type": "uint256"
       },
       {
-        "internalType": "bool",
-        "name": "allowMultipleWinners",
-        "type": "bool"
+        "internalType": "uint256",
+        "name": "judgingDeadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "slashPercent",
+        "type": "uint256"
       },
       {
         "internalType": "enum Quinty.BountyStatus",
@@ -466,17 +430,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "slashPercent",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "hasOprec",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256",
-        "name": "oprecDeadline",
+        "name": "totalDeposits",
         "type": "uint256"
       }
     ],
@@ -500,23 +454,23 @@
     "inputs": [
       {
         "internalType": "string",
+        "name": "_title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
         "name": "_description",
         "type": "string"
       },
       {
         "internalType": "uint256",
-        "name": "_deadline",
+        "name": "_openDeadline",
         "type": "uint256"
       },
       {
-        "internalType": "bool",
-        "name": "_allowMultipleWinners",
-        "type": "bool"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "_winnerShares",
-        "type": "uint256[]"
+        "internalType": "uint256",
+        "name": "_judgingDeadline",
+        "type": "uint256"
       },
       {
         "internalType": "uint256",
@@ -524,14 +478,14 @@
         "type": "uint256"
       },
       {
-        "internalType": "bool",
-        "name": "_hasOprec",
-        "type": "bool"
+        "internalType": "uint256[]",
+        "name": "_prizes",
+        "type": "uint256[]"
       },
       {
-        "internalType": "uint256",
-        "name": "_oprecDeadline",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
       }
     ],
     "name": "createBounty",
@@ -540,13 +494,41 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "disputeAddress",
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_bountyId",
+        "type": "uint256"
+      }
+    ],
+    "name": "getAllSubmissions",
     "outputs": [
       {
-        "internalType": "address",
+        "components": [
+          {
+            "internalType": "address",
+            "name": "submitter",
+            "type": "address"
+          },
+          {
+            "internalType": "string",
+            "name": "ipfsCid",
+            "type": "string"
+          },
+          {
+            "internalType": "uint256",
+            "name": "deposit",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint256",
+            "name": "timestamp",
+            "type": "uint256"
+          }
+        ],
+        "internalType": "struct Quinty.Submission[]",
         "name": "",
-        "type": "address"
+        "type": "tuple[]"
       }
     ],
     "stateMutability": "view",
@@ -560,20 +542,7 @@
         "type": "uint256"
       }
     ],
-    "name": "endOprecPhase",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getBountyData",
+    "name": "getBounty",
     "outputs": [
       {
         "internalType": "address",
@@ -582,28 +551,43 @@
       },
       {
         "internalType": "string",
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "internalType": "string",
         "name": "description",
         "type": "string"
       },
       {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "token",
+        "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "deadline",
+        "name": "totalAmount",
         "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "allowMultipleWinners",
-        "type": "bool"
       },
       {
         "internalType": "uint256[]",
-        "name": "winnerShares",
+        "name": "prizes",
         "type": "uint256[]"
+      },
+      {
+        "internalType": "uint256",
+        "name": "openDeadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "judgingDeadline",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "slashPercent",
+        "type": "uint256"
       },
       {
         "internalType": "enum Quinty.BountyStatus",
@@ -612,27 +596,12 @@
       },
       {
         "internalType": "uint256",
-        "name": "slashPercent",
+        "name": "submissionCount",
         "type": "uint256"
       },
       {
-        "internalType": "address[]",
-        "name": "selectedWinners",
-        "type": "address[]"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "selectedSubmissionIds",
-        "type": "uint256[]"
-      },
-      {
-        "internalType": "bool",
-        "name": "hasOprec",
-        "type": "bool"
-      },
-      {
         "internalType": "uint256",
-        "name": "oprecDeadline",
+        "name": "totalDeposits",
         "type": "uint256"
       }
     ],
@@ -645,49 +614,14 @@
         "internalType": "uint256",
         "name": "_bountyId",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_appId",
-        "type": "uint256"
       }
     ],
-    "name": "getOprecApplication",
+    "name": "getCurrentPhase",
     "outputs": [
       {
-        "internalType": "address",
-        "name": "applicant",
-        "type": "address"
-      },
-      {
-        "internalType": "address[]",
-        "name": "teamMembers",
-        "type": "address[]"
-      },
-      {
         "internalType": "string",
-        "name": "workExamples",
+        "name": "",
         "type": "string"
-      },
-      {
-        "internalType": "string",
-        "name": "skillDescription",
-        "type": "string"
-      },
-      {
-        "internalType": "uint256",
-        "name": "appliedAt",
-        "type": "uint256"
-      },
-      {
-        "internalType": "bool",
-        "name": "approved",
-        "type": "bool"
-      },
-      {
-        "internalType": "bool",
-        "name": "rejected",
-        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -701,7 +635,7 @@
         "type": "uint256"
       }
     ],
-    "name": "getOprecApplicationCount",
+    "name": "getRequiredDeposit",
     "outputs": [
       {
         "internalType": "uint256",
@@ -728,34 +662,19 @@
     "name": "getSubmission",
     "outputs": [
       {
-        "internalType": "uint256",
-        "name": "bountyId",
-        "type": "uint256"
-      },
-      {
         "internalType": "address",
-        "name": "solver",
+        "name": "submitter",
         "type": "address"
       },
       {
         "internalType": "string",
-        "name": "blindedIpfsCid",
+        "name": "ipfsCid",
         "type": "string"
       },
       {
         "internalType": "uint256",
         "name": "deposit",
         "type": "uint256"
-      },
-      {
-        "internalType": "string[]",
-        "name": "replies",
-        "type": "string[]"
-      },
-      {
-        "internalType": "string",
-        "name": "revealIpfsCid",
-        "type": "string"
       },
       {
         "internalType": "uint256",
@@ -789,80 +708,21 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "_bountyId",
+        "name": "",
         "type": "uint256"
       },
       {
-        "internalType": "uint256",
-        "name": "_subId",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "",
+        "type": "address"
       }
     ],
-    "name": "getSubmissionStruct",
+    "name": "hasSubmitted",
     "outputs": [
       {
-        "components": [
-          {
-            "internalType": "address",
-            "name": "solver",
-            "type": "address"
-          },
-          {
-            "internalType": "address[]",
-            "name": "teamMembers",
-            "type": "address[]"
-          },
-          {
-            "internalType": "string",
-            "name": "blindedIpfsCid",
-            "type": "string"
-          },
-          {
-            "internalType": "string",
-            "name": "revealIpfsCid",
-            "type": "string"
-          },
-          {
-            "internalType": "uint256",
-            "name": "deposit",
-            "type": "uint256"
-          },
-          {
-            "components": [
-              {
-                "internalType": "address",
-                "name": "replier",
-                "type": "address"
-              },
-              {
-                "internalType": "string",
-                "name": "content",
-                "type": "string"
-              },
-              {
-                "internalType": "uint256",
-                "name": "timestamp",
-                "type": "uint256"
-              }
-            ],
-            "internalType": "struct Quinty.Reply[]",
-            "name": "replies",
-            "type": "tuple[]"
-          },
-          {
-            "internalType": "bool",
-            "name": "revealed",
-            "type": "bool"
-          },
-          {
-            "internalType": "bool",
-            "name": "isTeam",
-            "type": "bool"
-          }
-        ],
-        "internalType": "struct Quinty.Submission",
+        "internalType": "bool",
         "name": "",
-        "type": "tuple"
+        "type": "bool"
       }
     ],
     "stateMutability": "view",
@@ -877,11 +737,11 @@
       },
       {
         "internalType": "address",
-        "name": "_participant",
+        "name": "_user",
         "type": "address"
       }
     ],
-    "name": "isApprovedParticipant",
+    "name": "hasUserSubmitted",
     "outputs": [
       {
         "internalType": "bool",
@@ -893,16 +753,16 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "nftAddress",
-    "outputs": [
+    "inputs": [
       {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
+        "internalType": "uint256",
+        "name": "_bountyId",
+        "type": "uint256"
       }
     ],
-    "stateMutability": "view",
+    "name": "moveToJudging",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -919,19 +779,82 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "pause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "paused",
+    "outputs": [
+      {
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      }
+    ],
+    "name": "pendingBalance",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "pendingWithdrawals",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint256",
         "name": "_bountyId",
         "type": "uint256"
-      },
-      {
-        "internalType": "uint256[]",
-        "name": "_applicationIds",
-        "type": "uint256[]"
       }
     ],
-    "name": "rejectOprecApplications",
+    "name": "refundNoSubmissions",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -959,22 +882,30 @@
   {
     "inputs": [
       {
-        "internalType": "uint256",
-        "name": "_bountyId",
-        "type": "uint256"
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "_subId",
+        "name": "_amount",
         "type": "uint256"
-      },
-      {
-        "internalType": "string",
-        "name": "_revealIpfsCid",
-        "type": "string"
       }
     ],
-    "name": "revealSolution",
+    "name": "rescueERC20",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      }
+    ],
+    "name": "revokeToken",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -985,11 +916,6 @@
         "internalType": "uint256",
         "name": "_bountyId",
         "type": "uint256"
-      },
-      {
-        "internalType": "address[]",
-        "name": "_winners",
-        "type": "address[]"
       },
       {
         "internalType": "uint256[]",
@@ -1008,19 +934,9 @@
         "internalType": "address",
         "name": "_repAddress",
         "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_disputeAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_nftAddress",
-        "type": "address"
       }
     ],
-    "name": "setAddresses",
+    "name": "setReputationAddress",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1034,18 +950,32 @@
       },
       {
         "internalType": "string",
-        "name": "_blindedIpfsCid",
+        "name": "_ipfsCid",
         "type": "string"
-      },
-      {
-        "internalType": "address[]",
-        "name": "_teamMembers",
-        "type": "address[]"
       }
     ],
-    "name": "submitSolution",
+    "name": "submitToBounty",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
+    ],
+    "name": "totalEscrowed",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
     "type": "function"
   },
   {
@@ -1073,5 +1003,36 @@
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "unpause",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "withdrawETH",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      }
+    ],
+    "name": "withdrawToken",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "stateMutability": "payable",
+    "type": "receive"
   }
 ]

@@ -3,543 +3,518 @@ pragma solidity 0.8.28;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-// Interfaces
 interface IQuintyReputation {
     function recordBountyCreation(address _user) external;
     function recordSubmission(address _user) external;
     function recordWin(address _user) external;
 }
 
-interface IDisputeResolver {
-    function initiateExpiryVote(uint256 _bountyId, uint256 _slashAmount) external;
-}
+/**
+ * @title Quinty V3
+ * @notice Multi-winner bounty system with ERC-20 support, pull-based withdrawals,
+ *         1% deposit, slash mechanism, and emergency pause.
+ *
+ * Flow:
+ * 1. Creator creates bounty with ETH/ERC-20 escrow + prize tiers + phase deadlines
+ * 2. OPEN PHASE: Submitters pay 1% deposit
+ * 3. JUDGING PHASE: After openDeadline, creator selects winners (multi-winner)
+ * 4. RESOLVED: Winners credited prizes + deposits, non-winners get deposits back
+ * 5. SLASHED: If creator misses judgingDeadline, slash distributed to submitters
+ *
+ * All payouts use pull-based withdrawals for safety.
+ */
+contract Quinty is Ownable, ReentrancyGuard, Pausable {
+    using SafeERC20 for IERC20;
 
-interface IQuintyNFT {
-    function mintBadge(address recipient, uint8 badgeType, string memory metadataURI) external returns (uint256);
-    function batchMintBadges(address[] memory recipients, uint8 badgeType, string memory metadataURI) external;
-}
-
-contract Quinty is Ownable, ReentrancyGuard {
-
-    enum BountyStatus { OPREC, OPEN, PENDING_REVEAL, RESOLVED, DISPUTED, EXPIRED }
-
-    struct Team {
-        address leader;
-        address[] members;
-        uint256 createdAt;
-    }
-
-    struct OprecApplication {
-        address applicant;
-        address[] teamMembers; // Empty if solo, filled if team
-        string workExamples; // IPFS CID with portfolio/examples
-        string skillDescription;
-        uint256 appliedAt;
-        bool approved;
-        bool rejected;
-    }
-
-    struct Reply {
-        address replier;
-        string content;
-        uint256 timestamp;
-    }
+    enum BountyStatus { OPEN, JUDGING, RESOLVED, SLASHED }
 
     struct Submission {
-        address solver;
-        address[] teamMembers; // Empty if solo, filled if team submission
-        string blindedIpfsCid;
-        string revealIpfsCid;
+        address submitter;
+        string ipfsCid;
         uint256 deposit;
-        Reply[] replies;
-        bool revealed;
-        bool isTeam;
+        uint256 timestamp;
     }
 
     struct Bounty {
         address creator;
+        string title;
         string description;
-        uint256 amount;
-        uint256 deadline;
-        bool allowMultipleWinners;
-        uint256[] winnerShares; // Basis points
+        address token;            // address(0) for ETH, token address for ERC-20
+        uint256[] prizes;         // [rank1Amount, rank2Amount, ...]
+        uint256 totalAmount;      // sum of prizes
+        uint256 openDeadline;
+        uint256 judgingDeadline;
+        uint256 slashPercent;     // basis points (2500-5000 = 25%-50%)
         BountyStatus status;
-        uint256 slashPercent;
         Submission[] submissions;
-        address[] selectedWinners;
-        uint256[] selectedSubmissionIds;
-        bool hasOprec; // Whether this bounty has oprec phase
-        uint256 oprecDeadline; // Deadline for oprec applications
-        OprecApplication[] oprecApplications;
+        uint256 totalDeposits;
     }
 
     mapping(uint256 => Bounty) public bounties;
-    mapping(uint256 => mapping(address => bool)) public approvedParticipants; // bountyId => participant => approved
+    mapping(uint256 => mapping(address => bool)) public hasSubmitted;
+
+    // Pull-based withdrawals: token => user => amount
+    mapping(address => mapping(address => uint256)) public pendingWithdrawals;
+    // Track total escrowed per token (for safe rescueERC20)
+    mapping(address => uint256) public totalEscrowed;
+
+    // Token whitelist (address(0) = ETH is always allowed)
+    mapping(address => bool) public allowedTokens;
+
     uint256 public bountyCounter;
+    uint256 public constant DEPOSIT_PERCENT = 100; // 1% = 100 basis points
 
     address public reputationAddress;
-    address public disputeAddress;
-    address public nftAddress;
+
+    // Events
+    event BountyCreated(
+        uint256 indexed id,
+        address indexed creator,
+        string title,
+        address token,
+        uint256 totalAmount,
+        uint256 openDeadline,
+        uint256 judgingDeadline,
+        uint256 slashPercent
+    );
+    event SubmissionCreated(
+        uint256 indexed bountyId,
+        uint256 submissionId,
+        address indexed submitter,
+        string ipfsCid,
+        uint256 deposit
+    );
+    event BountyMovedToJudging(uint256 indexed bountyId);
+    event WinnersSelected(
+        uint256 indexed bountyId,
+        address[] winners,
+        uint256[] submissionIds
+    );
+    event BountySlashed(
+        uint256 indexed bountyId,
+        uint256 slashAmount,
+        uint256 refundToCreator
+    );
+    event FundsCredited(address indexed token, address indexed recipient, uint256 amount);
+    event Withdrawn(address indexed token, address indexed recipient, uint256 amount);
+    event TokenAllowed(address indexed token);
+    event TokenRevoked(address indexed token);
+
+    modifier onlyCreator(uint256 _bountyId) {
+        require(msg.sender == bounties[_bountyId].creator, "Not bounty creator");
+        _;
+    }
+
+    modifier validBounty(uint256 _bountyId) {
+        require(_bountyId > 0 && _bountyId <= bountyCounter, "Invalid bounty ID");
+        _;
+    }
+
+    modifier onlyAllowedToken(address _token) {
+        require(_token == address(0) || allowedTokens[_token], "Token not allowed");
+        _;
+    }
 
     constructor() Ownable(msg.sender) {}
 
-    event BountyCreated(uint256 indexed id, address indexed creator, uint256 amount, uint256 deadline, bool hasOprec);
-    event OprecApplicationSubmitted(uint256 indexed bountyId, uint256 applicationId, address indexed applicant, bool isTeam);
-    event OprecApplicationApproved(uint256 indexed bountyId, uint256 applicationId, address indexed applicant);
-    event OprecApplicationRejected(uint256 indexed bountyId, uint256 applicationId, address indexed applicant);
-    event OprecPhaseEnded(uint256 indexed bountyId);
-    event SubmissionCreated(uint256 indexed bountyId, uint256 subId, address solver, string ipfsCid, bool isTeam);
-    event WinnersSelected(uint256 indexed bountyId, address[] winners, uint256[] submissionIds);
-    event SolutionRevealed(uint256 indexed bountyId, uint256 subId, address solver, string revealIpfsCid);
-    event BountyResolved(uint256 indexed bountyId);
-    event BountySlashed(uint256 indexed bountyId, uint256 slashAmount);
-    event ReplyAdded(uint256 indexed bountyId, uint256 subId, address replier);
+    // ============ ADMIN FUNCTIONS ============
 
-    modifier onlyCreator(uint256 _bountyId) {
-        require(msg.sender == bounties[_bountyId].creator, "Not creator");
-        _;
-    }
+    function pause() external onlyOwner { _pause(); }
+    function unpause() external onlyOwner { _unpause(); }
 
-    modifier bountyIsOpen(uint256 _bountyId) {
-        require(bounties[_bountyId].status == BountyStatus.OPEN, "Bounty not open");
-        _;
-    }
-
-    modifier oprecIsActive(uint256 _bountyId) {
-        Bounty storage bounty = bounties[_bountyId];
-        require(bounty.status == BountyStatus.OPREC, "Oprec not active");
-        require(block.timestamp <= bounty.oprecDeadline, "Oprec deadline passed");
-        _;
-    }
-
-    function setAddresses(address _repAddress, address _disputeAddress, address _nftAddress) external onlyOwner {
+    function setReputationAddress(address _repAddress) external onlyOwner {
         reputationAddress = _repAddress;
-        disputeAddress = _disputeAddress;
-        nftAddress = _nftAddress;
     }
 
+    function allowToken(address _token) external onlyOwner {
+        require(_token != address(0), "Use address(0) for ETH");
+        allowedTokens[_token] = true;
+        emit TokenAllowed(_token);
+    }
+
+    function revokeToken(address _token) external onlyOwner {
+        allowedTokens[_token] = false;
+        emit TokenRevoked(_token);
+    }
+
+    /// @notice Rescue accidentally sent ERC-20 tokens (cannot drain active escrow)
+    function rescueERC20(address _token, uint256 _amount) external onlyOwner {
+        require(_token != address(0), "Cannot rescue ETH");
+        uint256 contractBalance = IERC20(_token).balanceOf(address(this));
+        uint256 escrowed = totalEscrowed[_token];
+        require(_amount <= contractBalance - escrowed, "Cannot drain escrow");
+        IERC20(_token).safeTransfer(owner(), _amount);
+    }
+
+    // ============ CORE FUNCTIONS ============
+
+    /**
+     * @notice Create a bounty with ETH or ERC-20 escrow and multi-winner prize tiers
+     * @param _title Bounty title
+     * @param _description Bounty description
+     * @param _openDeadline End of submission phase
+     * @param _judgingDeadline End of judging phase
+     * @param _slashPercent Slash percentage in basis points (2500-5000)
+     * @param _prizes Array of prize amounts by rank [1st, 2nd, ...]
+     * @param _token Token address (address(0) for ETH)
+     */
     function createBounty(
+        string memory _title,
         string memory _description,
-        uint256 _deadline,
-        bool _allowMultipleWinners,
-        uint256[] memory _winnerShares,
+        uint256 _openDeadline,
+        uint256 _judgingDeadline,
         uint256 _slashPercent,
-        bool _hasOprec,
-        uint256 _oprecDeadline
-    ) external payable nonReentrant {
-        require(msg.value > 0, "Escrow required");
-        require(_deadline > block.timestamp, "Invalid deadline");
-        require(_slashPercent >= 2500 && _slashPercent <= 5000, "Slash must be 25-50%");
+        uint256[] calldata _prizes,
+        address _token
+    ) external payable whenNotPaused nonReentrant onlyAllowedToken(_token) {
+        require(bytes(_title).length > 0, "Empty title");
+        require(_prizes.length > 0, "No prizes");
+        require(_prizes.length <= 10, "Max 10 winners");
+        require(_openDeadline > block.timestamp, "Open deadline must be future");
+        require(_judgingDeadline > _openDeadline, "Judging must be after open");
+        require(_judgingDeadline <= block.timestamp + 365 days, "Max 365 days");
+        require(_slashPercent >= 2500 && _slashPercent <= 5000, "Slash 25-50%");
 
-        if (_hasOprec) {
-            require(_oprecDeadline > block.timestamp && _oprecDeadline < _deadline, "Invalid oprec deadline");
+        uint256 total = 0;
+        for (uint256 i = 0; i < _prizes.length; ) {
+            require(_prizes[i] > 0, "Prize must be > 0");
+            total += _prizes[i];
+            unchecked { ++i; }
         }
 
-        if (_allowMultipleWinners) {
-            require(_winnerShares.length > 1, "Multi-winner requires multiple shares");
-            uint256 totalShares = 0;
-            for (uint i = 0; i < _winnerShares.length; i++) {
-                totalShares += _winnerShares[i];
-            }
-            require(totalShares == 10000, "Shares must sum to 10000 basis points");
+        // Receive payment
+        if (_token == address(0)) {
+            require(msg.value == total, "ETH amount mismatch");
         } else {
-            require(_winnerShares.length == 0, "Single winner bounty cannot have shares");
+            require(msg.value == 0, "Do not send ETH for token bounty");
+            IERC20(_token).safeTransferFrom(msg.sender, address(this), total);
         }
+
+        totalEscrowed[_token] += total;
 
         bountyCounter++;
-        Bounty storage bounty = bounties[bountyCounter];
-        bounty.creator = msg.sender;
-        bounty.description = _description;
-        bounty.amount = msg.value;
-        bounty.deadline = _deadline;
-        bounty.allowMultipleWinners = _allowMultipleWinners;
-        bounty.winnerShares = _winnerShares;
-        bounty.status = _hasOprec ? BountyStatus.OPREC : BountyStatus.OPEN;
-        bounty.slashPercent = _slashPercent;
-        bounty.hasOprec = _hasOprec;
-        bounty.oprecDeadline = _oprecDeadline;
+        Bounty storage b = bounties[bountyCounter];
+        b.creator = msg.sender;
+        b.title = _title;
+        b.description = _description;
+        b.token = _token;
+        b.totalAmount = total;
+        b.openDeadline = _openDeadline;
+        b.judgingDeadline = _judgingDeadline;
+        b.slashPercent = _slashPercent;
+        b.status = BountyStatus.OPEN;
 
-        emit BountyCreated(bountyCounter, msg.sender, msg.value, _deadline, _hasOprec);
-        IQuintyReputation(reputationAddress).recordBountyCreation(msg.sender);
-    }
-
-    // ========== OPREC FUNCTIONS ==========
-
-    function applyToOprec(
-        uint256 _bountyId,
-        address[] memory _teamMembers,
-        string memory _workExamples,
-        string memory _skillDescription
-    ) external oprecIsActive(_bountyId) nonReentrant {
-        Bounty storage bounty = bounties[_bountyId];
-        require(bytes(_workExamples).length > 0, "Work examples required");
-        require(bytes(_skillDescription).length > 0, "Skill description required");
-        require(_teamMembers.length <= 10, "Max 10 team members");
-
-        // Validate team members
-        for (uint i = 0; i < _teamMembers.length; i++) {
-            require(_teamMembers[i] != address(0), "Invalid team member");
-            require(_teamMembers[i] != msg.sender, "Cannot include self in team members");
+        for (uint256 i = 0; i < _prizes.length; ) {
+            b.prizes.push(_prizes[i]);
+            unchecked { ++i; }
         }
 
-        bounty.oprecApplications.push(OprecApplication({
-            applicant: msg.sender,
-            teamMembers: _teamMembers,
-            workExamples: _workExamples,
-            skillDescription: _skillDescription,
-            appliedAt: block.timestamp,
-            approved: false,
-            rejected: false
+        if (reputationAddress != address(0)) {
+            IQuintyReputation(reputationAddress).recordBountyCreation(msg.sender);
+        }
+
+        emit BountyCreated(bountyCounter, msg.sender, _title, _token, total, _openDeadline, _judgingDeadline, _slashPercent);
+    }
+
+    /**
+     * @notice Submit work to a bounty with 1% deposit
+     * @param _bountyId Bounty ID
+     * @param _ipfsCid IPFS CID containing work proof
+     */
+    function submitToBounty(
+        uint256 _bountyId,
+        string memory _ipfsCid
+    ) external payable validBounty(_bountyId) whenNotPaused nonReentrant {
+        Bounty storage b = bounties[_bountyId];
+        require(b.status == BountyStatus.OPEN, "Not open");
+        require(block.timestamp <= b.openDeadline, "Submissions closed");
+        require(bytes(_ipfsCid).length > 0, "Empty IPFS CID");
+        require(!hasSubmitted[_bountyId][msg.sender], "Already submitted");
+        require(msg.sender != b.creator, "Creator cannot submit");
+
+        uint256 deposit = b.totalAmount * DEPOSIT_PERCENT / 10000;
+
+        if (b.token == address(0)) {
+            require(msg.value == deposit, "Incorrect deposit");
+        } else {
+            require(msg.value == 0, "Do not send ETH");
+            IERC20(b.token).safeTransferFrom(msg.sender, address(this), deposit);
+        }
+
+        totalEscrowed[b.token] += deposit;
+        b.totalDeposits += deposit;
+        hasSubmitted[_bountyId][msg.sender] = true;
+
+        b.submissions.push(Submission({
+            submitter: msg.sender,
+            ipfsCid: _ipfsCid,
+            deposit: deposit,
+            timestamp: block.timestamp
         }));
 
-        emit OprecApplicationSubmitted(
-            _bountyId,
-            bounty.oprecApplications.length - 1,
-            msg.sender,
-            _teamMembers.length > 0
-        );
+        uint256 subId = b.submissions.length - 1;
+
+        if (reputationAddress != address(0)) {
+            IQuintyReputation(reputationAddress).recordSubmission(msg.sender);
+        }
+
+        emit SubmissionCreated(_bountyId, subId, msg.sender, _ipfsCid, deposit);
     }
 
-    function approveOprecApplications(
+    /**
+     * @notice Move bounty to JUDGING phase after openDeadline
+     */
+    function moveToJudging(uint256 _bountyId) external validBounty(_bountyId) whenNotPaused {
+        Bounty storage b = bounties[_bountyId];
+        require(b.status == BountyStatus.OPEN, "Not open");
+        require(block.timestamp > b.openDeadline, "Open phase not ended");
+
+        b.status = BountyStatus.JUDGING;
+        emit BountyMovedToJudging(_bountyId);
+    }
+
+    /**
+     * @notice Select multiple winners. submissionIds ordered by rank (index 0 = rank 1).
+     *         Fewer winners than prize slots: unused prizes refunded to creator.
+     */
+    function selectWinners(
         uint256 _bountyId,
-        uint256[] memory _applicationIds
-    ) external onlyCreator(_bountyId) nonReentrant {
-        Bounty storage bounty = bounties[_bountyId];
-        require(bounty.status == BountyStatus.OPREC, "Oprec not active");
+        uint256[] calldata _submissionIds
+    ) external validBounty(_bountyId) onlyCreator(_bountyId) whenNotPaused nonReentrant {
+        Bounty storage b = bounties[_bountyId];
 
-        for (uint i = 0; i < _applicationIds.length; i++) {
-            uint256 appId = _applicationIds[i];
-            require(appId < bounty.oprecApplications.length, "Invalid application ID");
-
-            OprecApplication storage app = bounty.oprecApplications[appId];
-            require(!app.approved && !app.rejected, "Application already processed");
-
-            app.approved = true;
-            approvedParticipants[_bountyId][app.applicant] = true;
-
-            emit OprecApplicationApproved(_bountyId, appId, app.applicant);
-        }
-    }
-
-    function rejectOprecApplications(
-        uint256 _bountyId,
-        uint256[] memory _applicationIds
-    ) external onlyCreator(_bountyId) nonReentrant {
-        Bounty storage bounty = bounties[_bountyId];
-        require(bounty.status == BountyStatus.OPREC, "Oprec not active");
-
-        for (uint i = 0; i < _applicationIds.length; i++) {
-            uint256 appId = _applicationIds[i];
-            require(appId < bounty.oprecApplications.length, "Invalid application ID");
-
-            OprecApplication storage app = bounty.oprecApplications[appId];
-            require(!app.approved && !app.rejected, "Application already processed");
-
-            app.rejected = true;
-
-            emit OprecApplicationRejected(_bountyId, appId, app.applicant);
-        }
-    }
-
-    function endOprecPhase(uint256 _bountyId) external onlyCreator(_bountyId) nonReentrant {
-        Bounty storage bounty = bounties[_bountyId];
-        require(bounty.status == BountyStatus.OPREC, "Oprec not active");
-        require(block.timestamp >= bounty.oprecDeadline, "Oprec deadline not reached");
-
-        bounty.status = BountyStatus.OPEN;
-        emit OprecPhaseEnded(_bountyId);
-    }
-
-    // ========== SUBMISSION FUNCTIONS ==========
-
-    function submitSolution(
-        uint256 _bountyId,
-        string memory _blindedIpfsCid,
-        address[] memory _teamMembers
-    ) external payable bountyIsOpen(_bountyId) nonReentrant {
-        Bounty storage bounty = bounties[_bountyId];
-        require(block.timestamp <= bounty.deadline, "Deadline has passed");
-
-        // If oprec was active, check if participant is approved
-        if (bounty.hasOprec) {
-            require(approvedParticipants[_bountyId][msg.sender], "Not approved participant");
+        if (b.status == BountyStatus.OPEN && block.timestamp > b.openDeadline) {
+            b.status = BountyStatus.JUDGING;
+            emit BountyMovedToJudging(_bountyId);
         }
 
-        uint256 depositAmount = bounty.amount / 10;
-        require(msg.value == depositAmount, "10% deposit required");
-        require(_teamMembers.length <= 10, "Max 10 team members");
+        require(b.status == BountyStatus.JUDGING, "Not in judging");
+        require(block.timestamp <= b.judgingDeadline, "Judging deadline passed");
+        require(_submissionIds.length > 0, "No winners");
+        require(_submissionIds.length <= b.prizes.length, "Too many winners");
 
-        // Validate team members
-        for (uint i = 0; i < _teamMembers.length; i++) {
-            require(_teamMembers[i] != address(0), "Invalid team member");
-            require(_teamMembers[i] != msg.sender, "Cannot include self in team members");
-        }
-
-        bool isTeam = _teamMembers.length > 0;
-
-        bounty.submissions.push(Submission({
-            solver: msg.sender,
-            teamMembers: _teamMembers,
-            blindedIpfsCid: _blindedIpfsCid,
-            revealIpfsCid: "",
-            deposit: depositAmount,
-            replies: new Reply[](0),
-            revealed: false,
-            isTeam: isTeam
-        }));
-
-        emit SubmissionCreated(_bountyId, bounty.submissions.length - 1, msg.sender, _blindedIpfsCid, isTeam);
-        IQuintyReputation(reputationAddress).recordSubmission(msg.sender);
-    }
-
-    function selectWinners(uint256 _bountyId, address[] memory _winners, uint256[] memory _submissionIds) external onlyCreator(_bountyId) bountyIsOpen(_bountyId) nonReentrant {
-        Bounty storage bounty = bounties[_bountyId];
-        // Creator can select winners anytime, even after deadline
-        require(_winners.length == _submissionIds.length, "Winners and submission IDs length mismatch");
-        
-        if (bounty.allowMultipleWinners) {
-            require(_winners.length == bounty.winnerShares.length, "Number of winners must match defined shares");
-        } else {
-            require(_winners.length == 1, "Only one winner allowed");
-        }
-
-        bounty.status = BountyStatus.PENDING_REVEAL;
-        bounty.selectedWinners = _winners;
-        bounty.selectedSubmissionIds = _submissionIds;
-
-        // Refund deposits for non-winners
-        for (uint i = 0; i < bounty.submissions.length; i++) {
-            bool isWinner = false;
-            for (uint j = 0; j < _submissionIds.length; j++) {
-                if (i == _submissionIds[j]) {
-                    isWinner = true;
-                    break;
-                }
+        // Validate no duplicates
+        for (uint256 i = 0; i < _submissionIds.length; ) {
+            require(_submissionIds[i] < b.submissions.length, "Invalid submission ID");
+            for (uint256 j = 0; j < i; ) {
+                require(_submissionIds[i] != _submissionIds[j], "Duplicate winner");
+                unchecked { ++j; }
             }
-            if (!isWinner) {
-                Submission storage sub = bounty.submissions[i];
-                if(sub.deposit > 0) {
-                    payable(sub.solver).transfer(sub.deposit);
-                    sub.deposit = 0;
-                }
-            }
+            unchecked { ++i; }
         }
 
-        emit WinnersSelected(_bountyId, _winners, _submissionIds);
-    }
+        b.status = BountyStatus.RESOLVED;
 
-    function revealSolution(uint256 _bountyId, uint256 _subId, string memory _revealIpfsCid) external nonReentrant {
-        Bounty storage bounty = bounties[_bountyId];
-        require(bounty.status == BountyStatus.PENDING_REVEAL, "Bounty not pending reveal");
-        require(_subId < bounty.submissions.length, "Invalid submission ID");
-        Submission storage sub = bounty.submissions[_subId];
-        require(msg.sender == sub.solver, "Not the solver of this submission");
-        require(!sub.revealed, "Solution already revealed");
+        address[] memory winners = new address[](_submissionIds.length);
+        uint256 usedPrizes = 0;
 
-        bool isWinner = false;
-        uint winnerIndex = 0;
-        for (uint i = 0; i < bounty.selectedWinners.length; i++) {
-            if (bounty.selectedWinners[i] == msg.sender && bounty.selectedSubmissionIds[i] == _subId) {
-                isWinner = true;
-                winnerIndex = i;
-                break;
-            }
-        }
-        require(isWinner, "Not a selected winner");
+        // Credit prize + deposit to each winner
+        for (uint256 i = 0; i < _submissionIds.length; ) {
+            Submission storage sub = b.submissions[_submissionIds[i]];
+            winners[i] = sub.submitter;
 
-        sub.revealIpfsCid = _revealIpfsCid;
-        sub.revealed = true;
+            uint256 prize = b.prizes[i];
+            uint256 creditAmount = prize + sub.deposit;
+            _credit(b.token, sub.submitter, creditAmount);
+            totalEscrowed[b.token] -= creditAmount;
+            usedPrizes += prize;
+            sub.deposit = 0;
 
-        // Calculate total prize amount
-        uint256 prizeAmount;
-        if (bounty.allowMultipleWinners) {
-            prizeAmount = (bounty.amount * bounty.winnerShares[winnerIndex]) / 10000;
-        } else {
-            prizeAmount = bounty.amount;
-        }
-
-        // Handle team vs solo reward distribution
-        if (sub.isTeam && sub.teamMembers.length > 0) {
-            // Team submission: split reward equally among leader + all team members
-            uint256 totalMembers = sub.teamMembers.length + 1; // +1 for leader
-            uint256 rewardPerMember = prizeAmount / totalMembers;
-            uint256 depositRefundPerMember = sub.deposit / totalMembers;
-
-            // Pay leader
-            payable(msg.sender).transfer(rewardPerMember + depositRefundPerMember);
-
-            // Pay team members
-            for (uint i = 0; i < sub.teamMembers.length; i++) {
-                payable(sub.teamMembers[i]).transfer(rewardPerMember + depositRefundPerMember);
+            if (reputationAddress != address(0)) {
+                IQuintyReputation(reputationAddress).recordWin(sub.submitter);
             }
 
-            // Mint team member NFT badges for all participants
-            if (nftAddress != address(0)) {
-                address[] memory allMembers = new address[](totalMembers);
-                allMembers[0] = msg.sender;
-                for (uint i = 0; i < sub.teamMembers.length; i++) {
-                    allMembers[i + 1] = sub.teamMembers[i];
-                }
-                IQuintyNFT(nftAddress).batchMintBadges(allMembers, 2, "ipfs://team-member-badge/"); // BadgeType.TeamMember = 2
-            }
-
-            // Record win for all team members
-            IQuintyReputation(reputationAddress).recordWin(msg.sender);
-            for (uint i = 0; i < sub.teamMembers.length; i++) {
-                IQuintyReputation(reputationAddress).recordWin(sub.teamMembers[i]);
-            }
-        } else {
-            // Solo submission: pay entire prize to solver
-            payable(msg.sender).transfer(prizeAmount + sub.deposit);
-            IQuintyReputation(reputationAddress).recordWin(msg.sender);
+            unchecked { ++i; }
         }
 
-        sub.deposit = 0;
-        emit SolutionRevealed(_bountyId, _subId, msg.sender, _revealIpfsCid);
-
-        // Check if all winners have revealed to resolve the bounty
-        bool allRevealed = true;
-        for (uint i = 0; i < bounty.selectedSubmissionIds.length; i++) {
-            if (!bounty.submissions[bounty.selectedSubmissionIds[i]].revealed) {
-                allRevealed = false;
-                break;
+        // Refund deposits to non-winners
+        for (uint256 i = 0; i < b.submissions.length; ) {
+            Submission storage sub = b.submissions[i];
+            if (sub.deposit > 0) {
+                _credit(b.token, sub.submitter, sub.deposit);
+                totalEscrowed[b.token] -= sub.deposit;
+                sub.deposit = 0;
             }
+            unchecked { ++i; }
         }
 
-        if (allRevealed) {
-            bounty.status = BountyStatus.RESOLVED;
-            // Creator success is already recorded when bounty is created
-            emit BountyResolved(_bountyId);
+        // Refund unused prize tiers to creator
+        uint256 unusedPrizes = b.totalAmount - usedPrizes;
+        if (unusedPrizes > 0) {
+            _credit(b.token, b.creator, unusedPrizes);
+            totalEscrowed[b.token] -= unusedPrizes;
         }
+
+        emit WinnersSelected(_bountyId, winners, _submissionIds);
     }
 
-    function addReply(uint256 _bountyId, uint256 _subId, string memory _content) external bountyIsOpen(_bountyId) {
-        Bounty storage bounty = bounties[_bountyId];
-        require(_subId < bounty.submissions.length, "Invalid submission ID");
-        Submission storage sub = bounty.submissions[_subId];
-        require(msg.sender == bounty.creator || msg.sender == sub.solver, "Not authorized to reply");
+    /**
+     * @notice Slash creator for missing judging deadline
+     */
+    function triggerSlash(uint256 _bountyId) external validBounty(_bountyId) whenNotPaused nonReentrant {
+        Bounty storage b = bounties[_bountyId];
 
-        sub.replies.push(Reply({ replier: msg.sender, content: _content, timestamp: block.timestamp }));
-        emit ReplyAdded(_bountyId, _subId, msg.sender);
+        if (b.status == BountyStatus.OPEN && block.timestamp > b.openDeadline) {
+            b.status = BountyStatus.JUDGING;
+            emit BountyMovedToJudging(_bountyId);
+        }
+
+        require(b.status == BountyStatus.JUDGING, "Not in judging");
+        require(block.timestamp > b.judgingDeadline, "Deadline not passed");
+        require(b.submissions.length > 0, "No submissions");
+
+        b.status = BountyStatus.SLASHED;
+
+        uint256 slashAmount = b.totalAmount * b.slashPercent / 10000;
+        uint256 refundToCreator = b.totalAmount - slashAmount;
+        uint256 submitterCount = b.submissions.length;
+        uint256 slashPerSubmitter = slashAmount / submitterCount;
+        uint256 remainder = slashAmount - (slashPerSubmitter * submitterCount);
+
+        for (uint256 i = 0; i < submitterCount; ) {
+            Submission storage sub = b.submissions[i];
+            uint256 payout = slashPerSubmitter + sub.deposit;
+
+            // Last submitter gets the dust remainder
+            if (i == submitterCount - 1) {
+                payout += remainder;
+            }
+
+            _credit(b.token, sub.submitter, payout);
+            totalEscrowed[b.token] -= payout;
+            sub.deposit = 0;
+
+            unchecked { ++i; }
+        }
+
+        // Credit creator refund
+        if (refundToCreator > 0) {
+            _credit(b.token, b.creator, refundToCreator);
+            totalEscrowed[b.token] -= refundToCreator;
+        }
+
+        emit BountySlashed(_bountyId, slashAmount, refundToCreator);
     }
 
-    function triggerSlash(uint256 _bountyId) external {
-        Bounty storage bounty = bounties[_bountyId];
-        require(bounty.status == BountyStatus.OPEN, "Bounty not open");
-        require(block.timestamp > bounty.deadline, "Deadline not passed");
+    /**
+     * @notice Refund bounty if no submissions after open deadline
+     */
+    function refundNoSubmissions(uint256 _bountyId) external validBounty(_bountyId) nonReentrant {
+        Bounty storage b = bounties[_bountyId];
+        require(block.timestamp > b.openDeadline, "Open phase not ended");
+        require(b.submissions.length == 0, "Has submissions");
+        require(msg.sender == b.creator || msg.sender == owner(), "Not authorized");
+        require(b.status == BountyStatus.OPEN || b.status == BountyStatus.JUDGING, "Already resolved");
 
-        bounty.status = BountyStatus.EXPIRED;
-        uint256 slashAmount = (bounty.amount * bounty.slashPercent) / 10000;
-        
-        // Transfer slash amount to dispute contract for distribution
-        (bool success, ) = disputeAddress.call{value: slashAmount}(
-            abi.encodeWithSelector(IDisputeResolver.initiateExpiryVote.selector, _bountyId, slashAmount)
-        );
-        require(success, "Failed to initiate expiry vote");
+        b.status = BountyStatus.RESOLVED;
 
-        // Refund remaining amount to creator
-        payable(bounty.creator).transfer(bounty.amount - slashAmount);
-
-        // Creator failure is not tracked in milestone system
-        emit BountySlashed(_bountyId, slashAmount);
+        _credit(b.token, b.creator, b.totalAmount);
+        totalEscrowed[b.token] -= b.totalAmount;
     }
 
-    // Getter functions
-    function getBountyData(uint256 _bountyId) external view returns (
+    // ============ WITHDRAWAL FUNCTIONS ============
+
+    /// @notice Withdraw ETH credited to msg.sender (works during pause)
+    function withdrawETH() external nonReentrant {
+        uint256 amount = pendingWithdrawals[address(0)][msg.sender];
+        require(amount > 0, "Nothing to withdraw");
+
+        pendingWithdrawals[address(0)][msg.sender] = 0;
+
+        (bool ok, ) = payable(msg.sender).call{value: amount}("");
+        require(ok, "ETH transfer failed");
+
+        emit Withdrawn(address(0), msg.sender, amount);
+    }
+
+    /// @notice Withdraw ERC-20 credited to msg.sender (works during pause)
+    function withdrawToken(address _token) external nonReentrant {
+        require(_token != address(0), "Use withdrawETH");
+
+        uint256 amount = pendingWithdrawals[_token][msg.sender];
+        require(amount > 0, "Nothing to withdraw");
+
+        pendingWithdrawals[_token][msg.sender] = 0;
+
+        IERC20(_token).safeTransfer(msg.sender, amount);
+
+        emit Withdrawn(_token, msg.sender, amount);
+    }
+
+    // ============ INTERNAL FUNCTIONS ============
+
+    function _credit(address _token, address _recipient, uint256 _amount) internal {
+        pendingWithdrawals[_token][_recipient] += _amount;
+        emit FundsCredited(_token, _recipient, _amount);
+    }
+
+    // ============ VIEW FUNCTIONS ============
+
+    function getBounty(uint256 _bountyId) external view validBounty(_bountyId) returns (
         address creator,
+        string memory title,
         string memory description,
-        uint256 amount,
-        uint256 deadline,
-        bool allowMultipleWinners,
-        uint256[] memory winnerShares,
-        BountyStatus status,
+        address token,
+        uint256 totalAmount,
+        uint256[] memory prizes,
+        uint256 openDeadline,
+        uint256 judgingDeadline,
         uint256 slashPercent,
-        address[] memory selectedWinners,
-        uint256[] memory selectedSubmissionIds,
-        bool hasOprec,
-        uint256 oprecDeadline
+        BountyStatus status,
+        uint256 submissionCount,
+        uint256 totalDeposits
     ) {
-        Bounty storage bounty = bounties[_bountyId];
+        Bounty storage b = bounties[_bountyId];
         return (
-            bounty.creator,
-            bounty.description,
-            bounty.amount,
-            bounty.deadline,
-            bounty.allowMultipleWinners,
-            bounty.winnerShares,
-            bounty.status,
-            bounty.slashPercent,
-            bounty.selectedWinners,
-            bounty.selectedSubmissionIds,
-            bounty.hasOprec,
-            bounty.oprecDeadline
+            b.creator, b.title, b.description, b.token, b.totalAmount,
+            b.prizes, b.openDeadline, b.judgingDeadline, b.slashPercent,
+            b.status, b.submissions.length, b.totalDeposits
         );
     }
 
-    function getOprecApplicationCount(uint256 _bountyId) external view returns (uint256) {
-        return bounties[_bountyId].oprecApplications.length;
-    }
-
-    function getOprecApplication(uint256 _bountyId, uint256 _appId) external view returns (
-        address applicant,
-        address[] memory teamMembers,
-        string memory workExamples,
-        string memory skillDescription,
-        uint256 appliedAt,
-        bool approved,
-        bool rejected
-    ) {
-        require(_appId < bounties[_bountyId].oprecApplications.length, "Invalid application ID");
-        OprecApplication storage app = bounties[_bountyId].oprecApplications[_appId];
-        return (
-            app.applicant,
-            app.teamMembers,
-            app.workExamples,
-            app.skillDescription,
-            app.appliedAt,
-            app.approved,
-            app.rejected
-        );
-    }
-
-    function isApprovedParticipant(uint256 _bountyId, address _participant) external view returns (bool) {
-        return approvedParticipants[_bountyId][_participant];
-    }
-
-    function getSubmission(uint256 _bountyId, uint256 _subId) external view returns (
-        uint256 bountyId,
-        address solver,
-        string memory blindedIpfsCid,
+    function getSubmission(uint256 _bountyId, uint256 _subId) external view validBounty(_bountyId) returns (
+        address submitter,
+        string memory ipfsCid,
         uint256 deposit,
-        string[] memory replies,
-        string memory revealIpfsCid,
         uint256 timestamp
     ) {
-        Submission storage submission = bounties[_bountyId].submissions[_subId];
-
-        // Convert Reply[] to string[] for replies
-        string[] memory replyContents = new string[](submission.replies.length);
-        for (uint i = 0; i < submission.replies.length; i++) {
-            replyContents[i] = submission.replies[i].content;
-        }
-
-        return (
-            _bountyId,
-            submission.solver,
-            submission.blindedIpfsCid,
-            submission.deposit,
-            replyContents,
-            submission.revealIpfsCid,
-            block.timestamp // Note: This is current timestamp, not submission timestamp
-        );
+        require(_subId < bounties[_bountyId].submissions.length, "Invalid submission ID");
+        Submission storage sub = bounties[_bountyId].submissions[_subId];
+        return (sub.submitter, sub.ipfsCid, sub.deposit, sub.timestamp);
     }
 
-    function getSubmissionStruct(uint256 _bountyId, uint256 _subId) external view returns (Submission memory) {
-        return bounties[_bountyId].submissions[_subId];
-    }
-
-    function getSubmissionCount(uint256 _bountyId) external view returns (uint256) {
+    function getSubmissionCount(uint256 _bountyId) external view validBounty(_bountyId) returns (uint256) {
         return bounties[_bountyId].submissions.length;
     }
+
+    function hasUserSubmitted(uint256 _bountyId, address _user) external view returns (bool) {
+        return hasSubmitted[_bountyId][_user];
+    }
+
+    function getAllSubmissions(uint256 _bountyId) external view validBounty(_bountyId) returns (Submission[] memory) {
+        return bounties[_bountyId].submissions;
+    }
+
+    function getRequiredDeposit(uint256 _bountyId) external view validBounty(_bountyId) returns (uint256) {
+        return bounties[_bountyId].totalAmount * DEPOSIT_PERCENT / 10000;
+    }
+
+    function getCurrentPhase(uint256 _bountyId) external view validBounty(_bountyId) returns (string memory) {
+        Bounty storage b = bounties[_bountyId];
+        if (b.status == BountyStatus.RESOLVED) return "RESOLVED";
+        if (b.status == BountyStatus.SLASHED) return "SLASHED";
+        if (block.timestamp <= b.openDeadline) return "OPEN";
+        if (block.timestamp <= b.judgingDeadline) return "JUDGING";
+        return "SLASH_PENDING";
+    }
+
+    function pendingBalance(address _token, address _user) external view returns (uint256) {
+        return pendingWithdrawals[_token][_user];
+    }
+
+    receive() external payable {}
 }

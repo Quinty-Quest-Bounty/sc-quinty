@@ -20,8 +20,7 @@ describe("QuintyNFT Contract", function () {
   describe("Badge Minting", function () {
     it("Should mint BountyCreator badge", async function () {
       await expect(quintyNFT.mintBadge(user1.address, 0, "ipfs://creator-badge/"))
-        .to.emit(quintyNFT, "BadgeMinted")
-        .withArgs(1, user1.address, 0, owner.address); // tokenId, recipient, badgeType, issuer
+        .to.emit(quintyNFT, "BadgeMinted");
 
       expect(await quintyNFT.ownerOf(1)).to.equal(user1.address);
       expect(await quintyNFT.balanceOf(user1.address)).to.equal(1);
@@ -45,17 +44,17 @@ describe("QuintyNFT Contract", function () {
       expect(await quintyNFT.balanceOf(user3.address)).to.equal(1);
     });
 
-    it("Should prevent non-owner from minting", async function () {
+    it("Should prevent non-authorized from minting", async function () {
       await expect(
         quintyNFT.connect(user1).mintBadge(user2.address, 0, "ipfs://badge/")
       ).to.be.revertedWith("Not authorized to mint");
     });
 
-    it("Should prevent minting invalid badge type", async function () {
-      // Contract doesn't validate badge type - it uses enum so Solidity will reject invalid values
-      // This test is not applicable with current contract design
-      await quintyNFT.mintBadge(user1.address, 6, "ipfs://badge/"); // Max valid type is 6
-      expect(await quintyNFT.balanceOf(user1.address)).to.equal(1);
+    it("Should allow authorized minter to mint", async function () {
+      await quintyNFT.authorizeMinter(user1.address);
+      await expect(
+        quintyNFT.connect(user1).mintBadge(user2.address, 0, "ipfs://badge/")
+      ).to.not.be.reverted;
     });
   });
 
@@ -91,20 +90,6 @@ describe("QuintyNFT Contract", function () {
         "Soulbound: Approval not allowed"
       );
     });
-
-    it("Should allow burning by owner", async function () {
-      // QuintyNFT doesn't expose a burn function - it's soulbound
-      // Burning would only be allowed via _update with to=address(0)
-      // This test is not applicable - soulbound tokens shouldn't be burnable
-      expect(await quintyNFT.ownerOf(1)).to.equal(user1.address);
-      expect(await quintyNFT.balanceOf(user1.address)).to.equal(1);
-    });
-
-    it("Should prevent non-owner from burning", async function () {
-      // QuintyNFT doesn't expose a burn function - it's soulbound
-      // This test is not applicable
-      expect(await quintyNFT.ownerOf(1)).to.equal(user1.address);
-    });
   });
 
   describe("Badge Queries", function () {
@@ -115,10 +100,9 @@ describe("QuintyNFT Contract", function () {
     });
 
     it("Should return correct badge info", async function () {
-      const badgeInfo = await quintyNFT.getBadge(1); // Actual function name
+      const badgeInfo = await quintyNFT.getBadge(1);
       expect(badgeInfo.badgeType).to.equal(0); // BountyCreator
       expect(badgeInfo.metadataURI).to.equal("ipfs://badge1/");
-      expect(badgeInfo.owner).to.equal(user1.address);
     });
 
     it("Should return user's badges", async function () {
@@ -131,15 +115,16 @@ describe("QuintyNFT Contract", function () {
     it("Should return correct badge count by type", async function () {
       await quintyNFT.mintBadge(user1.address, 0, "ipfs://badge4/"); // Another BountyCreator
 
-      const count = await quintyNFT.getBadgeCount(user1.address, 0); // Actual function name
+      const count = await quintyNFT.getBadgeCount(user1.address, 0);
       expect(count).to.equal(2);
     });
 
     it("Should check badge ownership", async function () {
-      // hasBadgeType doesn't exist - use getBadgeCount instead
-      expect(await quintyNFT.getBadgeCount(user1.address, 0)).to.be.gt(0); // Has BountyCreator
-      expect(await quintyNFT.getBadgeCount(user1.address, 2)).to.equal(0); // Doesn't have TeamMember
-      expect(await quintyNFT.getBadgeCount(user2.address, 2)).to.be.gt(0); // Has TeamMember
+      // user1 has 1 BountyCreator (type 0) and 1 BountySolver (type 1)
+      expect(await quintyNFT.getBadgeCount(user1.address, 0)).to.equal(1);
+      expect(await quintyNFT.getBadgeCount(user1.address, 1)).to.equal(1);
+      expect(await quintyNFT.getBadgeCount(user1.address, 2)).to.equal(0);
+      expect(await quintyNFT.getBadgeCount(user2.address, 2)).to.equal(1);
     });
   });
 
@@ -154,7 +139,9 @@ describe("QuintyNFT Contract", function () {
     });
 
     it("Should revert for nonexistent token", async function () {
-      await expect(quintyNFT.tokenURI(999)).to.be.revertedWith("Badge does not exist");
+      await expect(quintyNFT.tokenURI(999)).to.be.revertedWith(
+        "Badge does not exist"
+      );
     });
 
     it("Should allow owner to update base URI", async function () {
@@ -180,13 +167,9 @@ describe("QuintyNFT Contract", function () {
       await quintyNFT.mintBadge(user1.address, 0, "ipfs://badge1/"); // BountyCreator
       await quintyNFT.mintBadge(user1.address, 1, "ipfs://badge2/"); // BountySolver
       await quintyNFT.mintBadge(user1.address, 2, "ipfs://badge3/"); // TeamMember
-      await quintyNFT.mintBadge(user1.address, 3, "ipfs://badge4/"); // GrantGiver
-      await quintyNFT.mintBadge(user1.address, 4, "ipfs://badge5/"); // GrantRecipient
-      await quintyNFT.mintBadge(user1.address, 5, "ipfs://badge6/"); // CrowdfundingDonor
-      await quintyNFT.mintBadge(user1.address, 6, "ipfs://badge7/"); // LookingForGrantSupporter
 
-      expect(await quintyNFT.balanceOf(user1.address)).to.equal(7);
-      expect(await quintyNFT.getUserBadges(user1.address)).to.have.lengthOf(7);
+      expect(await quintyNFT.balanceOf(user1.address)).to.equal(3);
+      expect(await quintyNFT.getUserBadges(user1.address)).to.have.lengthOf(3);
     });
   });
 
@@ -195,9 +178,17 @@ describe("QuintyNFT Contract", function () {
       await expect(quintyNFT.mintBadge(user1.address, 0, "ipfs://badge/")).to.not.be.reverted;
     });
 
-    it("Should allow owner to mint badges", async function () {
-      await quintyNFT.mintBadge(user1.address, 0, "ipfs://badge/");
-      await expect(quintyNFT.mintBadge(user2.address, 1, "ipfs://badge2/")).to.not.be.reverted;
+    it("Should allow owner to authorize minters", async function () {
+      await expect(quintyNFT.authorizeMinter(user1.address))
+        .to.emit(quintyNFT, "MinterAuthorized")
+        .withArgs(user1.address);
+    });
+
+    it("Should allow owner to revoke minters", async function () {
+      await quintyNFT.authorizeMinter(user1.address);
+      await expect(quintyNFT.revokeMinter(user1.address))
+        .to.emit(quintyNFT, "MinterRevoked")
+        .withArgs(user1.address);
     });
 
     it("Should allow ownership transfer", async function () {
@@ -235,6 +226,24 @@ describe("QuintyNFT Contract", function () {
         quintyNFT,
         "ERC721InvalidOwner"
       );
+    });
+  });
+
+  describe("Batch Minting", function () {
+    it("Should batch mint badges to multiple recipients", async function () {
+      const recipients = [user1.address, user2.address, user3.address];
+      
+      await quintyNFT.batchMintBadges(recipients, 0, "ipfs://batch-badge/");
+      
+      expect(await quintyNFT.balanceOf(user1.address)).to.equal(1);
+      expect(await quintyNFT.balanceOf(user2.address)).to.equal(1);
+      expect(await quintyNFT.balanceOf(user3.address)).to.equal(1);
+    });
+
+    it("Should prevent batch minting with empty recipients", async function () {
+      await expect(
+        quintyNFT.batchMintBadges([], 0, "ipfs://badge/")
+      ).to.be.revertedWith("Empty recipients array");
     });
   });
 });
