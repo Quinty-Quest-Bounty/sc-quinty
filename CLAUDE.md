@@ -16,14 +16,14 @@ RPC: `https://sepolia.base.org`
 Explorer: `https://sepolia-explorer.base.org`
 USDC: `0x036CbD53842c5426634e7929541eC2318f3dCF7e` (6 decimals)
 
-## Deployed Contracts (2026-02-09)
+## Deployed Contracts (2026-03-07)
 
 | Contract | Address | Purpose |
 |----------|---------|---------|
-| Quinty | `0x034cf0b72BcB1b529a2B0458275E0307CD6b5459` | Bounty system |
-| Quest | `0x86cc170e725784812A31F548c434e425bc0181B1` | Social quests |
-| QuintyReputation | `0x3Fc6d21B3AC4E419a2bEe6BeB40E00FfF2bF1014` | Soulbound achievement NFTs |
-| QuintyNFT | `0x6fcd78D8BB923E20B3C657C65f64A20a4a6b9884` | Badge NFTs |
+| Quinty | `0x4E84aaDC0471AB53B28c1d3b52FEF7c9742f0D53` | Bounty system (V3) |
+| Quest | `0x65Af33E2Aa718f075EE8a94587E65DeeA4dbA257` | Social quests (V2) |
+| QuintyReputation | `0xF40fAC4Ce037835Fa8fA3BEba32184E9f50A589c` | Soulbound achievement NFTs |
+| QuintyNFT | `0x49f96178Bd217C4C50f94BcDE74Fbc06D9b51C96` | Badge NFTs |
 
 ## Tech Stack
 
